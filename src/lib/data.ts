@@ -1,0 +1,68 @@
+import type { Product } from './types';
+
+export const sampleProducts: Product[] = [
+  {
+    id: '1',
+    name: 'Classic White T-Shirt',
+    barcode: '1234567890123',
+    price: 19.99,
+    quantity: 150,
+    category: 'Apparel',
+  },
+  {
+    id: '2',
+    name: 'Blue Denim Jeans',
+    barcode: '2345678901234',
+    price: 49.99,
+    quantity: 75,
+    category: 'Apparel',
+  },
+  {
+    id: '3',
+    name: 'Leather Wallet',
+    barcode: '3456789012345',
+    price: 25.0,
+    quantity: 200,
+    category: 'Accessories',
+  },
+  {
+    id: '4',
+    name: 'Running Sneakers',
+    barcode: '4567890123456',
+    price: 89.5,
+    quantity: 50,
+    category: 'Footwear',
+  },
+  {
+    id: '5',
+    name: 'Stainless Steel Watch',
+    barcode: '5678901234567',
+    price: 199.99,
+    quantity: 30,
+    category: 'Accessories',
+  },
+  {
+    id: '6',
+    name: 'Organic Green Tea',
+    barcode: '6789012345678',
+    price: 8.99,
+    quantity: 300,
+    category: 'Groceries',
+  },
+    {
+    id: '7',
+    name: 'Wireless Mouse',
+    barcode: '7890123456789',
+    price: 29.99,
+    quantity: 120,
+    category: 'Electronics',
+  },
+  {
+    id: '8',
+    name: 'Mechanical Keyboard',
+    barcode: '8901234567890',
+    price: 119.99,
+    quantity: 60,
+    category: 'Electronics',
+  },
+];
