@@ -16,8 +16,11 @@ export type Invoice = {
   id: string;
   customerName: string;
   items: InvoiceItem[];
+  subtotal: number;
+  tax: number;
   total: number;
   createdAt: Date;
+  type: 'pos' | 'manual';
 };
 
 export type ActiveModules = {
