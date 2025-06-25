@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from "@/components/ui/input";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from "@/hooks/use-toast";
-import { FileSignature, PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { FileSignature, PlusCircle, MoreHorizontal, Pencil, Trash2, Eye } from 'lucide-react';
 import type { FactureModele } from '@/lib/types';
 
 const colorRegex = /^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/;
@@ -30,6 +30,49 @@ const modeleSchema = z.object({
   primaryColor: hslColorSchema,
 });
 
+function InvoicePreview({ logoUrl, headerContent, footerContent, primaryColor }: Partial<FactureModele>) {
+  const primaryColorStyle = primaryColor ? { color: `hsl(${primaryColor})` } : {};
+
+  return (
+    <div className="bg-white p-6 rounded-md shadow-sm border aspect-[210/297] scale-95 origin-top mx-auto">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-12 w-auto max-w-[150px] object-contain" onError={(e) => { e.currentTarget.src = 'https://placehold.co/150x50.png'; e.currentTarget.alt = 'Logo invalide'; }} />
+          ) : (
+            <h2 className="text-xl font-bold" style={primaryColorStyle}>Votre Logo</h2>
+          )}
+          <p className="text-xs text-gray-500 mt-1">Votre Adresse, Ville</p>
+          <p className="text-xs text-gray-500">Votre Téléphone</p>
+        </div>
+        <div className="text-right">
+          <h1 className="text-2xl font-bold" style={primaryColorStyle}>
+            {headerContent || 'FACTURE'}
+          </h1>
+          <p className="text-xs text-gray-500">N° : FACT-001</p>
+          <p className="text-xs text-gray-500">Date : 01/01/2024</p>
+        </div>
+      </div>
+      {/* Client Info */}
+      <div className="mb-8">
+        <p className="text-xs text-gray-500">Facturé à :</p>
+        <p className="font-semibold text-sm">Nom du Client</p>
+      </div>
+      {/* Table */}
+      <div className="text-xs">
+          <div className="flex bg-gray-50 p-2 font-bold rounded-t-md"><div className="flex-1">Produit / Service</div><div className="w-12 text-center">Qté</div><div className="w-20 text-right">P.U.</div><div className="w-20 text-right">Total</div></div>
+          <div className="flex p-2 border-b"><div className="flex-1">Exemple de produit A</div><div className="w-12 text-center">2</div><div className="w-20 text-right">1 000</div><div className="w-20 text-right">2 000</div></div>
+          <div className="flex p-2 border-b"><div className="flex-1">Exemple de service B</div><div className="w-12 text-center">1</div><div className="w-20 text-right">5 000</div><div className="w-20 text-right">5 000</div></div>
+          <div className="flex p-2 mt-4 font-bold justify-end text-sm"><div className="w-20 text-right text-gray-500">Total :</div><div className="w-20 text-right">7 000</div></div>
+      </div>
+       {/* Footer */}
+      <div className="mt-8 pt-4 border-t text-center text-xs text-gray-500 absolute bottom-6 inset-x-6">
+        <p>{footerContent || 'Merci de votre confiance et à bientôt !'}</p>
+      </div>
+    </div>
+  )
+}
 
 export default function InvoiceTemplatesPage() {
     const { factureModeles, addFactureModele, updateFactureModele, deleteFactureModele } = useApp();
@@ -41,14 +84,18 @@ export default function InvoiceTemplatesPage() {
         resolver: zodResolver(modeleSchema),
         defaultValues: { nom: "", logoUrl: "", headerContent: "", footerContent: "", primaryColor: "" },
     });
+    
+    const watchedValues = form.watch();
 
     useEffect(() => {
-        if (editingModele) {
-            form.reset(editingModele);
-        } else {
-            form.reset({ nom: "", logoUrl: "", headerContent: "", footerContent: "", primaryColor: "" });
+        if (isDialogOpen) {
+            if (editingModele) {
+                form.reset(editingModele);
+            } else {
+                form.reset({ nom: "", logoUrl: "", headerContent: "", footerContent: "", primaryColor: "" });
+            }
         }
-    }, [editingModele, form]);
+    }, [editingModele, form, isDialogOpen]);
 
     const handleAddNew = () => {
         setEditingModele(null);
@@ -90,7 +137,7 @@ export default function InvoiceTemplatesPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2"><FileSignature /> Vos Modèles</CardTitle>
-                    <CardDescription>Gérez les modèles réutilisables pour vos factures.</CardDescription>
+                    <CardDescription>Gérez les modèles réutilisables pour la mise en page de vos factures.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="rounded-lg border">
@@ -157,35 +204,48 @@ export default function InvoiceTemplatesPage() {
             </Card>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-5xl h-[90vh] flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="font-headline">{editingModele ? "Modifier le Modèle" : "Nouveau Modèle de Facture"}</DialogTitle>
                     </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-                            <FormField control={form.control} name="nom" render={({ field }) => (
-                                <FormItem><FormLabel>Nom du modèle</FormLabel><FormControl><Input placeholder="ex: Facture Proforma" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                             <FormField control={form.control} name="logoUrl" render={({ field }) => (
-                                <FormItem><FormLabel>URL du logo</FormLabel><FormControl><Input placeholder="https://votresite.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="headerContent" render={({ field }) => (
-                                <FormItem><FormLabel>Titre de la facture</FormLabel><FormControl><Input placeholder="ex: FACTURE" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="footerContent" render={({ field }) => (
-                                <FormItem><FormLabel>Notes de bas de page</FormLabel><FormControl><Textarea placeholder="ex: Conditions de paiement..." {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="primaryColor" render={({ field }) => (
-                                <FormItem><FormLabel>Couleur principale</FormLabel><FormControl><Input placeholder="ex: 231 48% 48%" {...field} /></FormControl><FormDescription>Entrez une couleur au format HSL (ex: 231 48% 48%).</FormDescription><FormMessage /></FormItem>
-                            )}/>
-                            <DialogFooter>
-                                <DialogClose asChild><Button type="button" variant="ghost">Annuler</Button></DialogClose>
-                                <Button type="submit">{editingModele ? "Sauvegarder" : "Créer"}</Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
+                    <div className="flex-1 grid md:grid-cols-2 gap-8 overflow-hidden">
+                      <div className="flex flex-col">
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-y-auto pr-4 flex-1">
+                                <FormField control={form.control} name="nom" render={({ field }) => (
+                                    <FormItem><FormLabel>Nom du modèle</FormLabel><FormControl><Input placeholder="ex: Facture Proforma" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="logoUrl" render={({ field }) => (
+                                    <FormItem><FormLabel>URL du logo</FormLabel><FormControl><Input placeholder="https://votresite.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="headerContent" render={({ field }) => (
+                                    <FormItem><FormLabel>Titre de la facture</FormLabel><FormControl><Input placeholder="ex: FACTURE" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="footerContent" render={({ field }) => (
+                                    <FormItem><FormLabel>Notes de bas de page</FormLabel><FormControl><Textarea placeholder="ex: Conditions de paiement..." {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="primaryColor" render={({ field }) => (
+                                    <FormItem><FormLabel>Couleur principale</FormLabel><FormControl><Input placeholder="ex: 231 48% 48%" {...field} /></FormControl><FormDescription>Entrez une couleur au format HSL (ex: 231 48% 48%).</FormDescription><FormMessage /></FormItem>
+                                )}/>
+                            </form>
+                        </Form>
+                        <DialogFooter className="mt-auto pt-4 border-t">
+                            <DialogClose asChild><Button type="button" variant="ghost">Annuler</Button></DialogClose>
+                            <Button type="button" onClick={form.handleSubmit(onSubmit)}>{editingModele ? "Sauvegarder" : "Créer"}</Button>
+                        </DialogFooter>
+                      </div>
+
+                      <div className="bg-muted/30 rounded-lg p-4 overflow-y-auto">
+                        <div className="flex items-center gap-2 mb-4 justify-center">
+                            <Eye className="w-5 h-5 text-muted-foreground" />
+                            <h3 className="font-semibold text-lg text-center text-muted-foreground">Aperçu en direct</h3>
+                        </div>
+                        <InvoicePreview {...watchedValues} />
+                      </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
     );
-}
+
+    
