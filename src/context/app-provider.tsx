@@ -56,7 +56,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCategories(apiCategories);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
-      toast({ variant: 'destructive', title: 'Erreur Réseau', description: 'Impossible de charger les catégories.' });
+      const description = (error instanceof Error) ? error.message : 'Impossible de charger les catégories.';
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de connexion au Backend',
+        description: `${description} Utilisation des données locales de démo.`,
+      });
       setCategories(sampleCategories); // Fallback to sample data
     }
   }, [toast]);
