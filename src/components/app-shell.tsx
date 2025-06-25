@@ -27,7 +27,8 @@ import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
 import { ScanLine, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart } from 'lucide-react';
-import { useApp } from '@/context/app-provider';
+import { Tag, Package } from 'lucide-react'; // Import new icons
+import { useApp } from '@/context/app-provider'; 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { activeModules, isMounted, shopInfo } = useApp();
@@ -60,12 +61,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
+    // The first item was changed to Point de Vente earlier, keeping that change.
     {
-      href: '/',
-      icon: <ScanLine />,
-      label: 'Tableau de Bord',
-      active: pathname === '/',
-      module: 'barcode',
+      href: '/categories',
+      icon: <Tag />, // Using Tag icon for Categories
+      label: 'Catégories',
+      active: pathname === '/categories',
+      module: 'all',
+    },
+    {
+      href: '/products',
+      icon: <Package />, // Using Package icon for Products
+      label: 'Products',
+      active: pathname === '/products',
+      module: 'all',
     },
     {
       href: '/stock',
@@ -73,6 +82,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       label: 'Stock',
       active: pathname === '/stock',
       module: 'stock',
+    },
+    {
+      href: '/pos',
+      icon: <ShoppingCart />,
+      label: 'Point de Vente',
+      active: pathname === '/pos',
+      module: 'pos',
     },
     {
       href: '/invoicing',
@@ -83,14 +99,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       href: '/pos',
-      icon: <ShoppingCart />,
-      label: 'Point de Vente',
-      active: pathname === '/pos',
-      module: 'pos',
+      icon: <ScanLine />,
+      label: 'Tableau de Bord',
+      active: pathname === '/',
+      module: 'barcode',
     },
     {
-      href: '/settings',
-      icon: <Settings />,
+      href: '/products',
+      icon: <Package />, // Using Package icon for Products
       label: 'Paramètres',
       active: pathname === '/settings',
       module: 'all', // Always show settings
