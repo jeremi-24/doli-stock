@@ -1,72 +1,191 @@
 
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useApp } from '@/context/app-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Tag, PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import type { Categorie } from '@/lib/types';
+
+const categorieSchema = z.object({
+  nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
+});
 
 export default function CategoriesPage() {
-    const { products } = useApp();
+    const { categories, produits, addCategorie, updateCategorie, deleteCategorie } = useApp();
+    const { toast } = useToast();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [editingCategorie, setEditingCategorie] = useState<Categorie | null>(null);
 
-    const categoryData = useMemo(() => {
-        const categories: { [key: string]: { count: number; stock: number } } = {};
-        products.forEach(product => {
-            if (!categories[product.category]) {
-                categories[product.category] = { count: 0, stock: 0 };
-            }
-            categories[product.category].count += 1;
-            categories[product.category].stock += product.quantity;
-        });
-        return Object.entries(categories)
-            .map(([name, data]) => ({ name, ...data }))
-            .sort((a, b) => a.name.localeCompare(b.name));
-    }, [products]);
+    const form = useForm<z.infer<typeof categorieSchema>>({
+        resolver: zodResolver(categorieSchema),
+        defaultValues: { nom: "" },
+    });
 
-  return (
-    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="flex items-center">
-        <h1 className="font-headline text-3xl font-semibold">Catégories de Produits</h1>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center gap-2"><Tag /> Vos Catégories</CardTitle>
-          <CardDescription>
-            Voici la liste de toutes les catégories de produits basées sur votre inventaire.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom de la Catégorie</TableHead>
-                  <TableHead className="text-right">Produits Uniques</TableHead>
-                  <TableHead className="text-right">Quantité Totale en Stock</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categoryData.length > 0 ? (
-                  categoryData.map((category) => (
-                    <TableRow key={category.name}>
-                      <TableCell className="font-medium">{category.name}</TableCell>
-                      <TableCell className="text-right">{category.count}</TableCell>
-                      <TableCell className="text-right">{category.stock} unités</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center">
-                      Aucune catégorie trouvée. Ajoutez des produits avec des catégories pour les voir ici.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
+    useEffect(() => {
+        if (editingCategorie) {
+            form.reset({ nom: editingCategorie.nom });
+        } else {
+            form.reset({ nom: "" });
+        }
+    }, [editingCategorie, form]);
+
+    const handleAddNew = () => {
+        setEditingCategorie(null);
+        setIsDialogOpen(true);
+    };
+
+    const handleEdit = (categorie: Categorie) => {
+        setEditingCategorie(categorie);
+        setIsDialogOpen(true);
+    };
+
+    const onSubmit = (values: z.infer<typeof categorieSchema>) => {
+        if (editingCategorie) {
+            updateCategorie({ ...editingCategorie, ...values });
+            toast({ title: "Catégorie mise à jour" });
+        } else {
+            addCategorie(values);
+            toast({ title: "Catégorie ajoutée" });
+        }
+        setIsDialogOpen(false);
+    };
+
+    const handleDelete = (categorieId: string) => {
+        const isUsed = produits.some(p => p.categorie_id === categorieId);
+        if (isUsed) {
+            toast({ variant: 'destructive', title: 'Suppression impossible', description: 'Cette catégorie est utilisée par au moins un produit.' });
+            return;
+        }
+        deleteCategorie(categorieId);
+        toast({ title: "Catégorie supprimée" });
+    };
+
+    const getCategoryUsage = (categorieId: string) => {
+        return produits.filter(p => p.categorie_id === categorieId).length;
+    };
+    
+    return (
+        <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            <div className="flex items-center">
+                <h1 className="font-headline text-3xl font-semibold">Catégories de Produits</h1>
+                <div className="ml-auto">
+                    <Button size="sm" onClick={handleAddNew}>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Ajouter une catégorie
+                    </Button>
+                </div>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Tag /> Vos Catégories</CardTitle>
+                    <CardDescription>Gérez les catégories de vos produits.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-lg border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Nom de la Catégorie</TableHead>
+                                    <TableHead className="text-right">Nombre de produits</TableHead>
+                                    <TableHead><span className="sr-only">Actions</span></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {categories.length > 0 ? (
+                                    categories.map((cat) => (
+                                        <TableRow key={cat.id}>
+                                            <TableCell className="font-medium">{cat.nom}</TableCell>
+                                            <TableCell className="text-right">{getCategoryUsage(cat.id)}</TableCell>
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <span className="sr-only">Ouvrir le menu</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleEdit(cat)}>
+                                                            <Pencil className="mr-2 h-4 w-4" /> Modifier
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
+                                                                    <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        Cette action est irréversible. Elle supprimera définitivement la catégorie "{cat.nom}".
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDelete(cat.id)}>Supprimer</AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="h-24 text-center">
+                                            Aucune catégorie trouvée. Commencez par en ajouter une.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="font-headline">{editingCategorie ? "Modifier la Catégorie" : "Ajouter une Catégorie"}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+                            <FormField
+                                control={form.control}
+                                name="nom"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nom de la catégorie</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="ex: Boissons" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <DialogClose asChild><Button type="button" variant="ghost">Annuler</Button></DialogClose>
+                                <Button type="submit">{editingCategorie ? "Sauvegarder" : "Créer"}</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}

@@ -27,7 +27,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { ScanLine, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart, Tag } from 'lucide-react';
+import { LayoutDashboard, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart, Tag } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -52,7 +52,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   if (!isMounted) {
-    // You can return a loading skeleton here
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Logo className="h-10 w-10 animate-pulse" />
@@ -63,16 +62,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navItems = [
     {
       href: '/',
-      icon: <ScanLine />,
+      icon: <LayoutDashboard />,
       label: 'Tableau de Bord',
       active: pathname === '/',
-      module: 'barcode',
+      module: 'all', 
     },
     {
       href: '/stock',
       icon: <Warehouse />,
       label: 'Stock',
       active: pathname === '/stock',
+      module: 'stock',
+    },
+    {
+      href: '/categories',
+      icon: <Tag />,
+      label: 'Catégories',
+      active: pathname === '/categories',
       module: 'stock',
     },
     {
@@ -85,23 +91,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     {
       href: '/invoicing',
       icon: <FileText />,
-      label: 'Facturation',
+      label: 'Ventes',
       active: pathname === '/invoicing',
       module: 'invoicing',
-    },
-    {
-      href: '/categories',
-      icon: <Tag />,
-      label: 'Catégories',
-      active: pathname === '/categories',
-      module: 'stock', // Visible if stock is visible
     },
     {
       href: '/settings',
       icon: <Settings />,
       label: 'Paramètres',
       active: pathname === '/settings',
-      module: 'all', // Always visible
+      module: 'all',
     },
   ];
 
@@ -168,7 +167,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-6 sticky top-0 z-30">
             <SidebarTrigger className="md:hidden" />
             <div className="flex-1">
-                {/* Header content like a global search can go here */}
             </div>
             <Button variant="ghost" size="icon" onClick={toggleTheme}>
                 <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

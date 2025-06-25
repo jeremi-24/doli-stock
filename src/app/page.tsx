@@ -6,16 +6,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScanLine, Search, Package, DollarSign, Archive, FileText } from "lucide-react";
+import { ScanLine, Search, Package, DollarSign, Archive, FileText, TrendingUp, AlertCircle } from "lucide-react";
 import { useApp } from "@/context/app-provider";
-import type { Product } from "@/lib/types";
+import type { Produit } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 
 function BarcodeScannerCard() {
-    const { products } = useApp();
+    const { produits } = useApp();
     const [barcode, setBarcode] = useState("");
-    const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
+    const [scannedProduct, setScannedProduct] = useState<Produit | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
     
@@ -29,7 +29,7 @@ function BarcodeScannerCard() {
         setIsScanning(true);
 
         setTimeout(() => {
-        const product = products.find((p) => p.barcode === barcode);
+        const product = produits.find((p) => p.code_barre === barcode);
         if (product) {
             setScannedProduct(product);
         } else {
@@ -37,7 +37,7 @@ function BarcodeScannerCard() {
         }
         setIsScanning(false);
         setBarcode("");
-        }, 1000);
+        }, 500);
     };
 
     return (
@@ -62,7 +62,7 @@ function BarcodeScannerCard() {
                         disabled={isScanning}
                         />
                         <Button onClick={handleScan} disabled={!barcode || isScanning}>
-                        {isScanning ? 'Scan...' : <Search className="mr-2 h-4 w-4" />}
+                         {isScanning ? 'Scan...' : <Search className="h-4 w-4" />}
                         </Button>
                     </div>
                 </div>
@@ -75,22 +75,22 @@ function BarcodeScannerCard() {
                 {scannedProduct ? (
                 <div className="space-y-4 pt-4 border-t">
                     <div>
-                    <h3 className="text-xl font-bold font-headline text-primary">{scannedProduct.name}</h3>
-                    <p className="text-sm text-muted-foreground">#{scannedProduct.barcode}</p>
+                    <h3 className="text-xl font-bold font-headline text-primary">{scannedProduct.nom}</h3>
+                    <p className="text-sm text-muted-foreground">#{scannedProduct.code_barre}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
                         <DollarSign className="h-5 w-5 text-muted-foreground" />
                         <div>
-                        <p className="text-sm text-muted-foreground">Prix</p>
-                        <p className="font-semibold">{formatCurrency(scannedProduct.price)}</p>
+                        <p className="text-sm text-muted-foreground">Prix de Vente</p>
+                        <p className="font-semibold">{formatCurrency(scannedProduct.prix_vente)}</p>
                         </div>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Package className="h-5 w-5 text-muted-foreground" />
                         <div>
                         <p className="text-sm text-muted-foreground">En Stock</p>
-                        <p className="font-semibold">{scannedProduct.quantity} unités</p>
+                        <p className="font-semibold">{scannedProduct.quantite_stock} {scannedProduct.unite}(s)</p>
                         </div>
                     </div>
                     </div>
@@ -108,12 +108,12 @@ function BarcodeScannerCard() {
 
 
 export default function DashboardPage() {
-  const { products, invoices, activeModules } = useApp();
+  const { produits, ventes, activeModules } = useApp();
   
-  const totalProducts = products.length;
-  const outOfStockProducts = products.filter(p => p.quantity === 0).length;
-  const recentInvoices = invoices.filter(inv => new Date(inv.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length;
-  const totalStockValue = products.reduce((acc, p) => acc + (p.price * p.quantity), 0);
+  const totalProducts = produits.length;
+  const outOfStockProducts = produits.filter(p => p.quantite_stock === 0).length;
+  const lowStockProducts = produits.filter(p => p.quantite_stock > 0 && p.quantite_stock <= p.alerte_stock).length;
+  const totalStockValue = produits.reduce((acc, p) => acc + (p.prix_vente * p.quantite_stock), 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -132,27 +132,27 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalStockValue)}</div>
-            <p className="text-xs text-muted-foreground">{totalProducts} produits uniques</p>
+            <p className="text-xs text-muted-foreground">{totalProducts} produits uniques en stock</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Factures (7 derniers jours)</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total des Ventes</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{recentInvoices}</div>
-            <p className="text-xs text-muted-foreground">Total de {invoices.length} factures</p>
+            <div className="text-2xl font-bold">{ventes.length}</div>
+            <p className="text-xs text-muted-foreground">Nombre total de transactions</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Produits en Stock</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Alertes de Stock Faible</CardTitle>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalProducts}</div>
-            <p className="text-xs text-muted-foreground">Types de produits différents</p>
+            <div className="text-2xl font-bold">{lowStockProducts}</div>
+            <p className="text-xs text-muted-foreground">Produits à réapprovisionner</p>
           </CardContent>
         </Card>
         <Card>
@@ -162,7 +162,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{outOfStockProducts}</div>
-            <p className="text-xs text-muted-foreground">Nécessitent un réapprovisionnement</p>
+            <p className="text-xs text-muted-foreground">Produits en rupture de stock</p>
           </CardContent>
         </Card>
       </div>
@@ -171,19 +171,19 @@ export default function DashboardPage() {
          <Card className="lg:col-span-1">
              <CardHeader>
                 <CardTitle className="font-headline">Activité Récente</CardTitle>
-                <CardDescription>Dernières factures enregistrées.</CardDescription>
+                <CardDescription>Dernières ventes enregistrées.</CardDescription>
              </CardHeader>
              <CardContent>
-                 {invoices.slice(0, 5).map(invoice => (
-                     <div key={invoice.id} className="flex items-center justify-between py-2 border-b last:border-none">
+                 {ventes.slice(0, 5).map(vente => (
+                     <div key={vente.id} className="flex items-center justify-between py-2 border-b last:border-none">
                          <div>
-                             <p className="font-medium">{invoice.customerName}</p>
-                             <p className="text-xs text-muted-foreground">{new Date(invoice.createdAt).toLocaleDateString('fr-FR')}</p>
+                             <p className="font-medium">{vente.client}</p>
+                             <p className="text-xs text-muted-foreground">{new Date(vente.date_vente).toLocaleDateString('fr-FR')}</p>
                          </div>
-                         <div className="font-semibold">{formatCurrency(invoice.total)}</div>
+                         <div className="font-semibold">{formatCurrency(vente.montant_total)}</div>
                      </div>
                  ))}
-                 {invoices.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucune activité récente.</p>}
+                 {ventes.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucune activité récente.</p>}
              </CardContent>
          </Card>
       </div>

@@ -1,18 +1,21 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Product, ActiveModules, InvoiceItem, Invoice, ShopInfo, ThemeColors } from '@/lib/types';
-import { sampleProducts } from '@/lib/data';
+import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors } from '@/lib/types';
+import { sampleProduits, sampleCategories } from '@/lib/data';
 
 interface AppContextType {
-  products: Product[];
-  invoices: Invoice[];
-  addProduct: (product: Product) => void;
-  updateProduct: (product: Product) => void;
-  deleteProduct: (productId: string) => void;
-  addMultipleProducts: (products: Product[]) => void;
-  processSale: (cartItems: InvoiceItem[]) => void;
-  addInvoice: (invoice: Omit<Invoice, 'id' | 'createdAt'>) => void;
+  produits: Produit[];
+  categories: Categorie[];
+  ventes: Vente[];
+  addProduit: (produit: Omit<Produit, 'id'>) => void;
+  updateProduit: (produit: Produit) => void;
+  deleteProduit: (produitId: string) => void;
+  addMultipleProduits: (produits: Produit[]) => void;
+  addCategorie: (categorie: Omit<Categorie, 'id'>) => void;
+  updateCategorie: (categorie: Categorie) => void;
+  deleteCategorie: (categorieId: string) => void;
+  addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => void;
   activeModules: ActiveModules;
   setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
   shopInfo: ShopInfo;
@@ -46,80 +49,57 @@ const initialThemeColors: ThemeColors = {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [produits, setProduits] = useState<Produit[]>([]);
+  const [categories, setCategories] = useState<Categorie[]>([]);
+  const [ventes, setVentes] = useState<Vente[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
   const [shopInfo, setShopInfo] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
 
+  // Load data from localStorage on mount
   useEffect(() => {
     try {
-      const storedProducts = localStorage.getItem('stockhero_products');
-      if (storedProducts) {
-        setProducts(JSON.parse(storedProducts));
-      } else {
-        setProducts(sampleProducts);
-      }
+      const storedProduits = localStorage.getItem('stockhero_produits');
+      setProduits(storedProduits ? JSON.parse(storedProduits) : sampleProduits);
+
+      const storedCategories = localStorage.getItem('stockhero_categories');
+      setCategories(storedCategories ? JSON.parse(storedCategories) : sampleCategories);
       
-      const storedInvoices = localStorage.getItem('stockhero_invoices');
-      if (storedInvoices) {
-        const parsedInvoices = JSON.parse(storedInvoices).map((inv: Invoice) => ({
-            ...inv,
-            createdAt: new Date(inv.createdAt)
+      const storedVentes = localStorage.getItem('stockhero_ventes');
+      if (storedVentes) {
+        const parsedVentes = JSON.parse(storedVentes).map((v: Vente) => ({
+            ...v,
+            date_vente: new Date(v.date_vente)
         }));
-        setInvoices(parsedInvoices);
+        setVentes(parsedVentes);
       }
 
       const storedModules = localStorage.getItem('stockhero_modules');
-      if (storedModules) {
-        setActiveModules(JSON.parse(storedModules));
-      }
+      if (storedModules) setActiveModules(JSON.parse(storedModules));
 
       const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
-      if (storedShopInfo) {
-        setShopInfo(JSON.parse(storedShopInfo));
-      }
+      if (storedShopInfo) setShopInfo(JSON.parse(storedShopInfo));
 
       const storedThemeColors = localStorage.getItem('stockhero_themecolors');
-      if (storedThemeColors) {
-        setThemeColors(JSON.parse(storedThemeColors));
-      }
+      if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
 
     } catch (error) {
       console.error("Failed to access localStorage", error);
-      setProducts(sampleProducts);
+      setProduits(sampleProduits);
+      setCategories(sampleCategories);
     }
     setIsMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('stockhero_products', JSON.stringify(products));
-    }
-  }, [products, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('stockhero_invoices', JSON.stringify(invoices));
-    }
-  }, [invoices, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('stockhero_modules', JSON.stringify(activeModules));
-    }
-  }, [activeModules, isMounted]);
-
-  useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('stockhero_shopinfo', JSON.stringify(shopInfo));
-    }
-  }, [shopInfo, isMounted]);
-
+  // Persist data to localStorage when it changes
+  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_produits', JSON.stringify(produits)); }, [produits, isMounted]);
+  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_categories', JSON.stringify(categories)); }, [categories, isMounted]);
+  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
+  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_modules', JSON.stringify(activeModules)); }, [activeModules, isMounted]);
+  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_shopinfo', JSON.stringify(shopInfo)); }, [shopInfo, isMounted]);
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('stockhero_themecolors', JSON.stringify(themeColors));
-      
       const root = document.documentElement;
       if (themeColors.primary) root.style.setProperty('--primary', themeColors.primary);
       if (themeColors.background) root.style.setProperty('--background', themeColors.background);
@@ -127,82 +107,77 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [themeColors, isMounted]);
 
-
-  const addProduct = (product: Product) => {
-    setProducts((prev) => [...prev, product]);
+  // CRUD PRODUITS
+  const addProduit = (produitData: Omit<Produit, 'id'>) => {
+    const newProduit: Produit = { id: `prod-${Date.now()}`, ...produitData };
+    setProduits((prev) => [...prev, newProduit]);
   };
-
-  const addMultipleProducts = (newProducts: Product[]) => {
-    setProducts((prevProducts) => {
-      const existingBarcodes = new Set(prevProducts.map((p) => p.barcode));
-      const uniqueNewProducts = newProducts.filter(
-        (p) => !existingBarcodes.has(p.barcode)
-      );
-      return [...prevProducts, ...uniqueNewProducts];
+  const updateProduit = (updatedProduit: Produit) => {
+    setProduits((prev) => prev.map((p) => (p.id === updatedProduit.id ? updatedProduit : p)));
+  };
+  const deleteProduit = (produitId: string) => {
+    setProduits((prev) => prev.filter((p) => p.id !== produitId));
+  };
+   const addMultipleProduits = (newProduits: Produit[]) => {
+    setProduits((prevProduits) => {
+      const existingBarcodes = new Set(prevProduits.map((p) => p.code_barre));
+      const uniqueNewProducts = newProduits.filter(p => !existingBarcodes.has(p.code_barre));
+      return [...prevProduits, ...uniqueNewProducts];
     });
   };
 
-  const updateProduct = (updatedProduct: Product) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-    );
+  // CRUD CATEGORIES
+  const addCategorie = (categorieData: Omit<Categorie, 'id'>) => {
+    const newCategorie: Categorie = { id: `cat-${Date.now()}`, ...categorieData };
+    setCategories((prev) => [...prev, newCategorie]);
   };
-
-  const deleteProduct = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
+  const updateCategorie = (updatedCategorie: Categorie) => {
+    setCategories((prev) => prev.map((c) => (c.id === updatedCategorie.id ? updatedCategorie : c)));
+  };
+  const deleteCategorie = (categorieId: string) => {
+    setCategories((prev) => prev.filter((c) => c.id !== categorieId));
   };
   
-  const processSale = (cartItems: InvoiceItem[]) => {
-    setProducts(prevProducts => {
-      const newProducts = [...prevProducts];
-      for (const item of cartItems) {
-        const productIndex = newProducts.findIndex(p => p.id === item.product.id);
+  // GESTION VENTES
+  const addVente = (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
+    // 1. Mettre à jour le stock
+    setProduits(prevProduits => {
+      const newProduits = [...prevProduits];
+      for (const ligne of venteData.lignes) {
+        const productIndex = newProduits.findIndex(p => p.id === ligne.produit.id);
         if (productIndex > -1) {
-          newProducts[productIndex] = {
-            ...newProducts[productIndex],
-            quantity: newProducts[productIndex].quantity - item.quantity
+          newProduits[productIndex] = {
+            ...newProduits[productIndex],
+            quantite_stock: newProduits[productIndex].quantite_stock - ligne.quantite
           };
         }
       }
-      return newProducts;
+      return newProduits;
     });
 
-    const subtotal = cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
-    const tax = subtotal * 0.18; // TVA à 18%
-    const total = subtotal + tax;
-
-    const newInvoice: Invoice = {
-        id: `FACT-${Date.now()}`,
-        customerName: `Vente PDV`,
-        items: cartItems,
-        subtotal,
-        tax,
-        total,
-        createdAt: new Date(),
-        type: 'pos',
+    // 2. Créer la nouvelle vente
+    const newVente: Vente = {
+      ...venteData,
+      id: `VENTE-${Date.now()}`,
+      date_vente: new Date(),
+      reste: venteData.montant_total - venteData.montant_paye,
     };
-    setInvoices(prev => [newInvoice, ...prev]);
+    setVentes(prev => [newVente, ...prev]);
   };
-
-  const addInvoice = (invoiceData: Omit<Invoice, 'id' | 'createdAt'>) => {
-    const newInvoice: Invoice = {
-      ...invoiceData,
-      id: `FACT-${Date.now()}`,
-      createdAt: new Date(),
-    };
-    setInvoices(prev => [newInvoice, ...prev]);
-  }
 
 
   const value = {
-    products,
-    invoices,
-    addProduct,
-    updateProduct,
-    deleteProduct,
-    addMultipleProducts,
-    processSale,
-    addInvoice,
+    produits,
+    categories,
+    ventes,
+    addProduit,
+    updateProduit,
+    deleteProduit,
+    addMultipleProduits,
+    addCategorie,
+    updateCategorie,
+    deleteCategorie,
+    addVente,
     activeModules,
     setActiveModules,
     shopInfo,
