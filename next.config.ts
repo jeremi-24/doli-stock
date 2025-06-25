@@ -18,6 +18,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        // Le proxy pour les appels côté client
+        destination: 'http://192.168.1.140/:path*',
+      },
+    ]
+  },
 };
 
 export default nextConfig;

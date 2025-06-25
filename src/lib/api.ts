@@ -2,12 +2,15 @@
 
 import type { Categorie, Produit } from './types';
 
-// URL directe du backend. Les appels sont faits côté serveur, donc pas de problème de "Mixed Content".
-const API_BASE_URL = 'http://192.168.1.140';
+// Utilisation de la variable d'environnement pour l'URL du backend
+const API_BASE_URL = process.env.BACKEND_API_URL;
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const url = `${API_BASE_URL}${endpoint}`;
+  console.log(`Fetching: ${options.method || 'GET'} ${url}`);
+
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -18,7 +21,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`API Error: ${response.status} ${response.statusText}`, errorBody);
+      console.error(`API Error: ${response.status} ${response.statusText}`, { url, options, errorBody });
       throw new Error(`La requête API a échoué: ${response.statusText}`);
     }
 
@@ -28,7 +31,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
     return response.json();
   } catch (error) {
-    console.error('Erreur de connexion API:', error);
+    console.error('Erreur de connexion API:', { url, error });
     throw error;
   }
 }
@@ -44,7 +47,6 @@ export async function getCategoryById(id: number): Promise<Categorie> {
 };
 
 export async function createCategory(data: { nom: string }): Promise<Categorie> {
-  // Conforme au corps de requête attendu par l'API
   const body = { id: 0, nom: data.nom, produits: [] };
   return apiFetch('/categorie', {
     method: 'POST',
@@ -68,8 +70,10 @@ export async function deleteCategory(id: number): Promise<null> {
 // ========== Products API ==========
 
 export async function importProducts(formData: FormData): Promise<Produit[]> {
-  // On n'utilise pas apiFetch car le content-type est multipart/form-data
-  const res = await fetch(`${API_BASE_URL}/produit/import`, {
+  const url = `${API_BASE_URL}/produit/import`;
+  console.log(`Fetching: POST ${url}`);
+  
+  const res = await fetch(url, {
     method: 'POST',
     body: formData,
   });
