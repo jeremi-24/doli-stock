@@ -213,18 +213,22 @@ function BarcodePrintDialog({ open, onOpenChange, products }: { open: boolean, o
           </DialogDescription>
         </DialogHeader>
         <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
-            <div ref={printRef} className="barcode-grid">
-              {products.map((product) => (
-                <div key={product.id} className="barcode-item">
-                  <p className="product-name">{product.name}</p>
-                  <Barcode value={product.barcode} height={40} width={1.5} fontSize={10} margin={5} />
+            {products && products.length > 0 ? (
+                <div ref={printRef} className="barcode-grid">
+                {products.map((product) => (
+                    <div key={product.id} className="barcode-item">
+                    <p className="product-name">{product.name}</p>
+                    <Barcode value={product.barcode} height={40} width={1.5} fontSize={10} margin={5} />
+                    </div>
+                ))}
                 </div>
-              ))}
-            </div>
+            ) : (
+                <p className="text-center text-muted-foreground h-full flex items-center justify-center">Aucun produit à imprimer.</p>
+            )}
         </div>
         <DialogFooter>
           <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-          <Button onClick={handlePrint}>
+          <Button onClick={handlePrint} disabled={!products || products.length === 0}>
             <Printer className="h-4 w-4 mr-2" />
             Imprimer
           </Button>
@@ -241,6 +245,7 @@ export default function StockPage() {
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
+  const [productsToPrint, setProductsToPrint] = React.useState<Product[]>([]);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -277,6 +282,16 @@ export default function StockPage() {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setIsDialogOpen(true);
+  };
+
+  const handlePrintAll = () => {
+    setProductsToPrint(products);
+    setIsPrintDialogOpen(true);
+  };
+
+  const handlePrintOne = (product: Product) => {
+    setProductsToPrint([product]);
+    setIsPrintDialogOpen(true);
   };
   
   const onSubmit = (values: z.infer<typeof productSchema>) => {
@@ -322,7 +337,7 @@ export default function StockPage() {
             <FileUp className="h-4 w-4 mr-2"/>
             Importer
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setIsPrintDialogOpen(true)}>
+          <Button size="sm" variant="outline" onClick={handlePrintAll} disabled={products.length === 0}>
             <Printer className="h-4 w-4 mr-2"/>
             Imprimer les Codes-barres
           </Button>
@@ -370,6 +385,9 @@ export default function StockPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleEdit(product)}>
                               <Pencil className="mr-2 h-4 w-4" /> Modifier
+                            </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handlePrintOne(product)}>
+                                <Printer className="mr-2 h-4 w-4" /> Imprimer le code-barres
                             </DropdownMenuItem>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -501,7 +519,7 @@ export default function StockPage() {
       <BarcodePrintDialog 
         open={isPrintDialogOpen} 
         onOpenChange={setIsPrintDialogOpen} 
-        products={products}
+        products={productsToPrint}
       />
     </div>
   );
