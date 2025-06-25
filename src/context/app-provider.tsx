@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Product, ActiveModules } from '@/lib/types';
+import type { Product, ActiveModules, InvoiceItem } from '@/lib/types';
 import { sampleProducts } from '@/lib/data';
 
 interface AppContextType {
@@ -9,6 +9,7 @@ interface AppContextType {
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
+  processSale: (cartItems: InvoiceItem[]) => void;
   activeModules: ActiveModules;
   setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
   isMounted: boolean;
@@ -20,6 +21,7 @@ const initialModules: ActiveModules = {
   stock: true,
   invoicing: true,
   barcode: true,
+  pos: true,
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -72,12 +74,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteProduct = (productId: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== productId));
   };
+  
+  const processSale = (cartItems: InvoiceItem[]) => {
+    setProducts(prevProducts => {
+      const newProducts = [...prevProducts];
+      for (const item of cartItems) {
+        const productIndex = newProducts.findIndex(p => p.id === item.product.id);
+        if (productIndex > -1) {
+          newProducts[productIndex] = {
+            ...newProducts[productIndex],
+            quantity: newProducts[productIndex].quantity - item.quantity
+          };
+        }
+      }
+      return newProducts;
+    });
+  };
 
   const value = {
     products,
     addProduct,
     updateProduct,
     deleteProduct,
+    processSale,
     activeModules,
     setActiveModules,
     isMounted,

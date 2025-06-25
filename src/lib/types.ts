@@ -24,4 +24,5 @@ export type ActiveModules = {
   stock: boolean;
   invoicing: boolean;
   barcode: boolean;
+  pos: boolean;
 };

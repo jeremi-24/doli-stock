@@ -26,7 +26,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { ScanLine, Warehouse, FileText, Settings, Sun, Moon, LogOut } from 'lucide-react';
+import { ScanLine, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart } from 'lucide-react';
 import { useApp } from '@/context/app-provider';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -80,6 +80,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       label: 'Invoicing',
       active: pathname === '/invoicing',
       module: 'invoicing',
+    },
+    {
+      href: '/pos',
+      icon: <ShoppingCart />,
+      label: 'Point of Sale',
+      active: pathname === '/pos',
+      module: 'pos',
     },
     {
       href: '/settings',

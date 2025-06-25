@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode, Warehouse, FileText } from 'lucide-react';
+import { Settings, Barcode, Warehouse, FileText, ShoppingCart } from 'lucide-react';
 
 export default function SettingsPage() {
   const { activeModules, setActiveModules } = useApp();
@@ -69,6 +69,23 @@ export default function SettingsPage() {
               id="invoicing-module"
               checked={activeModules.invoicing}
               onCheckedChange={() => handleModuleToggle('invoicing')}
+            />
+          </div>
+
+          <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
+            <div className="flex items-start space-x-3">
+               <ShoppingCart className="h-6 w-6 mt-1 text-primary"/>
+              <div>
+                <Label htmlFor="pos-module" className="font-semibold text-base">Point of Sale</Label>
+                <p className="text-sm text-muted-foreground">
+                  A streamlined interface for quick in-person sales.
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="pos-module"
+              checked={activeModules.pos}
+              onCheckedChange={() => handleModuleToggle('pos')}
             />
           </div>
           
