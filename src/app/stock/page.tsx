@@ -1,5 +1,9 @@
 "use client";
 import * as React from "react";
+import * as z from "zod";
+import * as XLSX from "xlsx";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Table,
   TableBody,
@@ -10,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/app-provider";
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse, FileUp } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +28,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -36,9 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+
 import {
   Form,
   FormControl,
@@ -61,9 +64,91 @@ const productSchema = z.object({
   category: z.string().min(2, "Category must be at least 2 characters."),
 });
 
+function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onImportSuccess: (newProducts: Product[]) => void }) {
+  const [file, setFile] = React.useState<File | null>(null);
+  const [isImporting, setIsImporting] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleImport = () => {
+    if (!file) {
+      toast({ variant: "destructive", title: "No file selected", description: "Please select an Excel file to import." });
+      return;
+    }
+
+    setIsImporting(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json<any>(worksheet);
+        
+        const newProducts: Product[] = json.map((row, index) => {
+          if (!row.name || !row.barcode || row.price == null || row.quantity == null || !row.category) {
+            throw new Error(`Invalid data in row ${index + 2}. Required columns are: name, barcode, price, quantity, category.`);
+          }
+          return {
+            id: `imported-${Date.now()}-${index}`,
+            name: String(row.name),
+            barcode: String(row.barcode),
+            price: Number(row.price),
+            quantity: Number(row.quantity),
+            category: String(row.category),
+          };
+        });
+
+        onImportSuccess(newProducts);
+        onOpenChange(false);
+      } catch (error: any) {
+        toast({ variant: "destructive", title: "Import Failed", description: error.message });
+      } finally {
+        setIsImporting(false);
+        setFile(null);
+      }
+    };
+    reader.onerror = () => {
+        toast({ variant: "destructive", title: "File Error", description: "Could not read the selected file." });
+        setIsImporting(false);
+    }
+    reader.readAsArrayBuffer(file);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-headline">Import Products from Excel</DialogTitle>
+          <DialogDescription>
+            Upload an .xlsx or .xls file. Ensure it has columns: `name`, `barcode`, `price`, `quantity`, and `category`.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <Input type="file" accept=".xlsx, .xls" onChange={handleFileChange} disabled={isImporting} />
+          {file && <p className="text-sm text-muted-foreground">Selected file: {file.name}</p>}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="ghost" disabled={isImporting}>Cancel</Button></DialogClose>
+          <Button onClick={handleImport} disabled={!file || isImporting}>
+            {isImporting ? "Importing..." : "Import Products"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function StockPage() {
-  const { products, addProduct, updateProduct, deleteProduct } = useApp();
+  const { products, addProduct, updateProduct, deleteProduct, addMultipleProducts } = useApp();
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
   const { toast } = useToast();
 
@@ -120,11 +205,28 @@ export default function StockPage() {
     toast({ title: "Product Deleted", description: "The product has been removed from stock.", variant: 'destructive' });
   };
 
+  const handleImportSuccess = (newProducts: Product[]) => {
+    const existingBarcodes = new Set(products.map(p => p.barcode));
+    const uniqueNewProducts = newProducts.filter(p => !existingBarcodes.has(p.barcode));
+    const skippedCount = newProducts.length - uniqueNewProducts.length;
+
+    addMultipleProducts(uniqueNewProducts);
+
+    toast({
+        title: "Import Complete",
+        description: `${uniqueNewProducts.length} products imported successfully. ${skippedCount} duplicates were skipped.`
+    });
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
         <h1 className="font-headline text-3xl font-semibold">Stock Management</h1>
         <div className="ml-auto flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+            <FileUp className="h-4 w-4 mr-2"/>
+            Import
+          </Button>
           <Button size="sm" onClick={handleAddNew}>
             <PlusCircle className="h-4 w-4 mr-2" />
             Add Product
@@ -197,7 +299,7 @@ export default function StockPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
-                      No products found. Get started by adding a new product.
+                      No products found. Get started by adding a new product or importing from Excel.
                     </TableCell>
                   </TableRow>
                 )}
@@ -292,6 +394,11 @@ export default function StockPage() {
           </Form>
         </DialogContent>
       </Dialog>
+      <ImportDialog
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+        onImportSuccess={handleImportSuccess}
+      />
     </div>
   );
 }

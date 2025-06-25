@@ -10,6 +10,7 @@ interface AppContextType {
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
+  addMultipleProducts: (products: Product[]) => void;
   processSale: (cartItems: InvoiceItem[]) => void;
   addInvoice: (invoice: Omit<Invoice, 'id' | 'createdAt'>) => void;
   activeModules: ActiveModules;
@@ -83,6 +84,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setProducts((prev) => [...prev, product]);
   };
 
+  const addMultipleProducts = (newProducts: Product[]) => {
+    setProducts((prevProducts) => {
+      // This ensures we don't add products with barcodes that already exist.
+      const existingBarcodes = new Set(prevProducts.map((p) => p.barcode));
+      const uniqueNewProducts = newProducts.filter(
+        (p) => !existingBarcodes.has(p.barcode)
+      );
+      return [...prevProducts, ...uniqueNewProducts];
+    });
+  };
+
   const updateProduct = (updatedProduct: Product) => {
     setProducts((prev) =>
       prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
@@ -141,6 +153,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addProduct,
     updateProduct,
     deleteProduct,
+    addMultipleProducts,
     processSale,
     addInvoice,
     activeModules,
