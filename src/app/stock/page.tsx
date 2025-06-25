@@ -80,34 +80,36 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
     if (e.target.files) setFile(e.target.files[0]);
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!file) {
       toast({ variant: "destructive", title: "Aucun fichier sélectionné" });
       return;
     }
     setIsImporting(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json<any>(worksheet);
-        onImportSuccess(json);
-        onOpenChange(false);
-      } catch (error: any) {
-        toast({ variant: "destructive", title: "Échec de l'importation", description: error.message });
-      } finally {
-        setIsImporting(false);
-        setFile(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch('/api/products/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Une erreur est survenue lors de l'importation.");
       }
-    };
-    reader.onerror = () => {
-        toast({ variant: "destructive", title: "Erreur de fichier" });
-        setIsImporting(false);
+
+      const importedData = await response.json();
+      onImportSuccess(importedData);
+      onOpenChange(false);
+      setFile(null);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Échec de l'importation", description: error.message });
+    } finally {
+      setIsImporting(false);
     }
-    reader.readAsArrayBuffer(file);
   };
 
   return (
