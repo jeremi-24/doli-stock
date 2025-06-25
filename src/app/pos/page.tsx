@@ -187,7 +187,7 @@ export default function POSPage() {
   };
 
   return (
-    <div className="flex flex-1 h-[calc(100vh-3.5rem)]">
+    <div className="flex flex-1 h-screen">
       <div className="flex-1 p-4 md:p-6 flex flex-col">
         <div className="flex items-center gap-4 mb-4">
           <h1 className="font-headline text-3xl font-semibold">Point de Vente</h1>

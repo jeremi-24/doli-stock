@@ -15,6 +15,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -27,8 +28,22 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart, Tag } from 'lucide-react';
+import { LayoutDashboard, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
+
+function CollapseToggle() {
+    const { toggleSidebar } = useSidebar();
+    return (
+        <SidebarMenu className="p-0 mt-2">
+            <SidebarMenuItem>
+                <SidebarMenuButton onClick={toggleSidebar} size="lg">
+                    <PanelLeft />
+                    <span>Réduire</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        </SidebarMenu>
+    );
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { activeModules, isMounted, shopInfo } = useApp();
@@ -57,6 +72,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Logo className="h-10 w-10 animate-pulse" />
         </div>
     );
+  }
+  
+  const isPosPage = pathname === '/pos';
+
+  if (isPosPage) {
+      return <>{children}</>;
   }
 
   const navItems = [
@@ -161,6 +182,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+            <CollapseToggle />
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
