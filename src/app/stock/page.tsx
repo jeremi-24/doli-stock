@@ -91,7 +91,7 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
     formData.append("file", file);
 
     try {
-      const response = await fetch('/api/products/import', {
+      const response = await fetch('http://192.168.1.140/api/products/import', {
         method: 'POST',
         body: formData,
       });
