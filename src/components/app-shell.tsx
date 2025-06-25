@@ -61,20 +61,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    // The first item was changed to Point de Vente earlier, keeping that change.
     {
-      href: '/categories',
-      icon: <Tag />, // Using Tag icon for Categories
-      label: 'Catégories',
-      active: pathname === '/categories',
-      module: 'all',
-    },
-    {
-      href: '/products',
-      icon: <Package />, // Using Package icon for Products
-      label: 'Products',
-      active: pathname === '/products',
-      module: 'all',
+      href: '/',
+      icon: <ScanLine />,
+      label: 'Tableau de Bord',
+      active: pathname === '/',
+      module: 'barcode',
     },
     {
       href: '/stock',
@@ -98,18 +90,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       module: 'invoicing',
     },
     {
-      href: '/pos',
-      icon: <ScanLine />,
-      label: 'Tableau de Bord',
-      active: pathname === '/',
-      module: 'barcode',
+      href: '/categories',
+      icon: <Tag />,
+      label: 'Catégories',
+      active: pathname === '/categories',
+      module: 'all',
     },
     {
       href: '/products',
-      icon: <Package />, // Using Package icon for Products
+      icon: <Package />,
+      label: 'Produits',
+      active: pathname === '/products',
+      module: 'all',
+    },
+    {
+      href: '/settings',
+      icon: <Settings />,
       label: 'Paramètres',
       active: pathname === '/settings',
-      module: 'all', // Always show settings
+      module: 'all',
     },
   ];
 
