@@ -30,6 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
 import { LayoutDashboard, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
+import { cn } from '@/lib/utils';
 
 function CollapseToggle() {
     const { toggleSidebar } = useSidebar();
@@ -45,10 +46,11 @@ function CollapseToggle() {
     );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function AppShellContent({ children }: { children: React.ReactNode }) {
   const { activeModules, isMounted, shopInfo } = useApp();
   const pathname = usePathname();
-  // Simple theme toggle logic
+  const { setOpen, isMobile } = useSidebar();
+  
   const [theme, setTheme] = React.useState('light');
 
   React.useEffect(() => {
@@ -66,6 +68,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
+  const isPosPage = pathname === '/pos';
+
+  React.useEffect(() => {
+    if (!isMobile) {
+      setOpen(!isPosPage);
+    } else {
+      setOpen(false);
+    }
+  }, [pathname, isMobile, setOpen]);
+
+
   if (!isMounted) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -74,12 +87,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
   
-  const isPosPage = pathname === '/pos';
-
-  if (isPosPage) {
-      return <>{children}</>;
-  }
-
   const navItems = [
     {
       href: '/',
@@ -126,7 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <SidebarProvider>
+    <>
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
@@ -186,7 +193,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-6 sticky top-0 z-30">
+        <header className={cn("flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-6 sticky top-0 z-30", isPosPage && "hidden")}>
             <SidebarTrigger className="md:hidden" />
             <div className="flex-1">
             </div>
@@ -196,10 +203,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <span className="sr-only">Changer de thème</span>
             </Button>
         </header>
-        <main className="flex-1 overflow-auto">
+        {isPosPage && (
+            <div className="absolute top-4 left-4 z-40">
+                <SidebarTrigger className="bg-card/80 backdrop-blur-sm" />
+            </div>
+        )}
+        <main className={cn("flex-1 overflow-auto", isPosPage && "h-screen")}>
             {children}
         </main>
       </SidebarInset>
+    </>
+  );
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider>
+        <AppShellContent>{children}</AppShellContent>
     </SidebarProvider>
   );
 }

@@ -187,9 +187,9 @@ export default function POSPage() {
   };
 
   return (
-    <div className="flex flex-1 h-screen">
+    <div className="flex flex-1 h-full">
       <div className="flex-1 p-4 md:p-6 flex flex-col">
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-4 mb-4 pt-10 md:pt-0">
           <h1 className="font-headline text-3xl font-semibold">Point de Vente</h1>
            <div className="relative ml-auto flex-1 md:grow-0">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
