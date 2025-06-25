@@ -1,13 +1,11 @@
-'use server';
-
+// This is now a client-side library. No 'use server' directive.
 import type { Categorie, Produit } from './types';
 
-// Utilisation de la variable d'environnement pour l'URL du backend
-const API_BASE_URL = process.env.BACKEND_API_URL;
+// All API calls will be sent to the Next.js proxy configured in next.config.ts
+const API_BASE_URL = '/api';
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
-  console.log(`Fetching: ${options.method || 'GET'} ${url}`);
 
   try {
     const response = await fetch(url, {
@@ -71,7 +69,6 @@ export async function deleteCategory(id: number): Promise<null> {
 
 export async function importProducts(formData: FormData): Promise<Produit[]> {
   const url = `${API_BASE_URL}/produit/import`;
-  console.log(`Fetching: POST ${url}`);
   
   const res = await fetch(url, {
     method: 'POST',
