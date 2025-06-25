@@ -58,11 +58,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 
 const productSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  barcode: z.string().min(5, "Barcode must be at least 5 characters."),
-  price: z.coerce.number().min(0, "Price must be a positive number."),
-  quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer."),
-  category: z.string().min(2, "Category must be at least 2 characters."),
+  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
+  barcode: z.string().min(5, "Le code-barres doit contenir au moins 5 caractères."),
+  price: z.coerce.number().min(0, "Le prix doit être un nombre positif."),
+  quantity: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
+  category: z.string().min(2, "La catégorie doit contenir au moins 2 caractères."),
 });
 
 function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onImportSuccess: (newProducts: Product[]) => void }) {
@@ -78,7 +78,7 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
 
   const handleImport = () => {
     if (!file) {
-      toast({ variant: "destructive", title: "No file selected", description: "Please select an Excel file to import." });
+      toast({ variant: "destructive", title: "Aucun fichier sélectionné", description: "Veuillez sélectionner un fichier Excel à importer." });
       return;
     }
 
@@ -94,7 +94,7 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
         
         const newProducts: Product[] = json.map((row, index) => {
           if (!row.name || !row.barcode || row.price == null || row.quantity == null || !row.category) {
-            throw new Error(`Invalid data in row ${index + 2}. Required columns are: name, barcode, price, quantity, category.`);
+            throw new Error(`Données invalides à la ligne ${index + 2}. Les colonnes requises sont : name, barcode, price, quantity, category.`);
           }
           return {
             id: `imported-${Date.now()}-${index}`,
@@ -109,14 +109,14 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
         onImportSuccess(newProducts);
         onOpenChange(false);
       } catch (error: any) {
-        toast({ variant: "destructive", title: "Import Failed", description: error.message });
+        toast({ variant: "destructive", title: "Échec de l'importation", description: error.message });
       } finally {
         setIsImporting(false);
         setFile(null);
       }
     };
     reader.onerror = () => {
-        toast({ variant: "destructive", title: "File Error", description: "Could not read the selected file." });
+        toast({ variant: "destructive", title: "Erreur de fichier", description: "Impossible de lire le fichier sélectionné." });
         setIsImporting(false);
     }
     reader.readAsArrayBuffer(file);
@@ -126,19 +126,19 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-headline">Import Products from Excel</DialogTitle>
+          <DialogTitle className="font-headline">Importer des produits depuis Excel</DialogTitle>
           <DialogDescription>
-            Upload an .xlsx or .xls file. Ensure it has columns: `name`, `barcode`, `price`, `quantity`, and `category`.
+            Chargez un fichier .xlsx ou .xls. Assurez-vous qu'il contient les colonnes : `name`, `barcode`, `price`, `quantity`, et `category`.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <Input type="file" accept=".xlsx, .xls" onChange={handleFileChange} disabled={isImporting} />
-          {file && <p className="text-sm text-muted-foreground">Selected file: {file.name}</p>}
+          {file && <p className="text-sm text-muted-foreground">Fichier sélectionné : {file.name}</p>}
         </div>
         <DialogFooter>
-          <DialogClose asChild><Button variant="ghost" disabled={isImporting}>Cancel</Button></DialogClose>
+          <DialogClose asChild><Button variant="ghost" disabled={isImporting}>Annuler</Button></DialogClose>
           <Button onClick={handleImport} disabled={!file || isImporting}>
-            {isImporting ? "Importing..." : "Import Products"}
+            {isImporting ? "Importation..." : "Importer les produits"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -153,7 +153,7 @@ function BarcodePrintDialog({ open, onOpenChange, products }: { open: boolean, o
     const printContent = printRef.current;
     if (printContent) {
       const printWindow = window.open('', '', 'height=800,width=800');
-      printWindow?.document.write('<html><head><title>Print Barcodes</title>');
+      printWindow?.document.write('<html><head><title>Imprimer les codes-barres</title>');
       printWindow?.document.write(`
         <style>
           @media print {
@@ -207,9 +207,9 @@ function BarcodePrintDialog({ open, onOpenChange, products }: { open: boolean, o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="font-headline">Print Product Barcodes</DialogTitle>
+          <DialogTitle className="font-headline">Imprimer les codes-barres des produits</DialogTitle>
           <DialogDescription>
-            Review the barcodes below. Use your browser's print dialog to adjust paper size and layout for your labels.
+            Vérifiez les codes-barres ci-dessous. Utilisez la boîte de dialogue d'impression de votre navigateur pour ajuster la taille du papier et la mise en page pour vos étiquettes.
           </DialogDescription>
         </DialogHeader>
         <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
@@ -223,10 +223,10 @@ function BarcodePrintDialog({ open, onOpenChange, products }: { open: boolean, o
             </div>
         </div>
         <DialogFooter>
-          <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+          <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
           <Button onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-2" />
-            Print
+            Imprimer
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -282,10 +282,10 @@ export default function StockPage() {
   const onSubmit = (values: z.infer<typeof productSchema>) => {
     if (editingProduct) {
       updateProduct({ ...editingProduct, ...values });
-      toast({ title: "Product Updated", description: `${values.name} has been updated.` });
+      toast({ title: "Produit mis à jour", description: `Le produit ${values.name} a été mis à jour.` });
     } else {
       addProduct({ id: Date.now().toString(), ...values });
-      toast({ title: "Product Added", description: `${values.name} has been added to stock.` });
+      toast({ title: "Produit ajouté", description: `Le produit ${values.name} a été ajouté au stock.` });
     }
     setIsDialogOpen(false);
     setEditingProduct(null);
@@ -293,7 +293,7 @@ export default function StockPage() {
 
   const handleDelete = (productId: string) => {
     deleteProduct(productId);
-    toast({ title: "Product Deleted", description: "The product has been removed from stock.", variant: 'destructive' });
+    toast({ title: "Produit supprimé", description: "Le produit a été retiré du stock.", variant: 'destructive' });
   };
 
   const handleImportSuccess = (newProducts: Product[]) => {
@@ -304,45 +304,49 @@ export default function StockPage() {
     addMultipleProducts(uniqueNewProducts);
 
     toast({
-        title: "Import Complete",
-        description: `${uniqueNewProducts.length} products imported successfully. ${skippedCount} duplicates were skipped.`
+        title: "Importation terminée",
+        description: `${uniqueNewProducts.length} produits importés. ${skippedCount} doublons ont été ignorés.`
     });
+  };
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
-        <h1 className="font-headline text-3xl font-semibold">Stock Management</h1>
+        <h1 className="font-headline text-3xl font-semibold">Gestion du Stock</h1>
         <div className="ml-auto flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setIsImportDialogOpen(true)}>
             <FileUp className="h-4 w-4 mr-2"/>
-            Import
+            Importer
           </Button>
           <Button size="sm" variant="outline" onClick={() => setIsPrintDialogOpen(true)}>
             <Printer className="h-4 w-4 mr-2"/>
-            Print Barcodes
+            Imprimer les Codes-barres
           </Button>
           <Button size="sm" onClick={handleAddNew}>
             <PlusCircle className="h-4 w-4 mr-2" />
-            Add Product
+            Ajouter un Produit
           </Button>
         </div>
       </div>
       <Card>
         <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Your Products</CardTitle>
-            <CardDescription>A list of all products in your inventory.</CardDescription>
+            <CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Vos Produits</CardTitle>
+            <CardDescription>La liste de tous les produits de votre inventaire.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Barcode</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Catégorie</TableHead>
+                  <TableHead>Code-barres</TableHead>
+                  <TableHead className="text-right">Prix</TableHead>
+                  <TableHead className="text-right">Quantité</TableHead>
                   <TableHead><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>
@@ -353,36 +357,36 @@ export default function StockPage() {
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell>{product.category}</TableCell>
                       <TableCell>{product.barcode}</TableCell>
-                      <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(product.price)}</TableCell>
                       <TableCell className="text-right">{product.quantity}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button aria-haspopup="true" size="icon" variant="ghost">
                               <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Toggle menu</span>
+                              <span className="sr-only">Ouvrir le menu</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleEdit(product)}>
-                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                              <Pencil className="mr-2 h-4 w-4" /> Modifier
                             </DropdownMenuItem>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
-                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                        <Trash2 className="mr-2 h-4 w-4" /> Supprimer
                                     </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the product "{product.name}".
+                                        Cette action est irréversible. Elle supprimera définitivement le produit "{product.name}".
                                     </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(product.id)}>Delete</AlertDialogAction>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(product.id)}>Supprimer</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
@@ -394,7 +398,7 @@ export default function StockPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
-                      No products found. Get started by adding a new product or importing from Excel.
+                      Aucun produit trouvé. Commencez par ajouter un nouveau produit ou importez depuis Excel.
                     </TableCell>
                   </TableRow>
                 )}
@@ -407,9 +411,9 @@ export default function StockPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="font-headline">{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+            <DialogTitle className="font-headline">{editingProduct ? "Modifier le Produit" : "Ajouter un Nouveau Produit"}</DialogTitle>
             <DialogDescription>
-              {editingProduct ? "Update the details of your product." : "Fill in the details for the new product."}
+              {editingProduct ? "Mettez à jour les détails de votre produit." : "Remplissez les détails du nouveau produit."}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -419,9 +423,9 @@ export default function StockPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Nom</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. T-Shirt" {...field} />
+                      <Input placeholder="ex: T-Shirt" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -432,9 +436,9 @@ export default function StockPage() {
                 name="barcode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Barcode</FormLabel>
+                    <FormLabel>Code-barres</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. 1234567890" {...field} />
+                      <Input placeholder="ex: 1234567890" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -445,9 +449,9 @@ export default function StockPage() {
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel>Catégorie</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Apparel" {...field} />
+                      <Input placeholder="ex: Habillement" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -459,7 +463,7 @@ export default function StockPage() {
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price</FormLabel>
+                    <FormLabel>Prix</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
@@ -472,7 +476,7 @@ export default function StockPage() {
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Quantity</FormLabel>
+                    <FormLabel>Quantité</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -482,8 +486,8 @@ export default function StockPage() {
               />
               </div>
               <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button type="submit">{editingProduct ? "Save Changes" : "Create Product"}</Button>
+                <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
+                <Button type="submit">{editingProduct ? "Sauvegarder" : "Créer le produit"}</Button>
               </DialogFooter>
             </form>
           </Form>

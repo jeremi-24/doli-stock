@@ -18,16 +18,16 @@ import { Settings, Barcode, Warehouse, FileText, ShoppingCart, Import, Users, St
 import type { ShopInfo, ThemeColors } from "@/lib/types";
 
 const shopInfoSchema = z.object({
-  name: z.string().min(1, "Shop name is required."),
+  name: z.string().min(1, "Le nom de la boutique est requis."),
   address: z.string().optional(),
   phone: z.string().optional(),
-  email: z.string().email("Invalid email address.").or(z.literal('')).optional(),
+  email: z.string().email("Adresse e-mail invalide.").or(z.literal('')).optional(),
 });
 
 const themeColorsSchema = z.object({
-  primary: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Use 'H S% L%' format (e.g. 231 48% 48%)").trim(),
-  background: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Use 'H S% L%' format (e.g. 220 13% 96%)").trim(),
-  accent: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Use 'H S% L%' format (e.g. 262 52% 50%)").trim(),
+  primary: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Utilisez le format 'H S% L%' (ex: 231 48% 48%)").trim(),
+  background: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Utilisez le format 'H S% L%' (ex: 220 13% 96%)").trim(),
+  accent: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Utilisez le format 'H S% L%' (ex: 262 52% 50%)").trim(),
 });
 
 
@@ -47,8 +47,8 @@ function ShopInfoForm() {
   function onSubmit(values: z.infer<typeof shopInfoSchema>) {
     setShopInfo(values as ShopInfo);
     toast({
-      title: "Shop Info Updated",
-      description: "Your shop details have been saved.",
+      title: "Informations de la boutique mises à jour",
+      description: "Les détails de votre boutique ont été enregistrés.",
     });
   }
 
@@ -66,8 +66,8 @@ function ShopInfoForm() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Shop Name</FormLabel>
-                  <FormControl><Input placeholder="Your Shop Name" {...field} /></FormControl>
+                  <FormLabel>Nom de la boutique</FormLabel>
+                  <FormControl><Input placeholder="Le nom de votre boutique" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -77,8 +77,8 @@ function ShopInfoForm() {
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
-                  <FormControl><Input placeholder="123 Main St, Anytown" {...field} /></FormControl>
+                  <FormLabel>Adresse</FormLabel>
+                  <FormControl><Input placeholder="123 Rue Principale, Lomé" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -88,8 +88,8 @@ function ShopInfoForm() {
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl><Input placeholder="555-123-4567" {...field} /></FormControl>
+                  <FormLabel>Numéro de téléphone</FormLabel>
+                  <FormControl><Input placeholder="+228 90 00 00 00" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -99,15 +99,15 @@ function ShopInfoForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contact Email</FormLabel>
-                  <FormControl><Input placeholder="contact@yourshop.com" {...field} /></FormControl>
+                  <FormLabel>Email de contact</FormLabel>
+                  <FormControl><Input placeholder="contact@maboutique.tg" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit">Sauvegarder</Button>
           </CardFooter>
         </form>
       </Form>
@@ -131,8 +131,8 @@ function AppearanceForm() {
   function onSubmit(values: z.infer<typeof themeColorsSchema>) {
     setThemeColors(values as ThemeColors);
     toast({
-      title: "Theme Updated",
-      description: "Your new color scheme has been applied.",
+      title: "Thème mis à jour",
+      description: "Votre nouveau thème de couleurs a été appliqué.",
     });
   }
 
@@ -150,9 +150,9 @@ function AppearanceForm() {
               name="primary"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Primary Color</FormLabel>
+                  <FormLabel>Couleur Principale</FormLabel>
                   <FormControl><Input {...field} /></FormControl>
-                  <FormDescription>Enter an HSL value, e.g., "231 48% 48%"</FormDescription>
+                  <FormDescription>Entrez une valeur HSL, ex: "231 48% 48%"</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -162,9 +162,9 @@ function AppearanceForm() {
               name="background"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Background Color</FormLabel>
+                  <FormLabel>Couleur de Fond</FormLabel>
                   <FormControl><Input {...field} /></FormControl>
-                   <FormDescription>Enter an HSL value, e.g., "220 13% 96%"</FormDescription>
+                   <FormDescription>Entrez une valeur HSL, ex: "220 13% 96%"</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -174,16 +174,16 @@ function AppearanceForm() {
               name="accent"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Accent Color</FormLabel>
+                  <FormLabel>Couleur d'Accent</FormLabel>
                   <FormControl><Input {...field} /></FormControl>
-                   <FormDescription>Enter an HSL value, e.g., "262 52% 50%"</FormDescription>
+                   <FormDescription>Entrez une valeur HSL, ex: "262 52% 50%"</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
-            <Button type="submit">Save & Apply Theme</Button>
+            <Button type="submit">Sauvegarder et Appliquer</Button>
           </CardFooter>
         </form>
       </Form>
@@ -199,8 +199,8 @@ export default function SettingsPage() {
     setActiveModules(prev => {
       const newState = { ...prev, [module]: !prev[module] };
       toast({
-        title: "Settings Updated",
-        description: `The ${module} module has been ${newState[module] ? 'enabled' : 'disabled'}.`,
+        title: "Paramètres mis à jour",
+        description: `Le module ${module} a été ${newState[module] ? 'activé' : 'désactivé'}.`,
       });
       return newState;
     });
@@ -209,7 +209,7 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
-        <h1 className="font-headline text-3xl font-semibold">Settings</h1>
+        <h1 className="font-headline text-3xl font-semibold">Paramètres</h1>
       </div>
       
       <Tabs defaultValue="modules" className="w-full">
@@ -224,17 +224,17 @@ export default function SettingsPage() {
         <TabsContent value="modules" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline">Module Management</CardTitle>
-              <CardDescription>Enable or disable modules to customize your workflow.</CardDescription>
+              <CardTitle className="font-headline">Gestion des Modules</CardTitle>
+              <CardDescription>Activez ou désactivez des modules pour personnaliser votre application.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
                 <div className="flex items-start space-x-3">
                   <Warehouse className="h-6 w-6 mt-1 text-primary"/>
                   <div>
-                    <Label htmlFor="stock-module" className="font-semibold text-base">Stock Management</Label>
+                    <Label htmlFor="stock-module" className="font-semibold text-base">Gestion de Stock</Label>
                     <p className="text-sm text-muted-foreground">
-                      Track product quantities, prices, and categories. Required for other modules.
+                      Suivez les quantités, prix et catégories de produits. Requis pour les autres modules.
                     </p>
                   </div>
                 </div>
@@ -250,9 +250,9 @@ export default function SettingsPage() {
                 <div className="flex items-start space-x-3">
                    <FileText className="h-6 w-6 mt-1 text-primary"/>
                   <div>
-                    <Label htmlFor="invoicing-module" className="font-semibold text-base">Invoicing</Label>
+                    <Label htmlFor="invoicing-module" className="font-semibold text-base">Facturation</Label>
                     <p className="text-sm text-muted-foreground">
-                      Create and manage simple invoices for customers.
+                      Créez et gérez des factures simples pour les clients.
                     </p>
                   </div>
                 </div>
@@ -267,9 +267,9 @@ export default function SettingsPage() {
                 <div className="flex items-start space-x-3">
                    <ShoppingCart className="h-6 w-6 mt-1 text-primary"/>
                   <div>
-                    <Label htmlFor="pos-module" className="font-semibold text-base">Point of Sale</Label>
+                    <Label htmlFor="pos-module" className="font-semibold text-base">Point de Vente</Label>
                     <p className="text-sm text-muted-foreground">
-                      A streamlined interface for quick in-person sales.
+                      Une interface simplifiée pour des ventes rapides en magasin.
                     </p>
                   </div>
                 </div>
@@ -284,9 +284,9 @@ export default function SettingsPage() {
                 <div className="flex items-start space-x-3">
                     <Barcode className="h-6 w-6 mt-1 text-primary"/>
                   <div>
-                    <Label htmlFor="barcode-module" className="font-semibold text-base">Barcode Scanner</Label>
+                    <Label htmlFor="barcode-module" className="font-semibold text-base">Scanner de Code-barres</Label>
                     <p className="text-sm text-muted-foreground">
-                      Use the dashboard to quickly look up products by barcode.
+                      Utilisez le tableau de bord pour rechercher rapidement des produits par code-barres.
                     </p>
                   </div>
                 </div>
@@ -300,7 +300,7 @@ export default function SettingsPage() {
             </CardContent>
             <CardFooter>
               <p className="text-xs text-muted-foreground">
-                Changes are saved automatically. Some features may require a page reload to apply.
+                Les modifications sont sauvegardées automatiquement. Certaines fonctionnalités peuvent nécessiter un rechargement de la page.
               </p>
             </CardFooter>
           </Card>
@@ -309,15 +309,15 @@ export default function SettingsPage() {
         <TabsContent value="import" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline">Import de données</CardTitle>
+                <CardTitle className="font-headline">Import de Données</CardTitle>
                 <CardDescription>Gérez l'importation de vos données, comme la liste de produits.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
                     <Import className="h-12 w-12 text-muted-foreground" />
-                    <p className="mt-4 text-sm text-muted-foreground">Vous pouvez déjà importer des produits depuis la page "Stock".</p>
+                    <p className="mt-4 text-sm text-muted-foreground">Vous pouvez importer des produits depuis la page "Stock".</p>
                     <Button variant="outline" className="mt-4" asChild>
-                       <a href="/stock">Go to Stock Page</a>
+                       <a href="/stock">Aller à la page Stock</a>
                     </Button>
                 </div>
               </CardContent>
@@ -331,28 +331,28 @@ export default function SettingsPage() {
                 <CardTitle className="font-headline">Utilisateurs</CardTitle>
                 <CardDescription>Gérez les utilisateurs et leurs permissions.</CardDescription>
               </div>
-              <Button disabled>Add User</Button>
+              <Button disabled>Ajouter un utilisateur</Button>
             </CardHeader>
             <CardContent>
                 <div className="border rounded-lg">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
+                        <TableHead>Nom</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
+                        <TableHead>Rôle</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       <TableRow>
-                        <TableCell className="font-medium">Demo User</TableCell>
+                        <TableCell className="font-medium">Utilisateur de Démo</TableCell>
                         <TableCell>admin@stockhero.dev</TableCell>
                         <TableCell><Badge variant="secondary">Admin</Badge></TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
                 </div>
-                 <p className="mt-4 text-sm text-muted-foreground text-center">User management is coming soon.</p>
+                 <p className="mt-4 text-sm text-muted-foreground text-center">La gestion des utilisateurs sera bientôt disponible.</p>
             </CardContent>
           </Card>
         </TabsContent>

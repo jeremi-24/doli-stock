@@ -30,7 +30,7 @@ import { ScanLine, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCar
 import { useApp } from '@/context/app-provider';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { activeModules, isMounted } = useApp();
+  const { activeModules, isMounted, shopInfo } = useApp();
   const pathname = usePathname();
   // Simple theme toggle logic
   const [theme, setTheme] = React.useState('light');
@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     {
       href: '/',
       icon: <ScanLine />,
-      label: 'Dashboard',
+      label: 'Tableau de Bord',
       active: pathname === '/',
       module: 'barcode',
     },
@@ -77,21 +77,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     {
       href: '/invoicing',
       icon: <FileText />,
-      label: 'Invoicing',
+      label: 'Facturation',
       active: pathname === '/invoicing',
       module: 'invoicing',
     },
     {
       href: '/pos',
       icon: <ShoppingCart />,
-      label: 'Point of Sale',
+      label: 'Point de Vente',
       active: pathname === '/pos',
       module: 'pos',
     },
     {
       href: '/settings',
       icon: <Settings />,
-      label: 'Settings',
+      label: 'Paramètres',
       active: pathname === '/settings',
       module: 'all', // Always show settings
     },
@@ -103,7 +103,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Logo className="w-8 h-8" />
-            <span className="font-headline text-lg font-semibold text-primary">StockHero</span>
+            <span className="font-headline text-lg font-semibold text-primary">{shopInfo.name.split(' ')[0]}</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -128,29 +128,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Button variant="ghost" className="flex items-center justify-start gap-2 w-full p-2 h-auto">
                         <Avatar className="h-8 w-8">
                             <AvatarImage src="https://placehold.co/100x100.png" alt="@user" data-ai-hint="user avatar"/>
-                            <AvatarFallback>SH</AvatarFallback>
+                            <AvatarFallback>UD</AvatarFallback>
                         </Avatar>
                         <div className="text-left group-data-[collapsible=icon]:hidden">
-                            <p className="font-semibold text-sm">Demo User</p>
+                            <p className="font-semibold text-sm">Utilisateur Démo</p>
                             <p className="text-xs text-muted-foreground">admin@stockhero.dev</p>
                         </div>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start" className="w-56">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
                         <Settings className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
+                        <span>Profil</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={toggleTheme}>
                         {theme === 'light' ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
-                        <span>Toggle Theme</span>
+                        <span>Changer de Thème</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
                         <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log out</span>
+                        <span>Se déconnecter</span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -165,7 +165,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" size="icon" onClick={toggleTheme}>
                 <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
+                <span className="sr-only">Changer de thème</span>
             </Button>
         </header>
         <main className="flex-1 overflow-auto">

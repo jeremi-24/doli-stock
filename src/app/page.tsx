@@ -28,26 +28,30 @@ export default function DashboardPage() {
       if (product) {
         setScannedProduct(product);
       } else {
-        setError("Product not found. Please check the barcode or add the product to your stock.");
+        setError("Produit non trouvé. Veuillez vérifier le code-barres ou ajouter le produit à votre stock.");
       }
       setIsScanning(false);
       setBarcode("");
     }, 1000);
   };
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
-        <h1 className="font-headline text-3xl font-semibold">Dashboard</h1>
+        <h1 className="font-headline text-3xl font-semibold">Tableau de Bord</h1>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle className="font-headline flex items-center gap-2">
               <ScanLine className="h-6 w-6" />
-              Barcode Scanner
+              Scanner de Code-barres
             </CardTitle>
-            <CardDescription>Enter a barcode to quickly find a product.</CardDescription>
+            <CardDescription>Entrez un code-barres pour trouver rapidement un produit.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative mx-auto w-full max-w-md h-64 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center">
@@ -71,35 +75,35 @@ export default function DashboardPage() {
             `}</style>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="barcode">Barcode</Label>
+              <Label htmlFor="barcode">Code-barres</Label>
               <div className="flex space-x-2">
                 <Input
                   id="barcode"
-                  placeholder="Enter or scan a barcode..."
+                  placeholder="Entrez ou scannez un code-barres..."
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleScan()}
                   disabled={isScanning}
                 />
                 <Button onClick={handleScan} disabled={!barcode || isScanning}>
-                  {isScanning ? 'Scanning...' : <><Search className="mr-2 h-4 w-4" /> Scan</>}
+                  {isScanning ? 'Scan en cours...' : <><Search className="mr-2 h-4 w-4" /> Scanner</>}
                 </Button>
               </div>
             </div>
           </CardContent>
           <CardFooter>
-            <p className="text-xs text-muted-foreground">This tool simulates a barcode scanner for quick product lookups.</p>
+            <p className="text-xs text-muted-foreground">Cet outil simule un scanner de code-barres pour une recherche rapide de produits.</p>
           </CardFooter>
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle className="font-headline">Product Details</CardTitle>
-            <CardDescription>Information for the scanned product will appear here.</CardDescription>
+            <CardTitle className="font-headline">Détails du Produit</CardTitle>
+            <CardDescription>Les informations du produit scanné apparaîtront ici.</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
               <Alert variant="destructive">
-                <AlertTitle>Error</AlertTitle>
+                <AlertTitle>Erreur</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -113,26 +117,26 @@ export default function DashboardPage() {
                   <div className="flex items-center space-x-2">
                     <DollarSign className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Price</p>
-                      <p className="font-semibold">${scannedProduct.price.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">Prix</p>
+                      <p className="font-semibold">{formatCurrency(scannedProduct.price)}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Package className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">In Stock</p>
-                      <p className="font-semibold">{scannedProduct.quantity} units</p>
+                      <p className="text-sm text-muted-foreground">En Stock</p>
+                      <p className="font-semibold">{scannedProduct.quantity} unités</p>
                     </div>
                   </div>
                 </div>
                 <Button className="w-full">
-                  Add to Invoice <MoveRight className="ml-2 h-4 w-4" />
+                  Ajouter à la facture <MoveRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
                 <Package className="h-12 w-12 text-muted-foreground" />
-                <p className="mt-4 text-sm text-muted-foreground">Scan a product to see its details</p>
+                <p className="mt-4 text-sm text-muted-foreground">Scannez un produit pour voir ses détails</p>
               </div>
             )}
           </CardContent>

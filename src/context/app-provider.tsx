@@ -32,10 +32,10 @@ const initialModules: ActiveModules = {
 };
 
 const initialShopInfo: ShopInfo = {
-  name: 'StockHero Inc.',
-  address: '123 Main St, Anytown, USA',
-  phone: '555-123-4567',
-  email: 'contact@stockhero.dev',
+  name: 'Ma Boutique Togo',
+  address: 'Boulevard du 13 Janvier, Lomé, Togo',
+  phone: '+228 90 00 00 00',
+  email: 'contact@boutique.tg',
 };
 
 const initialThemeColors: ThemeColors = {
@@ -120,9 +120,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (isMounted) {
       localStorage.setItem('stockhero_themecolors', JSON.stringify(themeColors));
       
-      // This will apply the theme to the root element.
-      // Note: This simplified approach primarily affects the light theme.
-      // A more robust solution would involve separate color definitions for dark mode.
       const root = document.documentElement;
       if (themeColors.primary) root.style.setProperty('--primary', themeColors.primary);
       if (themeColors.background) root.style.setProperty('--background', themeColors.background);
@@ -137,7 +134,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addMultipleProducts = (newProducts: Product[]) => {
     setProducts((prevProducts) => {
-      // This ensures we don't add products with barcodes that already exist.
       const existingBarcodes = new Set(prevProducts.map((p) => p.barcode));
       const uniqueNewProducts = newProducts.filter(
         (p) => !existingBarcodes.has(p.barcode)
@@ -172,12 +168,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     const subtotal = cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
-    const tax = subtotal * 0.1;
+    const tax = subtotal * 0.18; // TVA à 18%
     const total = subtotal + tax;
 
     const newInvoice: Invoice = {
-        id: `INV-${Date.now()}`,
-        customerName: `POS Sale`,
+        id: `FACT-${Date.now()}`,
+        customerName: `Vente PDV`,
         items: cartItems,
         subtotal,
         tax,
@@ -191,7 +187,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addInvoice = (invoiceData: Omit<Invoice, 'id' | 'createdAt'>) => {
     const newInvoice: Invoice = {
       ...invoiceData,
-      id: `INV-${Date.now()}`,
+      id: `FACT-${Date.now()}`,
       createdAt: new Date(),
     };
     setInvoices(prev => [newInvoice, ...prev]);
@@ -226,7 +222,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 export function useApp() {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
+    throw new Error('useApp doit être utilisé à l\'intérieur d\'un AppProvider');
   }
   return context;
 }
