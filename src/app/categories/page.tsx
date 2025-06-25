@@ -17,16 +17,18 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Tag, PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { Categorie } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const categorieSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
 });
 
 export default function CategoriesPage() {
-    const { categories, produits, addCategorie, updateCategorie, deleteCategorie } = useApp();
+    const { categories, produits, addCategorie, updateCategorie, deleteCategorie, fetchCategories, isMounted } = useApp();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCategorie, setEditingCategorie] = useState<Categorie | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm<z.infer<typeof categorieSchema>>({
         resolver: zodResolver(categorieSchema),
@@ -51,28 +53,42 @@ export default function CategoriesPage() {
         setIsDialogOpen(true);
     };
 
-    const onSubmit = (values: z.infer<typeof categorieSchema>) => {
-        if (editingCategorie) {
-            updateCategorie({ ...editingCategorie, ...values });
-            toast({ title: "Catégorie mise à jour" });
-        } else {
-            addCategorie(values);
-            toast({ title: "Catégorie ajoutée" });
+    const onSubmit = async (values: z.infer<typeof categorieSchema>) => {
+        setIsLoading(true);
+        try {
+            if (editingCategorie) {
+                await updateCategorie(editingCategorie.id, { ...editingCategorie, ...values });
+                toast({ title: "Catégorie mise à jour" });
+            } else {
+                await addCategorie(values);
+                toast({ title: "Catégorie ajoutée" });
+            }
+            setIsDialogOpen(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue.' });
+        } finally {
+            setIsLoading(false);
         }
-        setIsDialogOpen(false);
     };
 
-    const handleDelete = (categorieId: string) => {
+    const handleDelete = async (categorieId: number) => {
         const isUsed = produits.some(p => p.categorie_id === categorieId);
         if (isUsed) {
             toast({ variant: 'destructive', title: 'Suppression impossible', description: 'Cette catégorie est utilisée par au moins un produit.' });
             return;
         }
-        deleteCategorie(categorieId);
-        toast({ title: "Catégorie supprimée" });
+        setIsLoading(true);
+        try {
+            await deleteCategorie(categorieId);
+            toast({ title: "Catégorie supprimée" });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue lors de la suppression.' });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const getCategoryUsage = (categorieId: string) => {
+    const getCategoryUsage = (categorieId: number) => {
         return produits.filter(p => p.categorie_id === categorieId).length;
     };
     
@@ -103,7 +119,15 @@ export default function CategoriesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {categories.length > 0 ? (
+                                {!isMounted ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
+                                            <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : categories.length > 0 ? (
                                     categories.map((cat) => (
                                         <TableRow key={cat.id}>
                                             <TableCell className="font-medium">{cat.nom}</TableCell>
@@ -136,7 +160,7 @@ export default function CategoriesPage() {
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
                                                                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDelete(cat.id)}>Supprimer</AlertDialogAction>
+                                                                    <AlertDialogAction onClick={() => handleDelete(cat.id)} disabled={isLoading}>{isLoading ? "Suppression..." : "Supprimer"}</AlertDialogAction>
                                                                 </AlertDialogFooter>
                                                             </AlertDialogContent>
                                                         </AlertDialog>
@@ -172,15 +196,15 @@ export default function CategoriesPage() {
                                     <FormItem>
                                         <FormLabel>Nom de la catégorie</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="ex: Boissons" {...field} />
+                                            <Input placeholder="ex: Boissons" {...field} disabled={isLoading} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                             <DialogFooter>
-                                <DialogClose asChild><Button type="button" variant="ghost">Annuler</Button></DialogClose>
-                                <Button type="submit">{editingCategorie ? "Sauvegarder" : "Créer"}</Button>
+                                <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
+                                <Button type="submit" disabled={isLoading}>{isLoading ? "Sauvegarde..." : (editingCategorie ? "Sauvegarder" : "Créer")}</Button>
                             </DialogFooter>
                         </form>
                     </Form>

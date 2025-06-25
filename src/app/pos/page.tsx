@@ -126,7 +126,7 @@ export default function POSPage() {
       .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [produits, activeTab, searchTerm, categoryNameToId]);
 
-  const handleQuantityChange = (produitId: string, newQuantity: number) => {
+  const handleQuantityChange = (produitId: number, newQuantity: number) => {
     const produitInStock = produits.find(p => p.id === produitId);
     if (!produitInStock) return;
 
@@ -164,7 +164,7 @@ export default function POSPage() {
       handleQuantityChange(produit.id, existingItem.quantite + 1);
     } else {
       const newLigne: VenteLigne = {
-          id: `ligne-${Date.now()}`,
+          id: Date.now(),
           produit: produit,
           quantite: 1,
           prix_unitaire: produit.prix_vente,

@@ -1,13 +1,13 @@
 export type Categorie = {
-  id: string;
+  id: number;
   nom: string;
 };
 
 export type Produit = {
-  id: string;
+  id: number;
   nom: string;
   code_barre: string;
-  categorie_id: string;
+  categorie_id: number;
   prix_achat: number;
   prix_vente: number;
   quantite_stock: number;
@@ -16,22 +16,22 @@ export type Produit = {
 };
 
 export type VenteLigne = {
-  id: string;
-  produit: Produit; // Garder l'objet produit complet est plus simple pour l'accès aux données
+  id: number;
+  produit: Produit;
   quantite: number;
-  prix_unitaire: number; // prix_vente au moment de la vente
+  prix_unitaire: number;
   prix_total: number;
 };
 
 export type Vente = {
-  id: string;
+  id: number;
   client: string;
   lignes: VenteLigne[];
   montant_total: number;
   montant_paye: number;
   reste: number;
   type_paiement: 'cash' | 'flooz' | 'tmoney' | 'carte';
-  vendeur: string; // Pour l'instant, un simple nom. Pourrait être lié à un utilisateur
+  vendeur: string;
   date_vente: Date;
   type: 'pos' | 'manual';
   facture_modele_id?: string;
@@ -70,7 +70,7 @@ export type ThemeColors = {
 };
 
 export type Utilisateur = {
-  id: string;
+  id: number;
   nom: string;
   role: 'admin' | 'vendeur';
   identifiant: string;

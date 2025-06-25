@@ -2,10 +2,10 @@
 "use client";
 import * as React from "react";
 import * as z from "zod";
-import * as XLSX from "xlsx";
+import Barcode from "react-barcode";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Barcode from "react-barcode";
+import * as api from '@/lib/api';
 import {
   Table,
   TableBody,
@@ -91,18 +91,9 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
     formData.append("file", file);
 
     try {
-      const response = await fetch('http://192.168.1.140/api/products/import', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Une erreur est survenue lors de l'importation.");
-      }
-
-      const importedData = await response.json();
+      const importedData = await api.importProducts(formData);
       onImportSuccess(importedData);
+      toast({ title: "Importation réussie", description: `${importedData.length} produits ont été ajoutés ou mis à jour.` });
       onOpenChange(false);
       setFile(null);
     } catch (error: any) {
@@ -199,10 +190,17 @@ export default function StockPage() {
   });
 
   React.useEffect(() => {
-    form.reset(editingProduit || {
-      nom: "", code_barre: "", categorie_id: "", prix_achat: 0,
-      prix_vente: 0, quantite_stock: 0, unite: "pièce", alerte_stock: 0,
-    });
+    if (editingProduit) {
+        form.reset({
+            ...editingProduit,
+            categorie_id: String(editingProduit.categorie_id),
+        });
+    } else {
+        form.reset({
+            nom: "", code_barre: "", categorie_id: "", prix_achat: 0,
+            prix_vente: 0, quantite_stock: 0, unite: "pièce", alerte_stock: 0,
+        });
+    }
   }, [editingProduit, form]);
 
   const handleAddNew = () => { setEditingProduit(null); setIsDialogOpen(true); };
@@ -211,39 +209,25 @@ export default function StockPage() {
   const handlePrintSingle = (produit: Produit) => { setProductsToPrint([produit]); setIsPrintDialogOpen(true); };
   
   const onSubmit = (values: z.infer<typeof produitSchema>) => {
+    const productData = {
+        ...values,
+        categorie_id: parseInt(values.categorie_id, 10),
+    };
+
     if (editingProduit) {
-      updateProduit({ ...editingProduit, ...values });
+      updateProduit({ ...editingProduit, ...productData });
       toast({ title: "Produit mis à jour" });
     } else {
-      addProduit(values);
+      addProduit(productData);
       toast({ title: "Produit ajouté" });
     }
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (produitId: string) => { deleteProduit(produitId); toast({ title: "Produit supprimé", variant: 'destructive' }); };
+  const handleDelete = (produitId: number) => { deleteProduit(produitId); toast({ title: "Produit supprimé", variant: 'destructive' }); };
 
   const handleImportSuccess = (importedData: any[]) => {
-    const categoryNameToIdMap = new Map(categories.map(c => [c.nom.toLowerCase(), c.id]));
-    const newProducts: Produit[] = [];
-    let skippedCount = 0;
-
-    for (const row of importedData) {
-      const categorieNom = row.categorie_nom?.toLowerCase();
-      const categorie_id = categoryNameToIdMap.get(categorieNom);
-      if (categorie_id) {
-        const parsed = produitSchema.safeParse({ ...row, categorie_id });
-        if (parsed.success) {
-            newProducts.push({ id: `imported-${Date.now()}-${newProducts.length}`, ...parsed.data });
-        } else {
-            skippedCount++;
-        }
-      } else {
-        skippedCount++;
-      }
-    }
-    addMultipleProduits(newProducts);
-    toast({ title: "Importation terminée", description: `${newProducts.length} produits importés. ${skippedCount} lignes ignorées.` });
+    addMultipleProduits(importedData);
   };
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -306,9 +290,9 @@ export default function StockPage() {
               </div>
               <FormField control={form.control} name="categorie_id" render={({ field }) => (
                   <FormItem><FormLabel>Catégorie</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>
-                        <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}</SelectContent>
+                        <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
                     </Select>
                   <FormMessage />
                 </FormItem>
@@ -322,7 +306,7 @@ export default function StockPage() {
                 <FormField control={form.control} name="unite" render={({ field }) => (<FormItem><FormLabel>Unité</FormLabel><FormControl><Input placeholder="pièce, kg..." {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="alerte_stock" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
               </div>
-              <DialogFooter><Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Annuler</Button><Button type="submit">{editingProduit ? "Sauvegarder" : "Créer le produit"}</Button></DialogFooter>
+              <DialogFooter><DialogClose asChild><Button type="button" variant="ghost">Annuler</Button></DialogClose><Button type="submit">{editingProduit ? "Sauvegarder" : "Créer le produit"}</Button></DialogFooter>
             </form>
           </Form>
         </DialogContent>

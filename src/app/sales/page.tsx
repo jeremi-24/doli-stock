@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from '@/context/app-provider';
 import type { Vente, FactureModele } from '@/lib/types';
-import { PlusCircle, Printer, FileText, Eye, Search, History } from 'lucide-react';
+import { PlusCircle, Printer, Eye, Search, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -29,7 +29,7 @@ function SaleDetailsDialog({ vente, factureModeles }: { vente: Vente, factureMod
             printWindow.document.write(`
                 <html>
                     <head>
-                        <title>Facture ${vente.id.substring(vente.id.length-6)}</title>
+                        <title>Facture ${String(vente.id).substring(String(vente.id).length-6)}</title>
                         <style>
                             body { font-family: sans-serif; margin: 0; padding: 20px; }
                             .print-container { max-width: 800px; margin: auto; }
@@ -85,7 +85,7 @@ function SaleDetailsDialog({ vente, factureModeles }: { vente: Vente, factureMod
                             <h1 className="text-3xl font-bold" style={primaryColorStyle}>
                                 {template?.headerContent || 'FACTURE'}
                             </h1>
-                            <p className="text-muted-foreground">N° : {vente.id.substring(vente.id.length-6)}</p>
+                            <p className="text-muted-foreground">N° : {String(vente.id).substring(String(vente.id).length-6)}</p>
                             <p className="text-muted-foreground">Date : {format(new Date(vente.date_vente), 'd MMMM yyyy', { locale: fr })}</p>
                         </div>
                     </div>
@@ -132,7 +132,7 @@ export default function SalesPage() {
   const filteredSales = useMemo(() => {
       return [...ventes]
         .sort((a, b) => new Date(b.date_vente).getTime() - new Date(a.date_vente).getTime())
-        .filter(vente => vente.client.toLowerCase().includes(searchTerm.toLowerCase()) || vente.id.toLowerCase().includes(searchTerm.toLowerCase()));
+        .filter(vente => vente.client.toLowerCase().includes(searchTerm.toLowerCase()) || String(vente.id).toLowerCase().includes(searchTerm.toLowerCase()));
   }, [ventes, searchTerm]);
   
   return (
@@ -159,7 +159,7 @@ export default function SalesPage() {
                     <TableBody>
                     {filteredSales.length > 0 ? filteredSales.map(vente => (
                         <TableRow key={vente.id}>
-                            <TableCell className="font-mono text-xs">{vente.id.substring(vente.id.length-6)}</TableCell>
+                            <TableCell className="font-mono text-xs">{String(vente.id).substring(String(vente.id).length-6)}</TableCell>
                             <TableCell className="font-medium">{vente.client}</TableCell>
                             <TableCell>{format(new Date(vente.date_vente), 'd MMM yyyy', { locale: fr })}</TableCell>
                             <TableCell><Badge variant={vente.type === 'pos' ? 'secondary' : 'default'}>{vente.type.toUpperCase()}</Badge></TableCell>

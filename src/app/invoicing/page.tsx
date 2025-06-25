@@ -37,14 +37,14 @@ export default function InvoicingPage() {
 
   const handleAddItem = () => {
     if (!selectedProduit) return;
-    const produitToAdd = produits.find(p => p.id === selectedProduit);
+    const produitToAdd = produits.find(p => p.id === parseInt(selectedProduit, 10));
     if (produitToAdd) {
       if (produitToAdd.quantite_stock < 1) {
         toast({ title: "Rupture de stock", variant: "destructive" });
         return;
       }
       const newLigne: VenteLigne = {
-        id: `ligne-${Date.now()}`,
+        id: Date.now(),
         produit: produitToAdd,
         quantite: 1,
         prix_unitaire: produitToAdd.prix_vente,
@@ -55,11 +55,11 @@ export default function InvoicingPage() {
     }
   };
 
-  const handleRemoveItem = (produitId: string) => {
+  const handleRemoveItem = (produitId: number) => {
     setLignes(lignes.filter(item => item.produit.id !== produitId));
   };
 
-  const handleQuantityChange = (produitId: string, quantity: number) => {
+  const handleQuantityChange = (produitId: number, quantity: number) => {
     const produitInStock = produits.find(p => p.id === produitId);
     if (produitInStock && quantity > produitInStock.quantite_stock) {
       toast({ title: "Limite de stock dépassée", variant: "destructive" });
@@ -129,7 +129,7 @@ export default function InvoicingPage() {
             <div className="flex items-center gap-2">
               <Select value={selectedProduit} onValueChange={setSelectedProduit}>
                 <SelectTrigger><SelectValue placeholder="Sélectionner un produit" /></SelectTrigger>
-                <SelectContent>{availableProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}</SelectContent>
+                <SelectContent>{availableProducts.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.nom}</SelectItem>)}</SelectContent>
               </Select>
               <Button onClick={handleAddItem} variant="outline" size="icon" aria-label="Ajouter le produit"><PlusCircle className="h-4 w-4" /></Button>
             </div>
