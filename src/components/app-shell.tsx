@@ -49,7 +49,7 @@ function CollapseToggle() {
 function AppShellContent({ children }: { children: React.ReactNode }) {
   const { activeModules, isMounted, shopInfo } = useApp();
   const pathname = usePathname();
-  const { setOpen, isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   
   const [theme, setTheme] = React.useState('light');
 
@@ -71,12 +71,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const isPosPage = pathname === '/pos';
 
   React.useEffect(() => {
-    if (!isMobile) {
-      setOpen(!isPosPage);
-    } else {
-      setOpen(false);
+    if (isMobile) {
+      setOpenMobile(false);
     }
-  }, [pathname, isMobile, setOpen]);
+  }, [pathname, isMobile, setOpenMobile]);
 
 
   if (!isMounted) {
