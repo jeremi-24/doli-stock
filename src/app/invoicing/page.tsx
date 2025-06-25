@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Badge } from "@/components/ui/badge";
 import { useApp } from '@/context/app-provider';
 import type { InvoiceItem, Product, Invoice } from '@/lib/types';
-import { PlusCircle, Trash2, Printer, FileText, Eye } from 'lucide-react';
+import { PlusCircle, Trash2, Printer, FileText, Eye, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -23,7 +24,6 @@ function NewInvoiceDialog() {
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<string | undefined>(undefined);
   const [isOpen, setIsOpen] = useState(false);
-  const [affectStock, setAffectStock] = useState(false);
 
   const availableProducts = useMemo(() => {
     return products.filter(p => !items.some(item => item.product.id === p.id));
@@ -92,18 +92,13 @@ function NewInvoiceDialog() {
         type: 'manual',
     });
     
-    if (affectStock) {
-        processSale(items);
-        toast({ title: "Facture créée et stock mis à jour", description: "La nouvelle facture a été enregistrée et les niveaux de stock ajustés." });
-    } else {
-        toast({ title: "Facture créée", description: "La nouvelle facture a été enregistrée." });
-    }
+    processSale(items);
+    toast({ title: "Facture créée et stock mis à jour", description: "La nouvelle facture a été enregistrée et les niveaux de stock ajustés." });
     
     setCustomerName('');
     setItems([]);
     setSelectedProduct(undefined);
     setIsOpen(false);
-    setAffectStock(false);
   };
 
   return (
@@ -111,13 +106,13 @@ function NewInvoiceDialog() {
       <DialogTrigger asChild>
         <Button size="sm">
           <PlusCircle className="h-4 w-4 mr-2" />
-          Créer une Facture
+          Créer une Facture Manuelle
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="font-headline">Nouvelle Facture</DialogTitle>
-          <DialogDescription>Créez une nouvelle facture pour un client. Vous pouvez choisir de mettre à jour les niveaux de stock pour cette transaction.</DialogDescription>
+          <DialogTitle className="font-headline">Nouvelle Facture Manuelle</DialogTitle>
+          <DialogDescription>Créez une facture et mettez à jour les niveaux de stock pour cette transaction.</DialogDescription>
         </DialogHeader>
         <div className="space-y-6 py-4">
           <div className="space-y-2">
@@ -198,10 +193,7 @@ function NewInvoiceDialog() {
             </Table>
           </div>
         </div>
-        <DialogFooter className="justify-between sm:justify-between">
-            <div>
-                 {/* This feature is not implemented yet */}
-            </div>
+        <DialogFooter className="justify-end sm:justify-end">
             <div className="flex items-center gap-2">
                 <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
                 <Button onClick={handleCreateInvoice}>Créer la Facture</Button>
@@ -326,16 +318,36 @@ function InvoiceDetailsDialog({ invoice }: { invoice: Invoice }) {
 
 export default function InvoicingPage() {
   const { invoices } = useApp();
+  const [searchTerm, setSearchTerm] = useState("");
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
+
+  const filteredInvoices = useMemo(() => {
+      return [...invoices]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .filter(invoice => 
+            invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            invoice.id.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+  }, [invoices, searchTerm]);
   
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center gap-4">
         <h1 className="font-headline text-3xl font-semibold">Facturation</h1>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+           <div className="relative flex-1 md:grow-0">
+             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+             <Input
+              type="search"
+              placeholder="Rechercher une facture..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+            />
+           </div>
           <NewInvoiceDialog />
         </div>
       </div>
@@ -359,7 +371,7 @@ export default function InvoicingPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {invoices.length > 0 ? [...invoices].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(invoice => (
+                    {filteredInvoices.length > 0 ? filteredInvoices.map(invoice => (
                         <TableRow key={invoice.id}>
                         <TableCell className="font-mono text-xs">{invoice.id}</TableCell>
                         <TableCell className="font-medium">{invoice.customerName}</TableCell>
@@ -375,7 +387,7 @@ export default function InvoicingPage() {
                     )) : (
                         <TableRow>
                         <TableCell colSpan={6} className="h-24 text-center">
-                            Aucune facture trouvée.
+                            {searchTerm ? "Aucune facture ne correspond à votre recherche." : "Aucune facture trouvée."}
                         </TableCell>
                         </TableRow>
                     )}

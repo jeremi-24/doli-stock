@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -9,19 +10,29 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
 import type { Product, InvoiceItem } from '@/lib/types';
-import { Plus, Minus, Trash2, ShoppingCart, DollarSign, PackagePlus } from 'lucide-react';
+import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function POSPage() {
   const { products, processSale } = useApp();
   const { toast } = useToast();
   const [cart, setCart] = useState<InvoiceItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("Tout");
 
   const categories = useMemo(() => ['Tout', ...new Set(products.map(p => p.category))], [products]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
+  
+  const filteredProducts = useMemo(() => {
+    return products
+      .filter(p => p.quantity > 0)
+      .filter(p => activeTab === 'Tout' || p.category === activeTab)
+      .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [products, activeTab, searchTerm]);
+
 
   const handleAddToCart = (product: Product) => {
     const productInStock = products.find(p => p.id === product.id);
@@ -86,39 +97,51 @@ export default function POSPage() {
       <div className="flex-1 p-4 md:p-6 flex flex-col">
         <div className="flex items-center gap-4 mb-4">
           <h1 className="font-headline text-3xl font-semibold">Point de Vente</h1>
+           <div className="relative ml-auto flex-1 md:grow-0">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Rechercher un produit..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+            />
+          </div>
         </div>
-        <Tabs defaultValue="Tout" className="flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
           <TabsList className="mb-4 shrink-0">
             {categories.map(category => (
                 <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
             ))}
           </TabsList>
-            {categories.map(category => (
-                <TabsContent key={category} value={category} className="mt-0 flex-1 min-h-0">
-                    <ScrollArea className="h-full">
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pr-4">
-                            {products
-                            .filter(p => (category === 'Tout' || p.category === category) && p.quantity > 0)
-                            .map(product => (
-                                <Card key={product.id} className="overflow-hidden cursor-pointer hover:border-primary transition-colors flex flex-col" onClick={() => handleAddToCart(product)}>
-                                    <CardHeader className="p-0">
-                                        <div className="aspect-square bg-muted flex items-center justify-center">
-                                           <PackagePlus className="w-12 h-12 text-muted-foreground" />
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="p-3 flex-1 flex flex-col justify-between">
-                                        <div>
-                                            <h3 className="font-semibold truncate text-sm">{product.name}</h3>
-                                            <p className="text-xs text-muted-foreground">{product.quantity} en stock</p>
-                                        </div>
-                                        <p className="text-base text-primary font-bold mt-2">{formatCurrency(product.price)}</p>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </TabsContent>
-            ))}
+          <TabsContent value={activeTab} className="mt-0 flex-1 min-h-0">
+              <ScrollArea className="h-full">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pr-4">
+                      {filteredProducts
+                      .map(product => (
+                          <Card key={product.id} className="overflow-hidden cursor-pointer hover:border-primary transition-colors flex flex-col" onClick={() => handleAddToCart(product)}>
+                              <CardHeader className="p-0">
+                                  <div className="aspect-square bg-muted flex items-center justify-center">
+                                     <PackagePlus className="w-12 h-12 text-muted-foreground" />
+                                  </div>
+                              </CardHeader>
+                              <CardContent className="p-3 flex-1 flex flex-col justify-between">
+                                  <div>
+                                      <h3 className="font-semibold truncate text-sm">{product.name}</h3>
+                                      <p className="text-xs text-muted-foreground">{product.quantity} en stock</p>
+                                  </div>
+                                  <p className="text-base text-primary font-bold mt-2">{formatCurrency(product.price)}</p>
+                              </CardContent>
+                          </Card>
+                      ))}
+                      {filteredProducts.length === 0 && (
+                          <div className="col-span-full text-center text-muted-foreground py-10">
+                              <p>Aucun produit trouvé.</p>
+                          </div>
+                      )}
+                  </div>
+              </ScrollArea>
+          </TabsContent>
         </Tabs>
       </div>
 

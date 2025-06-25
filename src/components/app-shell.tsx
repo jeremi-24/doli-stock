@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -26,8 +27,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { ScanLine, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart } from 'lucide-react';
-import { Tag, Package } from 'lucide-react'; // Import new icons
+import { ScanLine, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart, Tag } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -94,21 +94,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       icon: <Tag />,
       label: 'Catégories',
       active: pathname === '/categories',
-      module: 'all',
-    },
-    {
-      href: '/products',
-      icon: <Package />,
-      label: 'Produits',
-      active: pathname === '/products',
-      module: 'all',
+      module: 'stock', // Visible if stock is visible
     },
     {
       href: '/settings',
       icon: <Settings />,
       label: 'Paramètres',
       active: pathname === '/settings',
-      module: 'all',
+      module: 'all', // Always visible
     },
   ];
 
@@ -124,10 +117,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             {navItems.map((item) => 
-                (activeModules[item.module as keyof typeof activeModules] || item.module === 'all') && (
+                (item.module === 'all' || activeModules[item.module as keyof typeof activeModules]) && (
                 <SidebarMenuItem key={item.href}>
                   <Link href={item.href} legacyBehavior passHref>
-                    <SidebarMenuButton isActive={item.active}>
+                    <SidebarMenuButton isActive={item.active} size="lg" tooltip={item.label}>
                       {item.icon}
                       <span>{item.label}</span>
                     </SidebarMenuButton>

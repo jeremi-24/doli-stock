@@ -1,3 +1,4 @@
+
 "use client";
 import * as React from "react";
 import * as z from "zod";
@@ -21,6 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -146,7 +148,7 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
   );
 }
 
-function BarcodePrintDialog({ open, onOpenChange, products }: { open: boolean, onOpenChange: (open: boolean) => void, products: Product[] }) {
+function BarcodePrintDialog({ open, onOpenChange, productsToPrint }: { open: boolean, onOpenChange: (open: boolean) => void, productsToPrint: Product[] }) {
   const printRef = React.useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -213,9 +215,9 @@ function BarcodePrintDialog({ open, onOpenChange, products }: { open: boolean, o
           </DialogDescription>
         </DialogHeader>
         <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
-            {products && products.length > 0 ? (
+            {productsToPrint && productsToPrint.length > 0 ? (
                 <div ref={printRef} className="barcode-grid">
-                {products.map((product) => (
+                {productsToPrint.map((product) => (
                     <div key={product.id} className="barcode-item">
                     <p className="product-name">{product.name}</p>
                     <Barcode value={product.barcode} height={40} width={1.5} fontSize={10} margin={5} />
@@ -228,7 +230,7 @@ function BarcodePrintDialog({ open, onOpenChange, products }: { open: boolean, o
         </div>
         <DialogFooter>
           <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-          <Button onClick={handlePrint} disabled={!products || products.length === 0}>
+          <Button onClick={handlePrint} disabled={!productsToPrint || productsToPrint.length === 0}>
             <Printer className="h-4 w-4 mr-2" />
             Imprimer
           </Button>
@@ -244,6 +246,7 @@ export default function StockPage() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
+  const [productsToPrint, setProductsToPrint] = React.useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
   const { toast } = useToast();
 
@@ -284,6 +287,12 @@ export default function StockPage() {
   };
 
   const handlePrintAll = () => {
+    setProductsToPrint(products);
+    setIsPrintDialogOpen(true);
+  };
+
+  const handlePrintSingle = (product: Product) => {
+    setProductsToPrint([product]);
     setIsPrintDialogOpen(true);
   };
   
@@ -328,11 +337,11 @@ export default function StockPage() {
         <div className="ml-auto flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setIsImportDialogOpen(true)}>
             <FileUp className="h-4 w-4 mr-2"/>
-            Importer
+            Importer depuis Excel
           </Button>
           <Button size="sm" variant="outline" onClick={handlePrintAll} disabled={products.length === 0}>
             <Printer className="h-4 w-4 mr-2"/>
-            Imprimer les Codes-barres
+            Imprimer Tous les Codes-barres
           </Button>
           <Button size="sm" onClick={handleAddNew}>
             <PlusCircle className="h-4 w-4 mr-2" />
@@ -379,6 +388,10 @@ export default function StockPage() {
                             <DropdownMenuItem onClick={() => handleEdit(product)}>
                               <Pencil className="mr-2 h-4 w-4" /> Modifier
                             </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handlePrintSingle(product)}>
+                              <Printer className="mr-2 h-4 w-4" /> Imprimer le code-barres
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
@@ -509,7 +522,7 @@ export default function StockPage() {
       <BarcodePrintDialog 
         open={isPrintDialogOpen} 
         onOpenChange={setIsPrintDialogOpen} 
-        products={products}
+        productsToPrint={productsToPrint}
       />
     </div>
   );
