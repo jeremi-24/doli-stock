@@ -2,8 +2,8 @@
 
 import type { Categorie, Produit } from './types';
 
-// Utilise un chemin relatif pour que le proxy de Next.js (configuré dans next.config.ts) puisse fonctionner.
-const API_BASE_URL = '/api';
+// URL directe du backend. Les appels sont faits côté serveur, donc pas de problème de "Mixed Content".
+const API_BASE_URL = 'http://192.168.1.140';
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   try {
@@ -35,15 +35,15 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
 // ========== Categories API ==========
 
-export const getCategories = async (): Promise<Categorie[]> => {
+export async function getCategories(): Promise<Categorie[]> {
   return apiFetch('/categorie');
 };
 
-export const getCategoryById = async (id: number): Promise<Categorie> => {
+export async function getCategoryById(id: number): Promise<Categorie> {
   return apiFetch(`/categorie/${id}`);
 };
 
-export const createCategory = async (data: { nom: string }): Promise<Categorie> => {
+export async function createCategory(data: { nom: string }): Promise<Categorie> {
   // Conforme au corps de requête attendu par l'API
   const body = { id: 0, nom: data.nom, produits: [] };
   return apiFetch('/categorie', {
@@ -52,14 +52,14 @@ export const createCategory = async (data: { nom: string }): Promise<Categorie> 
   });
 };
 
-export const updateCategory = async (id: number, data: Partial<Categorie>): Promise<Categorie> => {
+export async function updateCategory(id: number, data: Partial<Categorie>): Promise<Categorie> {
   return apiFetch(`/categorie/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
 };
 
-export const deleteCategory = async (id: number): Promise<null> => {
+export async function deleteCategory(id: number): Promise<null> {
   return apiFetch(`/categorie/${id}`, {
     method: 'DELETE',
   });
@@ -67,7 +67,7 @@ export const deleteCategory = async (id: number): Promise<null> => {
 
 // ========== Products API ==========
 
-export const importProducts = async (formData: FormData): Promise<Produit[]> => {
+export async function importProducts(formData: FormData): Promise<Produit[]> {
   // On n'utilise pas apiFetch car le content-type est multipart/form-data
   const res = await fetch(`${API_BASE_URL}/produit/import`, {
     method: 'POST',
