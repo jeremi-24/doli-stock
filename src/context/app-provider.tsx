@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Product, ActiveModules, InvoiceItem, Invoice } from '@/lib/types';
+import type { Product, ActiveModules, InvoiceItem, Invoice, ShopInfo, ThemeColors } from '@/lib/types';
 import { sampleProducts } from '@/lib/data';
 
 interface AppContextType {
@@ -15,6 +15,10 @@ interface AppContextType {
   addInvoice: (invoice: Omit<Invoice, 'id' | 'createdAt'>) => void;
   activeModules: ActiveModules;
   setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
+  shopInfo: ShopInfo;
+  setShopInfo: React.Dispatch<React.SetStateAction<ShopInfo>>;
+  themeColors: ThemeColors;
+  setThemeColors: React.Dispatch<React.SetStateAction<ThemeColors>>;
   isMounted: boolean;
 }
 
@@ -27,11 +31,26 @@ const initialModules: ActiveModules = {
   pos: true,
 };
 
+const initialShopInfo: ShopInfo = {
+  name: 'StockHero Inc.',
+  address: '123 Main St, Anytown, USA',
+  phone: '555-123-4567',
+  email: 'contact@stockhero.dev',
+};
+
+const initialThemeColors: ThemeColors = {
+  primary: '231 48% 48%',
+  background: '220 13% 96%',
+  accent: '262 52% 50%',
+};
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
+  const [shopInfo, setShopInfo] = useState<ShopInfo>(initialShopInfo);
+  const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
 
   useEffect(() => {
     try {
@@ -55,6 +74,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (storedModules) {
         setActiveModules(JSON.parse(storedModules));
       }
+
+      const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
+      if (storedShopInfo) {
+        setShopInfo(JSON.parse(storedShopInfo));
+      }
+
+      const storedThemeColors = localStorage.getItem('stockhero_themecolors');
+      if (storedThemeColors) {
+        setThemeColors(JSON.parse(storedThemeColors));
+      }
+
     } catch (error) {
       console.error("Failed to access localStorage", error);
       setProducts(sampleProducts);
@@ -79,6 +109,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('stockhero_modules', JSON.stringify(activeModules));
     }
   }, [activeModules, isMounted]);
+
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem('stockhero_shopinfo', JSON.stringify(shopInfo));
+    }
+  }, [shopInfo, isMounted]);
+
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem('stockhero_themecolors', JSON.stringify(themeColors));
+      
+      // This will apply the theme to the root element.
+      // Note: This simplified approach primarily affects the light theme.
+      // A more robust solution would involve separate color definitions for dark mode.
+      const root = document.documentElement;
+      if (themeColors.primary) root.style.setProperty('--primary', themeColors.primary);
+      if (themeColors.background) root.style.setProperty('--background', themeColors.background);
+      if (themeColors.accent) root.style.setProperty('--accent', themeColors.accent);
+    }
+  }, [themeColors, isMounted]);
+
 
   const addProduct = (product: Product) => {
     setProducts((prev) => [...prev, product]);
@@ -158,6 +209,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addInvoice,
     activeModules,
     setActiveModules,
+    shopInfo,
+    setShopInfo,
+    themeColors,
+    setThemeColors,
     isMounted,
   };
 

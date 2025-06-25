@@ -29,3 +29,17 @@ export type ActiveModules = {
   barcode: boolean;
   pos: boolean;
 };
+
+export type ShopInfo = {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+};
+
+export type ThemeColors = {
+    // HSL values as string, e.g. "231 48% 48%"
+    primary: string;
+    background: string;
+    accent: string;
+};

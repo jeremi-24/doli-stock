@@ -1,13 +1,195 @@
 "use client";
 
+import * as React from "react";
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode, Warehouse, FileText, ShoppingCart, Import, Users, Store, Palette } from 'lucide-react';
+import { Settings, Barcode, Warehouse, FileText, ShoppingCart, Import, Users, Store, Palette, Badge } from 'lucide-react';
+import type { ShopInfo, ThemeColors } from "@/lib/types";
+
+const shopInfoSchema = z.object({
+  name: z.string().min(1, "Shop name is required."),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email("Invalid email address.").or(z.literal('')).optional(),
+});
+
+const themeColorsSchema = z.object({
+  primary: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Use 'H S% L%' format (e.g. 231 48% 48%)").trim(),
+  background: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Use 'H S% L%' format (e.g. 220 13% 96%)").trim(),
+  accent: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Use 'H S% L%' format (e.g. 262 52% 50%)").trim(),
+});
+
+
+function ShopInfoForm() {
+  const { shopInfo, setShopInfo } = useApp();
+  const { toast } = useToast();
+  
+  const form = useForm<z.infer<typeof shopInfoSchema>>({
+    resolver: zodResolver(shopInfoSchema),
+    defaultValues: shopInfo,
+  });
+
+  React.useEffect(() => {
+    form.reset(shopInfo);
+  }, [shopInfo, form]);
+
+  function onSubmit(values: z.infer<typeof shopInfoSchema>) {
+    setShopInfo(values as ShopInfo);
+    toast({
+      title: "Shop Info Updated",
+      description: "Your shop details have been saved.",
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline">Boutique</CardTitle>
+        <CardDescription>Configurez les informations de votre boutique.</CardDescription>
+      </CardHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Shop Name</FormLabel>
+                  <FormControl><Input placeholder="Your Shop Name" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl><Input placeholder="123 Main St, Anytown" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl><Input placeholder="555-123-4567" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Email</FormLabel>
+                  <FormControl><Input placeholder="contact@yourshop.com" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter className="border-t px-6 py-4">
+            <Button type="submit">Save Changes</Button>
+          </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
+}
+
+function AppearanceForm() {
+  const { themeColors, setThemeColors } = useApp();
+  const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof themeColorsSchema>>({
+    resolver: zodResolver(themeColorsSchema),
+    defaultValues: themeColors,
+  });
+
+  React.useEffect(() => {
+    form.reset(themeColors);
+  }, [themeColors, form]);
+
+  function onSubmit(values: z.infer<typeof themeColorsSchema>) {
+    setThemeColors(values as ThemeColors);
+    toast({
+      title: "Theme Updated",
+      description: "Your new color scheme has been applied.",
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline">Apparence</CardTitle>
+        <CardDescription>Personnalisez l'apparence de votre application.</CardDescription>
+      </CardHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="primary"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Primary Color</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormDescription>Enter an HSL value, e.g., "231 48% 48%"</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="background"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Background Color</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                   <FormDescription>Enter an HSL value, e.g., "220 13% 96%"</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="accent"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Accent Color</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                   <FormDescription>Enter an HSL value, e.g., "262 52% 50%"</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter className="border-t px-6 py-4">
+            <Button type="submit">Save & Apply Theme</Button>
+          </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
+}
 
 export default function SettingsPage() {
   const { activeModules, setActiveModules } = useApp();
@@ -134,6 +316,9 @@ export default function SettingsPage() {
                 <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
                     <Import className="h-12 w-12 text-muted-foreground" />
                     <p className="mt-4 text-sm text-muted-foreground">Vous pouvez déjà importer des produits depuis la page "Stock".</p>
+                    <Button variant="outline" className="mt-4" asChild>
+                       <a href="/stock">Go to Stock Page</a>
+                    </Button>
                 </div>
               </CardContent>
             </Card>
@@ -141,47 +326,43 @@ export default function SettingsPage() {
           
         <TabsContent value="users" className="mt-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Utilisateurs</CardTitle>
-              <CardDescription>Gérez les utilisateurs et leurs permissions.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="font-headline">Utilisateurs</CardTitle>
+                <CardDescription>Gérez les utilisateurs et leurs permissions.</CardDescription>
+              </div>
+              <Button disabled>Add User</Button>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
-                  <Users className="h-12 w-12 text-muted-foreground" />
-                  <p className="mt-4 text-sm text-muted-foreground">La gestion des utilisateurs sera bientôt disponible.</p>
-              </div>
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium">Demo User</TableCell>
+                        <TableCell>admin@stockhero.dev</TableCell>
+                        <TableCell><Badge variant="secondary">Admin</Badge></TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+                 <p className="mt-4 text-sm text-muted-foreground text-center">User management is coming soon.</p>
             </CardContent>
           </Card>
         </TabsContent>
           
         <TabsContent value="shop" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Boutique</CardTitle>
-              <CardDescription>Configurez les informations de votre boutique.</CardDescription>
-            </CardHeader>
-            <CardContent>
-               <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
-                  <Store className="h-12 w-12 text-muted-foreground" />
-                  <p className="mt-4 text-sm text-muted-foreground">La configuration de la boutique sera bientôt disponible.</p>
-              </div>
-            </CardContent>
-          </Card>
+          <ShopInfoForm />
         </TabsContent>
           
         <TabsContent value="appearance" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Apparence</CardTitle>
-              <CardDescription>Personnalisez l'apparence de votre application.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
-                  <Palette className="h-12 w-12 text-muted-foreground" />
-                  <p className="mt-4 text-sm text-muted-foreground">Les options de personnalisation seront bientôt disponibles.</p>
-              </div>
-            </CardContent>
-          </Card>
+          <AppearanceForm />
         </TabsContent>
       </Tabs>
     </div>
