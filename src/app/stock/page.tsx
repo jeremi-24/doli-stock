@@ -4,6 +4,7 @@ import * as z from "zod";
 import * as XLSX from "xlsx";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Barcode from "react-barcode";
 import {
   Table,
   TableBody,
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/app-provider";
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse, FileUp } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse, FileUp, Printer } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -145,10 +146,100 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
   );
 }
 
+function BarcodePrintDialog({ open, onOpenChange, products }: { open: boolean, onOpenChange: (open: boolean) => void, products: Product[] }) {
+  const printRef = React.useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    const printContent = printRef.current;
+    if (printContent) {
+      const printWindow = window.open('', '', 'height=800,width=800');
+      printWindow?.document.write('<html><head><title>Print Barcodes</title>');
+      printWindow?.document.write(`
+        <style>
+          @media print {
+            body { 
+              -webkit-print-color-adjust: exact; 
+              margin: 1cm;
+            }
+            @page {
+              size: auto;
+              margin: 1cm;
+            }
+            .no-print { display: none; }
+            .barcode-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 20px 10px;
+            }
+            .barcode-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                page-break-inside: avoid;
+            }
+            .product-name {
+                font-family: sans-serif;
+                font-size: 10px;
+                font-weight: bold;
+                margin-bottom: 4px;
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        </style>
+      `);
+      printWindow?.document.write('</head><body>');
+      printWindow?.document.write(printContent.innerHTML);
+      printWindow?.document.write('</body></html>');
+      printWindow?.document.close();
+      printWindow?.focus();
+      setTimeout(() => {
+        printWindow?.print();
+        printWindow?.close();
+      }, 500);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="font-headline">Print Product Barcodes</DialogTitle>
+          <DialogDescription>
+            Review the barcodes below. Use your browser's print dialog to adjust paper size and layout for your labels.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
+            <div ref={printRef} className="barcode-grid">
+              {products.map((product) => (
+                <div key={product.id} className="barcode-item">
+                  <p className="product-name">{product.name}</p>
+                  <Barcode value={product.barcode} height={40} width={1.5} fontSize={10} margin={5} />
+                </div>
+              ))}
+            </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+          <Button onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 export default function StockPage() {
   const { products, addProduct, updateProduct, deleteProduct, addMultipleProducts } = useApp();
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
   const { toast } = useToast();
 
@@ -226,6 +317,10 @@ export default function StockPage() {
           <Button size="sm" variant="outline" onClick={() => setIsImportDialogOpen(true)}>
             <FileUp className="h-4 w-4 mr-2"/>
             Import
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setIsPrintDialogOpen(true)}>
+            <Printer className="h-4 w-4 mr-2"/>
+            Print Barcodes
           </Button>
           <Button size="sm" onClick={handleAddNew}>
             <PlusCircle className="h-4 w-4 mr-2" />
@@ -398,6 +493,11 @@ export default function StockPage() {
         open={isImportDialogOpen}
         onOpenChange={setIsImportDialogOpen}
         onImportSuccess={handleImportSuccess}
+      />
+      <BarcodePrintDialog 
+        open={isPrintDialogOpen} 
+        onOpenChange={setIsPrintDialogOpen} 
+        products={products}
       />
     </div>
   );
