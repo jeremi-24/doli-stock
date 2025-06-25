@@ -10,8 +10,6 @@ import { useApp } from "@/context/app-provider";
 import type { Product } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
 
 export default function DashboardPage() {
@@ -42,30 +40,6 @@ export default function DashboardPage() {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
   
-  const stockByCategoryChartData = useMemo(() => {
-    if (!products) return [];
-    const categoryQuantities = products.reduce((acc, product) => {
-      const { category, quantity } = product;
-      if (!acc[category]) {
-        acc[category] = 0;
-      }
-      acc[category] += quantity;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(categoryQuantities).map(([category, quantity]) => ({
-      category,
-      quantity,
-    }));
-  }, [products]);
-
-  const chartConfig = {
-    quantity: {
-      label: "Quantité",
-      color: "hsl(var(--primary))",
-    },
-  } satisfies ChartConfig;
-
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
@@ -169,46 +143,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center gap-2">
-            <BarChart2 className="h-6 w-6" />
-            Aperçu du Stock par Catégorie
-          </CardTitle>
-          <CardDescription>
-            Quantité totale d'articles en stock pour chaque catégorie de produits.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            {stockByCategoryChartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
-                    <BarChart accessibilityLayer data={stockByCategoryChartData}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                            dataKey="category"
-                            tickLine={false}
-                            tickMargin={10}
-                            axisLine={false}
-                            tickFormatter={(value) => value.slice(0, 10) + (value.length > 10 ? "..." : "")}
-                        />
-                        <YAxis />
-                        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                        <Bar
-                            dataKey="quantity"
-                            fill="var(--color-quantity)"
-                            radius={4}
-                        />
-                    </BarChart>
-                </ChartContainer>
-            ) : (
-                <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-[250px]">
-                    <Package className="h-12 w-12 text-muted-foreground" />
-                    <p className="mt-4 text-sm text-muted-foreground">Aucune donnée de stock disponible pour afficher le graphique.</p>
-                </div>
-            )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
