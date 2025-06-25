@@ -1,4 +1,4 @@
-import type { Produit, Categorie } from './types';
+import type { Produit, Categorie, FactureModele } from './types';
 
 export const sampleCategories: Categorie[] = [
   { id: '1', nom: 'Boissons' },
@@ -98,4 +98,10 @@ export const sampleProduits: Produit[] = [
     unite: 'pièce',
     alerte_stock: 100,
   },
+];
+
+
+export const sampleFactureModeles: FactureModele[] = [
+  { id: 'tmpl-1', nom: 'Facture Standard', contenu: 'Merci pour votre confiance.\nPaiement à réception de la facture.' },
+  { id: 'tmpl-2', nom: 'Facture Proforma', contenu: 'Cette facture proforma est valable pour une durée de 30 jours à compter de sa date d\'émission.' },
 ];

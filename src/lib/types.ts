@@ -36,6 +36,12 @@ export type Vente = {
   type: 'pos' | 'manual';
 };
 
+export type FactureModele = {
+  id: string;
+  nom: string;
+  contenu?: string;
+};
+
 
 // ----- App Settings Types (unchanged) -----
 

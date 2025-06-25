@@ -1,13 +1,15 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors } from '@/lib/types';
-import { sampleProduits, sampleCategories } from '@/lib/data';
+import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele } from '@/lib/types';
+import { sampleProduits, sampleCategories, sampleFactureModeles } from '@/lib/data';
 
 interface AppContextType {
   produits: Produit[];
   categories: Categorie[];
   ventes: Vente[];
+  factureModeles: FactureModele[];
   addProduit: (produit: Omit<Produit, 'id'>) => void;
   updateProduit: (produit: Produit) => void;
   deleteProduit: (produitId: string) => void;
@@ -16,6 +18,9 @@ interface AppContextType {
   updateCategorie: (categorie: Categorie) => void;
   deleteCategorie: (categorieId: string) => void;
   addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => void;
+  addFactureModele: (modele: Omit<FactureModele, 'id'>) => void;
+  updateFactureModele: (modele: FactureModele) => void;
+  deleteFactureModele: (modeleId: string) => void;
   activeModules: ActiveModules;
   setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
   shopInfo: ShopInfo;
@@ -52,6 +57,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [produits, setProduits] = useState<Produit[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [ventes, setVentes] = useState<Vente[]>([]);
+  const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
   const [shopInfo, setShopInfo] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
@@ -74,6 +80,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setVentes(parsedVentes);
       }
 
+      const storedFactureModeles = localStorage.getItem('stockhero_facture_modeles');
+      setFactureModeles(storedFactureModeles ? JSON.parse(storedFactureModeles) : sampleFactureModeles);
+
       const storedModules = localStorage.getItem('stockhero_modules');
       if (storedModules) setActiveModules(JSON.parse(storedModules));
 
@@ -87,6 +96,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to access localStorage", error);
       setProduits(sampleProduits);
       setCategories(sampleCategories);
+      setFactureModeles(sampleFactureModeles);
     }
     setIsMounted(true);
   }, []);
@@ -95,6 +105,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_produits', JSON.stringify(produits)); }, [produits, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_categories', JSON.stringify(categories)); }, [categories, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
+  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_facture_modeles', JSON.stringify(factureModeles)); }, [factureModeles, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_modules', JSON.stringify(activeModules)); }, [activeModules, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_shopinfo', JSON.stringify(shopInfo)); }, [shopInfo, isMounted]);
   useEffect(() => {
@@ -165,11 +176,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setVentes(prev => [newVente, ...prev]);
   };
 
+  // CRUD MODELES FACTURE
+  const addFactureModele = (modeleData: Omit<FactureModele, 'id'>) => {
+    const newModele: FactureModele = { id: `tmpl-${Date.now()}`, ...modeleData };
+    setFactureModeles((prev) => [...prev, newModele]);
+  };
+  const updateFactureModele = (updatedModele: FactureModele) => {
+    setFactureModeles((prev) => prev.map((m) => (m.id === updatedModele.id ? updatedModele : m)));
+  };
+  const deleteFactureModele = (modeleId: string) => {
+    setFactureModeles((prev) => prev.filter((m) => m.id !== modeleId));
+  };
+
 
   const value = {
     produits,
     categories,
     ventes,
+    factureModeles,
     addProduit,
     updateProduit,
     deleteProduit,
@@ -178,6 +202,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateCategorie,
     deleteCategorie,
     addVente,
+    addFactureModele,
+    updateFactureModele,
+    deleteFactureModele,
     activeModules,
     setActiveModules,
     shopInfo,
@@ -197,7 +224,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 export function useApp() {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error('useApp doit être utilisé à l\'intérieur d\'un AppProvider');
+    throw new Error("useApp doit être utilisé à l'intérieur d'un AppProvider");
   }
   return context;
 }
