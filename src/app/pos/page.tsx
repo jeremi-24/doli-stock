@@ -126,6 +126,28 @@ export default function POSPage() {
       .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [produits, activeTab, searchTerm, categoryNameToId]);
 
+  const handleQuantityChange = (produitId: string, newQuantity: number) => {
+    const produitInStock = produits.find(p => p.id === produitId);
+    if (!produitInStock) return;
+
+    if (newQuantity < 1) {
+        setCart(currentCart => currentCart.filter(item => item.produit.id !== produitId));
+        return;
+    }
+
+    if (newQuantity > produitInStock.quantite_stock) {
+        toast({ title: "Limite de stock atteinte", variant: "destructive" });
+        return; 
+    }
+
+    setCart(currentCart =>
+        currentCart.map(item =>
+            item.produit.id === produitId
+                ? { ...item, quantite: newQuantity, prix_total: newQuantity * item.prix_unitaire }
+                : item
+        )
+    );
+  };
 
   const handleAddToCart = (produit: Produit) => {
     if (produit.quantite_stock <= 0) {
@@ -148,25 +170,8 @@ export default function POSPage() {
           prix_unitaire: produit.prix_vente,
           prix_total: produit.prix_vente
       };
-      setCart([...cart, newLigne]);
+      setCart(currentCart => [...currentCart, newLigne]);
     }
-  };
-  
-  const handleQuantityChange = (produitId: string, quantity: number) => {
-    const produit = produits.find(p => p.id === produitId);
-    if (!produit) return;
-
-    if (quantity > produit.quantite_stock) {
-      toast({ title: "Limite de stock atteinte", variant: 'destructive' });
-      quantity = produit.quantite_stock;
-    }
-
-    if (quantity < 1) {
-        setCart(cart.filter(item => item.produit.id !== produitId));
-        return;
-    }
-
-    setCart(cart.map(item => item.produit.id === produitId ? { ...item, quantite, prix_total: quantity * item.prix_unitaire } : item));
   };
 
   const total = useMemo(() => {
