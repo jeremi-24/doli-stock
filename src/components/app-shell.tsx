@@ -16,6 +16,7 @@ import {
   SidebarInset,
   SidebarTrigger,
   useSidebar,
+  SidebarRail,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -31,20 +32,6 @@ import { Logo } from './logo';
 import { LayoutDashboard, Warehouse, FileText, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 import { cn } from '@/lib/utils';
-
-function CollapseToggle() {
-    const { toggleSidebar } = useSidebar();
-    return (
-        <SidebarMenu className="p-0 mt-2">
-            <SidebarMenuItem>
-                <SidebarMenuButton onClick={toggleSidebar} size="lg">
-                    <PanelLeft />
-                    <span>Réduire</span>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-        </SidebarMenu>
-    );
-}
 
 function AppShellContent({ children }: { children: React.ReactNode }) {
   const { activeModules, isMounted, shopInfo } = useApp();
@@ -133,6 +120,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Sidebar>
+        <SidebarRail />
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Logo className="w-8 h-8" />
@@ -187,7 +175,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
-            <CollapseToggle />
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
