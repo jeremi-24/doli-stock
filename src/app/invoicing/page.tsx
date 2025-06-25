@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 export default function InvoicingPage() {
-  const { produits, addVente } = useApp();
+  const { produits, addVente, factureModeles } = useApp();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -23,6 +23,7 @@ export default function InvoicingPage() {
   const [lignes, setLignes] = useState<VenteLigne[]>([]);
   const [montantPaye, setMontantPaye] = useState(0);
   const [typePaiement, setTypePaiement] = useState<'cash' | 'flooz' | 'tmoney' | 'carte'>('cash');
+  const [selectedModeleId, setSelectedModeleId] = useState<string | undefined>(factureModeles[0]?.id);
   
   const [selectedProduit, setSelectedProduit] = useState<string | undefined>(undefined);
   
@@ -85,6 +86,7 @@ export default function InvoicingPage() {
         type_paiement: typePaiement,
         vendeur: "Utilisateur Démo",
         type: 'manual',
+        facture_modele_id: selectedModeleId,
     });
     
     toast({ title: "Facture créée avec succès", description: "Le stock a été mis à jour." });
@@ -102,16 +104,31 @@ export default function InvoicingPage() {
           <CardDescription>Remplissez les informations ci-dessous pour créer une nouvelle facture.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="client">Nom du Client</Label>
-            <Input id="client" placeholder="Ex: John Doe" value={client} onChange={(e) => setClient(e.target.value)} className="max-w-sm" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="client">Nom du Client</Label>
+              <Input id="client" placeholder="Ex: John Doe" value={client} onChange={(e) => setClient(e.target.value)} />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="factureModele">Modèle de Facture</Label>
+              <Select value={selectedModeleId} onValueChange={setSelectedModeleId}>
+                <SelectTrigger id="factureModele">
+                  <SelectValue placeholder="Choisir un modèle..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {factureModeles.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           <div className="space-y-2">
             <Label>Ajouter des Produits à la Facture</Label>
             <div className="flex items-center gap-2">
               <Select value={selectedProduit} onValueChange={setSelectedProduit}>
-                <SelectTrigger className="w-full max-w-sm"><SelectValue placeholder="Sélectionner un produit" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Sélectionner un produit" /></SelectTrigger>
                 <SelectContent>{availableProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}</SelectContent>
               </Select>
               <Button onClick={handleAddItem} variant="outline" size="icon" aria-label="Ajouter le produit"><PlusCircle className="h-4 w-4" /></Button>
@@ -164,7 +181,7 @@ export default function InvoicingPage() {
             </div>
             <div className="font-semibold text-lg flex flex-col justify-end items-end gap-1">
               <div className="flex justify-between w-full max-w-xs"><span>Total:</span><span>{formatCurrency(total)}</span></div>
-              <div className="flex justify-between w-full max-w-xs"><span>Reste:</span><span>{formatCurrency(montantPaye - total)}</span></div>
+              <div className="flex justify-between w-full max-w-xs"><span>Reste:</span><span>{formatCurrency(total - montantPaye)}</span></div>
             </div>
           </div>
         </CardContent>

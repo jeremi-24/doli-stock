@@ -12,17 +12,24 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from "@/hooks/use-toast";
 import { FileSignature, PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { FactureModele } from '@/lib/types';
 
+const colorRegex = /^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/;
+const hslColorSchema = z.string().regex(colorRegex, "Format invalide. Utilisez 'H S% L%'").optional().or(z.literal(''));
+
 const modeleSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
-  contenu: z.string().optional(),
+  logoUrl: z.string().url({ message: "Veuillez entrer une URL valide pour le logo." }).optional().or(z.literal('')),
+  headerContent: z.string().optional(),
+  footerContent: z.string().optional(),
+  primaryColor: hslColorSchema,
 });
+
 
 export default function InvoiceTemplatesPage() {
     const { factureModeles, addFactureModele, updateFactureModele, deleteFactureModele } = useApp();
@@ -32,14 +39,14 @@ export default function InvoiceTemplatesPage() {
 
     const form = useForm<z.infer<typeof modeleSchema>>({
         resolver: zodResolver(modeleSchema),
-        defaultValues: { nom: "", contenu: "" },
+        defaultValues: { nom: "", logoUrl: "", headerContent: "", footerContent: "", primaryColor: "" },
     });
 
     useEffect(() => {
         if (editingModele) {
-            form.reset({ nom: editingModele.nom, contenu: editingModele.contenu });
+            form.reset(editingModele);
         } else {
-            form.reset({ nom: "", contenu: "" });
+            form.reset({ nom: "", logoUrl: "", headerContent: "", footerContent: "", primaryColor: "" });
         }
     }, [editingModele, form]);
 
@@ -91,7 +98,6 @@ export default function InvoiceTemplatesPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Nom du Modèle</TableHead>
-                                    <TableHead>Contenu par défaut</TableHead>
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -100,7 +106,6 @@ export default function InvoiceTemplatesPage() {
                                     factureModeles.map((modele) => (
                                         <TableRow key={modele.id}>
                                             <TableCell className="font-medium">{modele.nom}</TableCell>
-                                            <TableCell className="text-muted-foreground truncate max-w-sm">{modele.contenu}</TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -140,7 +145,7 @@ export default function InvoiceTemplatesPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={3} className="h-24 text-center">
+                                        <TableCell colSpan={2} className="h-24 text-center">
                                             Aucun modèle trouvé. Commencez par en créer un.
                                         </TableCell>
                                     </TableRow>
@@ -152,38 +157,27 @@ export default function InvoiceTemplatesPage() {
             </Card>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
-                        <DialogTitle className="font-headline">{editingModele ? "Modifier le Modèle" : "Ajouter un Modèle"}</DialogTitle>
+                        <DialogTitle className="font-headline">{editingModele ? "Modifier le Modèle" : "Nouveau Modèle de Facture"}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-                            <FormField
-                                control={form.control}
-                                name="nom"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Nom du modèle</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="ex: Facture Standard" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="contenu"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Contenu par défaut</FormLabel>
-                                        <FormControl>
-                                            <Textarea placeholder="ex: Conditions de paiement, notes de bas de page..." {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <FormField control={form.control} name="nom" render={({ field }) => (
+                                <FormItem><FormLabel>Nom du modèle</FormLabel><FormControl><Input placeholder="ex: Facture Proforma" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                             <FormField control={form.control} name="logoUrl" render={({ field }) => (
+                                <FormItem><FormLabel>URL du logo</FormLabel><FormControl><Input placeholder="https://votresite.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="headerContent" render={({ field }) => (
+                                <FormItem><FormLabel>Titre de la facture</FormLabel><FormControl><Input placeholder="ex: FACTURE" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="footerContent" render={({ field }) => (
+                                <FormItem><FormLabel>Notes de bas de page</FormLabel><FormControl><Textarea placeholder="ex: Conditions de paiement..." {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="primaryColor" render={({ field }) => (
+                                <FormItem><FormLabel>Couleur principale</FormLabel><FormControl><Input placeholder="ex: 231 48% 48%" {...field} /></FormControl><FormDescription>Entrez une couleur au format HSL (ex: 231 48% 48%).</FormDescription><FormMessage /></FormItem>
+                            )}/>
                             <DialogFooter>
                                 <DialogClose asChild><Button type="button" variant="ghost">Annuler</Button></DialogClose>
                                 <Button type="submit">{editingModele ? "Sauvegarder" : "Créer"}</Button>

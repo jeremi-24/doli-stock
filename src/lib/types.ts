@@ -34,12 +34,16 @@ export type Vente = {
   vendeur: string; // Pour l'instant, un simple nom. Pourrait être lié à un utilisateur
   date_vente: Date;
   type: 'pos' | 'manual';
+  facture_modele_id?: string;
 };
 
 export type FactureModele = {
   id: string;
   nom: string;
-  contenu?: string;
+  logoUrl?: string;
+  headerContent?: string;
+  footerContent?: string;
+  primaryColor?: string;
 };
 
 

@@ -102,6 +102,20 @@ export const sampleProduits: Produit[] = [
 
 
 export const sampleFactureModeles: FactureModele[] = [
-  { id: 'tmpl-1', nom: 'Facture Standard', contenu: 'Merci pour votre confiance.\nPaiement à réception de la facture.' },
-  { id: 'tmpl-2', nom: 'Facture Proforma', contenu: 'Cette facture proforma est valable pour une durée de 30 jours à compter de sa date d\'émission.' },
+  { 
+    id: 'tmpl-1', 
+    nom: 'Facture Standard', 
+    headerContent: 'FACTURE',
+    footerContent: 'Merci pour votre confiance.\nPaiement à réception de la facture.',
+    primaryColor: '231 48% 48%',
+    logoUrl: '',
+  },
+  { 
+    id: 'tmpl-2', 
+    nom: 'Facture Proforma',
+    headerContent: 'FACTURE PROFORMA',
+    footerContent: 'Cette facture proforma est valable pour une durée de 30 jours.',
+    primaryColor: '12 76% 61%',
+    logoUrl: '',
+  },
 ];

@@ -10,40 +10,111 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from '@/context/app-provider';
-import type { Vente } from '@/lib/types';
+import type { Vente, FactureModele } from '@/lib/types';
 import { PlusCircle, Printer, FileText, Eye, Search, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-function SaleDetailsDialog({ vente }: { vente: Vente }) {
+function SaleDetailsDialog({ vente, factureModeles }: { vente: Vente, factureModeles: FactureModele[] }) {
     const { shopInfo } = useApp();
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-    const handlePrint = () => { /* Print logic can be implemented here */ };
+    
+    const template = factureModeles.find(m => m.id === vente.facture_modele_id);
+
+    const handlePrint = () => { 
+        const printWindow = window.open('', '_blank');
+        const contentToPrint = document.getElementById(`invoice-print-${vente.id}`)?.innerHTML;
+        
+        if (printWindow && contentToPrint) {
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Facture ${vente.id.substring(vente.id.length-6)}</title>
+                        <style>
+                            body { font-family: sans-serif; margin: 0; padding: 20px; }
+                            .print-container { max-width: 800px; margin: auto; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background-color: #f2f2f2; }
+                            .text-right { text-align: right; }
+                            .font-bold { font-weight: bold; }
+                            .text-lg { font-size: 1.125rem; }
+                            .text-sm { font-size: 0.875rem; }
+                            .text-muted-foreground { color: #64748b; }
+                            .mt-8 { margin-top: 2rem; }
+                            .pt-8 { padding-top: 2rem; }
+                            .mb-8 { margin-bottom: 2rem; }
+                            .border-t { border-top: 1px solid #ddd; }
+                            .text-center { text-align: center; }
+                            .flex { display: flex; }
+                            .justify-between { justify-content: space-between; }
+                            .items-start { align-items: flex-start; }
+                            .mx-auto { margin-left: auto; margin-right: auto; }
+                        </style>
+                    </head>
+                    <body>
+                        ${contentToPrint}
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        }
+    };
+
+    const primaryColorStyle = template?.primaryColor ? { color: `hsl(${template.primaryColor})` } : {};
 
     return (
         <Dialog>
             <DialogTrigger asChild><Button variant="ghost" size="icon" aria-label="Voir les détails"><Eye className="h-4 w-4" /></Button></DialogTrigger>
             <DialogContent className="sm:max-w-3xl">
-                <div id={`invoice-print-${vente.id}`} className="print-container">
-                    <DialogHeader className="header">
-                        <DialogTitle className="font-headline text-2xl">FACTURE #{vente.id.substring(vente.id.length-6)}</DialogTitle>
-                        <DialogDescription>Date: {format(new Date(vente.date_vente), 'd MMMM yyyy', { locale: fr })}</DialogDescription>
-                    </DialogHeader>
-                     <div className="shop-info my-8 text-center"><h3 className="font-bold text-lg">{shopInfo.name}</h3><p className="text-sm text-muted-foreground">{shopInfo.address} | {shopInfo.phone}</p></div>
-                    <div className="py-6 space-y-6">
-                        <p><span className="font-semibold">Client:</span> {vente.client}</p>
-                        <div className="border rounded-lg">
-                            <Table>
-                                <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-[100px]">Qté</TableHead><TableHead className="text-right">P.U.</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                                <TableBody>{vente.lignes.map(l => (<TableRow key={l.id}><TableCell className="font-medium">{l.produit.nom}</TableCell><TableCell>{l.quantite}</TableCell><TableCell className="text-right">{formatCurrency(l.prix_unitaire)}</TableCell><TableCell className="text-right">{formatCurrency(l.prix_total)}</TableCell></TableRow>))}</TableBody>
-                                <TableFooter>
-                                    <TableRow className="text-base font-bold"><TableCell colSpan={3} className="text-right">Montant Total</TableCell><TableCell className="text-right">{formatCurrency(vente.montant_total)}</TableCell></TableRow>
-                                    <TableRow><TableCell colSpan={3} className="text-right font-semibold">Montant Payé ({vente.type_paiement})</TableCell><TableCell className="text-right font-semibold">{formatCurrency(vente.montant_paye)}</TableCell></TableRow>
-                                    <TableRow><TableCell colSpan={3} className="text-right font-semibold">Reste / Monnaie</TableCell><TableCell className="text-right font-semibold">{formatCurrency(vente.reste)}</TableCell></TableRow>
-                                </TableFooter>
-                            </Table>
+                 <div id={`invoice-print-${vente.id}`} className="print-container p-6">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-8">
+                        <div>
+                            {template?.logoUrl ? (
+                                <img src={template.logoUrl} alt="Logo" className="h-16 w-auto object-contain" />
+                            ) : (
+                                <h2 className="text-2xl font-bold" style={primaryColorStyle}>{shopInfo.name}</h2>
+                            )}
+                            <p className="text-sm text-muted-foreground mt-2">{shopInfo.address}</p>
+                            <p className="text-sm text-muted-foreground">{shopInfo.phone}</p>
                         </div>
-                        <div className="text-center pt-10"><FileText className="mx-auto h-8 w-8 text-muted-foreground"/><p className="font-headline mt-2 text-xl">Merci pour votre confiance !</p></div>
+                        <div className="text-right">
+                            <h1 className="text-3xl font-bold" style={primaryColorStyle}>
+                                {template?.headerContent || 'FACTURE'}
+                            </h1>
+                            <p className="text-muted-foreground">N° : {vente.id.substring(vente.id.length-6)}</p>
+                            <p className="text-muted-foreground">Date : {format(new Date(vente.date_vente), 'd MMMM yyyy', { locale: fr })}</p>
+                        </div>
+                    </div>
+                     {/* Client Info */}
+                    <div className="mb-8">
+                        <p className="text-muted-foreground">Facturé à :</p>
+                        <p className="font-semibold">{vente.client}</p>
+                    </div>
+
+                    {/* Table */}
+                    <div className="border rounded-lg">
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-[100px] text-center">Qté</TableHead><TableHead className="text-right">P.U.</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
+                            <TableBody>{vente.lignes.map(l => (<TableRow key={l.id}><TableCell className="font-medium">{l.produit.nom}</TableCell><TableCell className="text-center">{l.quantite}</TableCell><TableCell className="text-right">{formatCurrency(l.prix_unitaire)}</TableCell><TableCell className="text-right">{formatCurrency(l.prix_total)}</TableCell></TableRow>))}</TableBody>
+                            <TableFooter>
+                                <TableRow className="text-base font-bold"><TableCell colSpan={3} className="text-right">Montant Total</TableCell><TableCell className="text-right">{formatCurrency(vente.montant_total)}</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={3} className="text-right font-semibold">Montant Payé ({vente.type_paiement})</TableCell><TableCell className="text-right font-semibold">{formatCurrency(vente.montant_paye)}</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={3} className="text-right font-semibold">Reste / Monnaie</TableCell><TableCell className="text-right font-semibold">{formatCurrency(vente.montant_paye - vente.montant_total)}</TableCell></TableRow>
+                            </TableFooter>
+                        </Table>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
+                       {template?.footerContent ? (
+                            <p>{template.footerContent}</p>
+                        ) : (
+                            <p>Merci pour votre confiance !</p>
+                        )}
                     </div>
                 </div>
                 <DialogFooter className="no-print"><Button onClick={handlePrint} variant="outline"><Printer className="h-4 w-4 mr-2" /> Imprimer</Button></DialogFooter>
@@ -53,7 +124,7 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
 }
 
 export default function SalesPage() {
-  const { ventes } = useApp();
+  const { ventes, factureModeles } = useApp();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -94,7 +165,7 @@ export default function SalesPage() {
                             <TableCell><Badge variant={vente.type === 'pos' ? 'secondary' : 'default'}>{vente.type.toUpperCase()}</Badge></TableCell>
                             <TableCell><Badge variant="outline">{vente.type_paiement}</Badge></TableCell>
                             <TableCell className="text-right font-semibold">{formatCurrency(vente.montant_total)}</TableCell>
-                            <TableCell className="text-right"><SaleDetailsDialog vente={vente} /></TableCell>
+                            <TableCell className="text-right"><SaleDetailsDialog vente={vente} factureModeles={factureModeles} /></TableCell>
                         </TableRow>
                     )) : (<TableRow><TableCell colSpan={7} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
                     </TableBody>
