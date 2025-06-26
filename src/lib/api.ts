@@ -26,7 +26,12 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
       if (response.status === 504) {
           userMessage = 'Le serveur backend ne répond pas (Gateway Timeout 504). Veuillez vérifier qu\'il est bien démarré et accessible.';
       } else if (errorBody) {
-         userMessage = `${userMessage}: ${errorBody}`;
+         try {
+            const errorJson = JSON.parse(errorBody);
+            userMessage = errorJson.error || errorJson.message || userMessage;
+         } catch(e) {
+            userMessage = `${userMessage}: ${errorBody}`;
+         }
       }
 
       throw new Error(userMessage);
@@ -50,7 +55,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 // ========== Categories API ==========
 export async function getCategories(): Promise<Categorie[]> { return apiFetch('/categorie'); };
 export async function createCategory(data: { nom: string }): Promise<Categorie> {
-  const body = { nom: data.nom, produits: [] };
+  const body = { nom: data.nom };
   return apiFetch('/categorie', { method: 'POST', body: JSON.stringify(body) });
 };
 export async function updateCategory(id: number, data: Partial<Categorie>): Promise<Categorie> {
