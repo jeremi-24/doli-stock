@@ -3,7 +3,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot } from '@/lib/types';
-import { sampleProduits, sampleCategories, sampleFactureModeles, sampleEntrepots } from '@/lib/data';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -61,16 +60,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         api.getEntrepots(),
         api.getProducts()
       ]);
-      setCategories(apiCategories);
-      setEntrepots(apiEntrepots);
-      setProduits(apiProduits);
+      setCategories(apiCategories || []);
+      setEntrepots(apiEntrepots || []);
+      setProduits(apiProduits || []);
     } catch (error) {
       console.error("Failed to fetch app data:", error);
       const description = (error instanceof Error) ? error.message : 'Impossible de charger les données.';
-      toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.` });
-      setCategories(sampleCategories);
-      setEntrepots(sampleEntrepots);
-      setProduits(sampleProduits);
+      toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Les données ne peuvent pas être chargées.` });
+      setCategories([]);
+      setEntrepots([]);
+      setProduits([]);
     }
   }, [toast]);
 
@@ -82,7 +81,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const storedVentes = localStorage.getItem('stockhero_ventes');
       if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
       const storedFactureModeles = localStorage.getItem('stockhero_facture_modeles');
-      setFactureModeles(storedFactureModeles ? JSON.parse(storedFactureModeles) : sampleFactureModeles);
+      setFactureModeles(storedFactureModeles ? JSON.parse(storedFactureModeles) : []);
       const storedModules = localStorage.getItem('stockhero_modules');
       if (storedModules) setActiveModules(JSON.parse(storedModules));
       const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
@@ -167,7 +166,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addCategorie, updateCategorie, deleteCategorie,
     addEntrepot, updateEntrepot, deleteEntrepot,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
-    activeModules, shopInfo, themeColors, isMounted
+    activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
+    isMounted
   ]);
 
   return (
