@@ -54,24 +54,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   const fetchAppData = useCallback(async () => {
-    try {
-      const [apiCategories, apiEntrepots, apiProduits] = await Promise.all([
-        api.getCategories(),
-        api.getEntrepots(),
-        api.getProducts()
-      ]);
-      setCategories(apiCategories || []);
-      setEntrepots(apiEntrepots || []);
-      setProduits(apiProduits || []);
-    } catch (error) {
-      console.error("Failed to fetch app data:", error);
-      const description = (error instanceof Error) ? error.message : 'Impossible de charger les données.';
-      toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Les données ne peuvent pas être chargées.` });
+    const [categoriesResult, entrepotsResult, produitsResult] = await Promise.allSettled([
+      api.getCategories(),
+      api.getEntrepots(),
+      api.getProducts()
+    ]);
+
+    if (categoriesResult.status === 'fulfilled') {
+      setCategories(categoriesResult.value || []);
+    } else {
+      console.error("Failed to fetch categories:", categoriesResult.reason);
+      const description = (categoriesResult.reason instanceof Error) ? categoriesResult.reason.message : 'Erreur inconnue';
+      toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les catégories: ${description}` });
       setCategories([]);
+    }
+    
+    if (entrepotsResult.status === 'fulfilled') {
+      setEntrepots(entrepotsResult.value || []);
+    } else {
+      console.error("Failed to fetch entrepots:", entrepotsResult.reason);
+      const description = (entrepotsResult.reason instanceof Error) ? entrepotsResult.reason.message : 'Erreur inconnue';
+      toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les entrepôts: ${description}` });
       setEntrepots([]);
+    }
+
+    if (produitsResult.status === 'fulfilled') {
+      setProduits(produitsResult.value || []);
+    } else {
+      console.error("Failed to fetch products:", produitsResult.reason);
+      const description = (produitsResult.reason instanceof Error) ? produitsResult.reason.message : 'Erreur inconnue';
+      toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les produits: ${description}` });
       setProduits([]);
     }
   }, [toast]);
+
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -167,7 +183,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addEntrepot, updateEntrepot, deleteEntrepot,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted
+    isMounted,
+    fetchAppData
   ]);
 
   return (
