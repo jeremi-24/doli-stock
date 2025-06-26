@@ -18,7 +18,7 @@ interface AppContextType {
   fetchProduits: () => Promise<void>;
   addMultipleProduits: (produits: Omit<Produit, 'id'>[]) => void;
   fetchCategories: () => Promise<void>;
-  addCategorie: (categorie: Omit<Categorie, 'id'>) => Promise<void>;
+  addCategorie: (categorie: Omit<Categorie, 'id' | 'nbProduits'>) => Promise<void>;
   updateCategorie: (id: number, categorie: Partial<Categorie>) => Promise<void>;
   deleteCategorie: (categorieId: number) => Promise<void>;
   addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => void;
@@ -115,8 +115,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const loadInitialData = async () => {
-      await fetchCategories();
-      await fetchProduits();
+      // We will handle fetching and setting inside this useEffect to avoid race conditions.
+      try {
+        // First, fetch categories and wait for the state to be set.
+        // We can't guarantee state is set, so we fetch and hold the result.
+        const loadedCategories = await api.getCategories();
+        setCategories(loadedCategories);
+        
+        // Then, fetch products
+        const apiProduits = await api.getProducts();
+        
+        // Now map products using the *just fetched* categories, not the state variable
+        const mappedProduits = apiProduits.map(p => mapToFrontendProduit(p, loadedCategories));
+        setProduits(mappedProduits);
+
+      } catch (error) {
+          // Fallback logic for both calls
+          console.error("Failed to fetch initial data:", error);
+          const description = (error instanceof Error) ? error.message : 'Impossible de charger les données initiales.';
+          toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.`});
+          setCategories(sampleCategories);
+          setProduits(sampleProduits);
+      }
       
       const storedVentes = localStorage.getItem('stockhero_ventes');
       if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
@@ -136,8 +156,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsMounted(true);
     };
     loadInitialData();
-  }, []); // Run only once on mount
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // This effect should run only once on mount.
   
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_facture_modeles', JSON.stringify(factureModeles)); }, [factureModeles, isMounted]);
@@ -155,7 +175,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   // API-driven CRUD
-  const addCategorie = async (categorieData: Omit<Categorie, 'id'>) => { await api.createCategory(categorieData); await fetchCategories(); };
+  const addCategorie = async (categorieData: Omit<Categorie, 'id' | 'nbProduits'>) => { await api.createCategory(categorieData); await fetchCategories(); };
   const updateCategorie = async (id: number, updatedCategorie: Partial<Categorie>) => { await api.updateCategory(id, updatedCategorie); await fetchCategories(); };
   const deleteCategorie = async (categorieId: number) => { await api.deleteCategory(categorieId); await fetchCategories(); };
 
