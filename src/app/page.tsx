@@ -29,7 +29,7 @@ function BarcodeScannerCard() {
         setIsScanning(true);
 
         setTimeout(() => {
-        const product = produits.find((p) => p.code_barre === barcode);
+        const product = produits.find((p) => p.codeBarre === barcode);
         if (product) {
             setScannedProduct(product);
         } else {
@@ -76,21 +76,21 @@ function BarcodeScannerCard() {
                 <div className="space-y-4 pt-4 border-t">
                     <div>
                     <h3 className="text-xl font-bold font-headline text-primary">{scannedProduct.nom}</h3>
-                    <p className="text-sm text-muted-foreground">#{scannedProduct.code_barre}</p>
+                    <p className="text-sm text-muted-foreground">#{scannedProduct.codeBarre}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
                         <DollarSign className="h-5 w-5 text-muted-foreground" />
                         <div>
                         <p className="text-sm text-muted-foreground">Prix de Vente</p>
-                        <p className="font-semibold">{formatCurrency(scannedProduct.prix_vente)}</p>
+                        <p className="font-semibold">{formatCurrency(scannedProduct.prix)}</p>
                         </div>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Package className="h-5 w-5 text-muted-foreground" />
                         <div>
                         <p className="text-sm text-muted-foreground">En Stock</p>
-                        <p className="font-semibold">{scannedProduct.quantite_stock}</p>
+                        <p className="font-semibold">{scannedProduct.qte}</p>
                         </div>
                     </div>
                     </div>
@@ -111,9 +111,9 @@ export default function DashboardPage() {
   const { produits, ventes, activeModules } = useApp();
   
   const totalProducts = produits.length;
-  const outOfStockProducts = produits.filter(p => p.quantite_stock === 0).length;
-  const lowStockProducts = produits.filter(p => p.quantite_stock > 0 && p.quantite_stock <= p.alerte_stock).length;
-  const totalStockValue = produits.reduce((acc, p) => acc + (p.prix_vente * p.quantite_stock), 0);
+  const outOfStockProducts = produits.filter(p => p.qte === 0).length;
+  const lowStockProducts = produits.filter(p => p.qte > 0 && p.qte <= p.qteMin).length;
+  const totalStockValue = produits.reduce((acc, p) => acc + (p.prix * p.qte), 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);

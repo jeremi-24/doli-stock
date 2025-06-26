@@ -204,13 +204,18 @@ const produitSchema = z.object({
     };
 
     const handleEdit = (produit: Produit) => {
-      setEditingProduit(produit);
-      form.reset({
-        ...produit,
-        categorieId: String(produit.categorieId),
-        entrepotId: String(produit.entrepotId),
-      });
-      setIsDialogOpen(true);
+        setEditingProduit(produit);
+        form.reset({
+            nom: produit.nom,
+            ref: produit.ref,
+            prix: produit.prix,
+            qte: produit.qte,
+            qteMin: produit.qteMin,
+            codeBarre: produit.codeBarre || "",
+            categorieId: String(produit.categorieId),
+            entrepotId: String(produit.entrepotId),
+        });
+        setIsDialogOpen(true);
     };
     
     const handlePrintAll = () => { setProductsToPrint(produits); setIsPrintDialogOpen(true); };
