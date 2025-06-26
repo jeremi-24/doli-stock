@@ -60,14 +60,14 @@
   import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
   import { Skeleton } from "@/components/ui/skeleton";
 
-  const produitSchema = z.object({
-    nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
-    code_barre: z.string().min(5, "Le code-barres doit contenir au moins 5 caractères."),
-    categorieId: z.string().min(1, "Veuillez sélectionner une catégorie."),
-    prix_vente: z.coerce.number().min(0, "Le prix de vente doit être un nombre positif."),
-    quantite_stock: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
-    alerte_stock: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
-  });
+const produitSchema = z.object({
+  nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
+  code_barre: z.string().optional(),
+  categorieId: z.string().min(1, "Veuillez sélectionner une catégorie."),
+  prix_vente: z.coerce.number().min(0, "Le prix de vente doit être un nombre positif."),
+  quantite_stock: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
+  alerte_stock: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
+});
 
 
   function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onImportSuccess: (newProducts: any[]) => void }) {
@@ -142,31 +142,33 @@
       }
     };
 
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="font-headline">Imprimer les codes-barres</DialogTitle>
-            <DialogDescription>Ajustez la mise en page via la boîte de dialogue d'impression de votre navigateur.</DialogDescription>
-          </DialogHeader>
-          <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
-              <div ref={printRef} className="barcode-grid">
-              {productsToPrint.map((produit) => (
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="font-headline">Imprimer les codes-barres</DialogTitle>
+          <DialogDescription>Ajustez la mise en page via la boîte de dialogue d'impression de votre navigateur.</DialogDescription>
+        </DialogHeader>
+        <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
+            <div ref={printRef} className="barcode-grid">
+            {productsToPrint.map((produit) => (
+                produit.code_barre && (
                   <div key={produit.id} className="barcode-item">
                   <p className="product-name">{produit.nom}</p>
                   <Barcode value={produit.code_barre} height={40} width={1.5} fontSize={10} margin={5} />
                   </div>
-              ))}
-              </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-            <Button onClick={handlePrint} disabled={!productsToPrint || productsToPrint.length === 0}><Printer className="h-4 w-4 mr-2" />Imprimer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+                )
+            ))}
+            </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
+          <Button onClick={handlePrint} disabled={!productsToPrint || productsToPrint.length === 0}><Printer className="h-4 w-4 mr-2" />Imprimer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 
   export default function StockPage() {
@@ -246,104 +248,100 @@
       }
     };
 
-    const handleImportSuccess = (importedData: any[]) => {
-      addMultipleProduits(importedData);
-    };
-    
-    const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-  console.log('Produits:', produits);
-  console.log('Catégories:', categories);
-  console.log('Categories Map:', categoriesMap);
-    return (
-      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="flex items-center">
-          <h1 className="font-headline text-3xl font-semibold">Gestion du Stock</h1>
-          <div className="ml-auto flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => setIsImportDialogOpen(true)}><FileUp className="h-4 w-4 mr-2"/>Importer</Button>
-            <Button size="sm" variant="outline" onClick={handlePrintAll} disabled={produits.length === 0}><Printer className="h-4 w-4 mr-2"/>Imprimer Codes-barres</Button>
-            <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
-          </div>
+  const handleImportSuccess = (importedData: any[]) => {
+    addMultipleProduits(importedData);
+  };
+  
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+      <div className="flex items-center">
+        <h1 className="font-headline text-3xl font-semibold">Gestion du Stock</h1>
+        <div className="ml-auto flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setIsImportDialogOpen(true)}><FileUp className="h-4 w-4 mr-2"/>Importer</Button>
+          <Button size="sm" variant="outline" onClick={handlePrintAll} disabled={produits.length === 0}><Printer className="h-4 w-4 mr-2"/>Imprimer Codes-barres</Button>
+          <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
         </div>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Vos Produits</CardTitle><CardDescription>La liste de tous les produits de votre inventaire.</CardDescription></CardHeader>
-          <CardContent>
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {!isMounted ? (
-                      Array.from({ length: 5 }).map((_, i) => (
-                          <TableRow key={i}>
-                              <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
-                              <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
-                              <TableCell><Skeleton className="h-5 w-1/4" /></TableCell>
-                              <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
-                              <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                          </TableRow>
-                      ))
-                  ) : produits.length > 0 ? (
-                    produits.map((produit) => (
-                      <TableRow key={produit.id} className={produit.quantite_stock <= produit.alerte_stock ? 'bg-red-50 dark:bg-red-900/20' : ''}>
-                        <TableCell className="font-medium">{produit.nom} {produit.quantite_stock <= produit.alerte_stock && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
-                        <TableCell>{categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
-                        <TableCell>{formatCurrency(produit.prix_vente)}</TableCell>
-                        <TableCell className="text-right">{produit.quantite_stock}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Menu</span></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEdit(produit)}><Pencil className="mr-2 h-4 w-4" /> Modifier</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handlePrintSingle(produit)}><Printer className="mr-2 h-4 w-4" /> Imprimer le code-barres</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <AlertDialog>
-                                  <AlertDialogTrigger asChild><Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm"><Trash2 className="mr-2 h-4 w-4" /> Supprimer</Button></AlertDialogTrigger>
-                                  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible. Elle supprimera définitivement le produit "{produit.nom}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(produit.id)} disabled={isLoading}>{isLoading ? "Suppression..." : "Supprimer"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                              </AlertDialog>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : ( <TableRow><TableCell colSpan={5} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-2xl">
-            <DialogHeader><DialogTitle className="font-headline">{editingProduit ? "Modifier le Produit" : "Ajouter un Produit"}</DialogTitle></DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="nom" render={({ field }) => (<FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="T-Shirt" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="code_barre" render={({ field }) => (<FormItem><FormLabel>Code-barres</FormLabel><FormControl><Input placeholder="1234567890" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                </div>
-                <FormField control={form.control} name="categorieId" render={({ field }) => (
-                    <FormItem><FormLabel>Catégorie</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>
-                          <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
-                      </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField control={form.control} name="prix_vente" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="quantite_stock" render={({ field }) => (<FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="alerte_stock" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
-                    <Button type="submit" disabled={isLoading}>{isLoading ? "Sauvegarde..." : (editingProduit ? "Sauvegarder" : "Créer le produit")}</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-        <ImportDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} onImportSuccess={handleImportSuccess} />
-        <BarcodePrintDialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen} productsToPrint={productsToPrint} />
       </div>
-    );
-  }
+      <Card>
+        <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Vos Produits</CardTitle><CardDescription>La liste de tous les produits de votre inventaire.</CardDescription></CardHeader>
+        <CardContent>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
+              <TableBody>
+                {!isMounted ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-1/4" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                        </TableRow>
+                    ))
+                ) : produits.length > 0 ? (
+                  produits.map((produit) => (
+                    <TableRow key={produit.id} className={produit.quantite_stock <= produit.alerte_stock ? 'bg-red-50 dark:bg-red-900/20' : ''}>
+                      <TableCell className="font-medium">{produit.nom} {produit.quantite_stock <= produit.alerte_stock && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
+                      <TableCell>{categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
+                      <TableCell>{formatCurrency(produit.prix_vente)}</TableCell>
+                      <TableCell className="text-right">{produit.quantite_stock}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Menu</span></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(produit)}><Pencil className="mr-2 h-4 w-4" /> Modifier</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePrintSingle(produit)}><Printer className="mr-2 h-4 w-4" /> Imprimer le code-barres</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild><Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm"><Trash2 className="mr-2 h-4 w-4" /> Supprimer</Button></AlertDialogTrigger>
+                                <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible. Elle supprimera définitivement le produit "{produit.nom}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(produit.id)} disabled={isLoading}>{isLoading ? "Suppression..." : "Supprimer"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : ( <TableRow><TableCell colSpan={5} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader><DialogTitle className="font-headline">{editingProduit ? "Modifier le Produit" : "Ajouter un Produit"}</DialogTitle></DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+              <FormField control={form.control} name="nom" render={({ field }) => (<FormItem><FormLabel>Nom du produit</FormLabel><FormControl><Input placeholder="T-Shirt" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+              
+              <FormField control={form.control} name="categorieId" render={({ field }) => (
+                  <FormItem><FormLabel>Catégorie</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>
+                        <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
+                    </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <div className="grid grid-cols-3 gap-4">
+                <FormField control={form.control} name="prix_vente" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="quantite_stock" render={({ field }) => (<FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="alerte_stock" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
+                  <Button type="submit" disabled={isLoading}>{isLoading ? "Sauvegarde..." : (editingProduit ? "Sauvegarder" : "Créer le produit")}</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      <ImportDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} onImportSuccess={handleImportSuccess} />
+      <BarcodePrintDialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen} productsToPrint={productsToPrint} />
+    </div>
+  );
+}
