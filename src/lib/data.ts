@@ -1,5 +1,8 @@
 import type { Produit, Categorie, FactureModele } from './types';
 
+/**
+ * Liste des catégories de produits disponibles
+ */
 export const sampleCategories: Categorie[] = [
   { id: 1, nom: 'Boissons' },
   { id: 2, nom: 'Alimentation' },
@@ -9,89 +12,64 @@ export const sampleCategories: Categorie[] = [
   { id: 6, nom: 'Chaussures' },
 ];
 
-export const sampleProduits: Produit[] = [
+/**
+ * Retourne le nom d'une catégorie à partir de son ID
+ */
+export function getNomCategorieById(id: number | undefined): string {
+  if (!id) return 'N/A';
+  return sampleCategories.find((c) => c.id === id)?.nom ?? 'N/A';
+}
+
+/**
+ * Permet de retrouver un ID de catégorie à partir de son nom
+ */
+export function getCategorieIdByNom(nom: string): number {
+  const found = sampleCategories.find((c) => c.nom.toLowerCase() === nom.toLowerCase());
+  return found?.id ?? 0; // 0 pour indiquer "non trouvé"
+}
+
+/**
+ * Données d'exemple pour les produits (stock initial)
+ */
+
+
+export type Produit = {
+  id: number;
+  nom: string;
+  code_barre?: string;
+  categorieId: number;
+  categorie?: string; // optionnel, seulement utile pour affichage
+  prix_vente: number;
+  quantite_stock: number;
+  alerte_stock: number;
+};
+
+
+export const sampleProduits = [
   {
     id: 1,
-    nom: 'Pagne Wax Hollandais',
-    code_barre: '6151234567890',
-    categorieId: 3,
-    prix_vente: 15000,
-    quantite_stock: 50,
-    alerte_stock: 10,
-  },
-  {
-    id: 2,
-    nom: 'Sac de Gari 5kg',
-    code_barre: '6152345678901',
-    categorieId: 2,
-    prix_vente: 3500,
-    quantite_stock: 100,
-    alerte_stock: 20,
-  },
-  {
-    id: 3,
-    nom: 'Bouteille de Sodabi 1L',
-    code_barre: '6153456789012',
-    categorieId: 1,
-    prix_vente: 2500,
-    quantite_stock: 80,
-    alerte_stock: 15,
-  },
-  {
-    id: 4,
-    nom: 'Sandales en plastique',
-    code_barre: '6154567890123',
-    categorieId: 6,
-    prix_vente: 1000,
-    quantite_stock: 200,
-    alerte_stock: 50,
-  },
-  {
-    id: 5,
-    nom: 'Boisson Bissap 50cl',
-    code_barre: '6155678901234',
-    categorieId: 1,
-    prix_vente: 500,
-    quantite_stock: 150,
-    alerte_stock: 30,
-  },
-  {
-    id: 6,
-    nom: 'Huile de palme 1.5L',
-    code_barre: '6156789012345',
-    categorieId: 2,
+    nom: "Exemple Produit",
+    code_barre: "1234567890123",
+    categorie: 1,
     prix_vente: 2000,
-    quantite_stock: 90,
-    alerte_stock: 20,
-  },
-    {
-    id: 7,
-    nom: 'Carte de recharge T-Money 1000F',
-    code_barre: '6157890123456',
-    categorieId: 5,
-    prix_vente: 1000,
-    quantite_stock: 500,
-    alerte_stock: 50,
-  },
-  {
-    id: 8,
-    nom: 'Savon local (Kpékui)',
-    code_barre: '6158901234567',
-    categorieId: 4,
-    prix_vente: 250,
-    quantite_stock: 300,
-    alerte_stock: 100,
+    quantite_stock: 10,
+    alerte_stock: 3,
   },
 ];
 
 
+
+
+/**
+ * Modèles de facture disponibles dans l'application
+ */
 export const sampleFactureModeles: FactureModele[] = [
   { 
     id: 'tmpl-1', 
     nom: 'Facture Standard', 
     headerContent: 'FACTURE',
     footerContent: 'Merci pour votre confiance.\nPaiement à réception de la facture.',
-    primaryColor: '231 48% 48%',
+    primaryColor: '231 48% 48%', // hsl format
     logoUrl: '',
   },
   { 
@@ -103,3 +81,6 @@ export const sampleFactureModeles: FactureModele[] = [
     logoUrl: '',
   },
 ];
+
+
+

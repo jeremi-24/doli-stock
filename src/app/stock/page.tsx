@@ -172,6 +172,10 @@ const produitSchema = z.object({
 
 
   export default function StockPage() {
+
+   
+
+
     const { produits, categories, addProduit, updateProduit, deleteProduit, addMultipleProduits, isMounted } = useApp();
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
@@ -179,6 +183,8 @@ const produitSchema = z.object({
     const [productsToPrint, setProductsToPrint] = React.useState<Produit[]>([]);
     const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
     const [isLoading, setIsLoading] = React.useState(false);
+  
+
     const { toast } = useToast();
 
     const categoriesMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.nom])), [categories]);
@@ -206,10 +212,13 @@ const produitSchema = z.object({
 
     const handleEdit = (produit: Produit) => {
       setEditingProduit(produit);
+        
       form.reset({
-        ...produit,
-        categorieId: String(produit.categorieId),
-      });
+      ...produit,
+      categorieId: String(produit.categorie), // ✅ correspond au champ du formulaire
+  });
+
+  
       setIsDialogOpen(true);
     };
     
@@ -217,24 +226,35 @@ const produitSchema = z.object({
     const handlePrintSingle = (produit: Produit) => { setProductsToPrint([produit]); setIsPrintDialogOpen(true); };
     
     const onSubmit = async (values: z.infer<typeof produitSchema>) => {
-      setIsLoading(true);
-      const productData = { ...values, categorieId: parseInt(values.categorieId, 10) };
-      
-      try {
-          if (editingProduit) {
-              await updateProduit({ ...editingProduit, ...productData });
-              toast({ title: "Produit mis à jour" });
-          } else {
-              await addProduit(productData);
-              toast({ title: "Produit ajouté" });
-          }
-          setIsDialogOpen(false);
-      } catch (error) {
-          toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue.' });
-      } finally {
-          setIsLoading(false);
-      }
-    };
+  setIsLoading(true);
+
+  // On ne parse plus l'ID, on garde la chaîne complète "2 - nom"
+  const productData = {
+    ...values,
+    categorie: values.categorieId, 
+  };
+
+  try {
+    if (editingProduit) {
+      await updateProduit({ ...editingProduit, ...productData });
+      toast({ title: "Produit mis à jour" });
+    } else {
+      await addProduit(productData);
+      toast({ title: "Produit ajouté" });
+    }
+    setIsDialogOpen(false);
+  } catch (error) {
+    toast({
+      variant: 'destructive',
+      title: 'Erreur',
+      description: 'Une erreur est survenue.',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
 
     const handleDelete = async (produitId: number) => { 
       setIsLoading(true);
@@ -265,51 +285,126 @@ const produitSchema = z.object({
         </div>
       </div>
       <Card>
-        <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Vos Produits</CardTitle><CardDescription>La liste de tous les produits de votre inventaire.</CardDescription></CardHeader>
-        <CardContent>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
-              <TableBody>
-                {!isMounted ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                        <TableRow key={i}>
-                            <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-1/4" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
-                            <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                        </TableRow>
-                    ))
-                ) : produits.length > 0 ? (
-                  produits.map((produit) => (
-                    <TableRow key={produit.id} className={produit.quantite_stock <= produit.alerte_stock ? 'bg-red-50 dark:bg-red-900/20' : ''}>
-                      <TableCell className="font-medium">{produit.nom} {produit.quantite_stock <= produit.alerte_stock && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
-                      <TableCell>{categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
-                      <TableCell>{formatCurrency(produit.prix_vente)}</TableCell>
-                      <TableCell className="text-right">{produit.quantite_stock}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Menu</span></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(produit)}><Pencil className="mr-2 h-4 w-4" /> Modifier</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handlePrintSingle(produit)}><Printer className="mr-2 h-4 w-4" /> Imprimer le code-barres</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild><Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm"><Trash2 className="mr-2 h-4 w-4" /> Supprimer</Button></AlertDialogTrigger>
-                                <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible. Elle supprimera définitivement le produit "{produit.nom}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(produit.id)} disabled={isLoading}>{isLoading ? "Suppression..." : "Supprimer"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                            </AlertDialog>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : ( <TableRow><TableCell colSpan={5} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+  <CardHeader>
+    <CardTitle className="font-headline flex items-center gap-2">
+      <Warehouse /> Vos Produits
+    </CardTitle>
+    <CardDescription>
+      La liste de tous les produits de votre inventaire.
+    </CardDescription>
+  </CardHeader>
+
+  <CardContent>
+    <div className="rounded-lg border">
+     <Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Nom</TableHead>
+      <TableHead>Catégorie ID</TableHead>
+      <TableHead>Catégorie</TableHead>
+      <TableHead>Prix Vente</TableHead>
+      <TableHead className="text-right">Quantité</TableHead>
+      <TableHead className="text-right">
+        <span className="sr-only">Actions</span>
+      </TableHead>
+    </TableRow>
+  </TableHeader>
+
+  <TableBody>
+    {!isMounted ? (
+      // Skeleton de chargement
+      Array.from({ length: 5 }).map((_, i) => (
+        <TableRow key={i}>
+          {Array.from({ length: 6 }).map((_, j) => (
+            <TableCell key={j}>
+              <Skeleton className="h-5 w-full" />
+            </TableCell>
+          ))}
+        </TableRow>
+      ))
+    ) : produits.length > 0 ? (
+      // Affichage des produits
+      produits.map((produit) => (
+        <TableRow
+          key={produit.id}
+          className={produit.qte <= 3 ? "bg-red-50 dark:bg-red-900/20" : ""}
+        >
+          <TableCell className="font-medium">
+            {produit.nom}
+            {produit.qte <= 3 && (
+              <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />
+            )}
+          </TableCell>
+          <TableCell>{produit.categorieId ?? "—"}</TableCell>
+          <TableCell>{produit.categorie || "Inconnu"}</TableCell>
+          <TableCell>{formatCurrency(produit.prix)}</TableCell>
+          <TableCell className="text-right">{produit.qte}</TableCell>
+          <TableCell className="text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleEdit(produit)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Modifier
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePrintSingle(produit)}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Imprimer le code-barres
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-sm text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action supprimera définitivement le produit "
+                        {produit.nom}".
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(produit.id)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Suppression..." : "Supprimer"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        </TableRow>
+      ))
+    ) : (
+      // Aucun produit
+      <TableRow>
+        <TableCell colSpan={6} className="h-24 text-center">
+          Aucun produit trouvé.
+        </TableCell>
+      </TableRow>
+    )}
+  </TableBody>
+</Table>
+
+    </div>
+  </CardContent>
+</Card>
+
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-xl">

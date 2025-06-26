@@ -143,6 +143,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // API-driven CRUD for PRODUCTS
   const addProduit = useCallback(async (produitData: Omit<Produit, 'id' | 'code_barre' | 'ref'>) => {
+  const ref = `REF-${Date.now().toString().slice(-6)}`;
+  const codeBarre = `MAN-${Date.now().toString().slice(-8)}`;
+  const backendPayload = {
+    nom: produitData.nom,
+    ref: ref,
+    qte: produitData.quantite_stock,
+    qteMin: produitData.alerte_stock,
+    prix: produitData.prix_vente,
+    codeBarre: codeBarre,
+    categorie: {
+      id: produitData.categorieId,
+    },
+  };
+  await api.createProduct(backendPayload);
+  await fetchCategories();
+  await fetchProduits();
+}, [fetchCategories, fetchProduits]);
+
+  { /* 
+    
+     const addProduit = useCallback(async (produitData: Omit<Produit, 'id' | 'code_barre' | 'ref'>) => {
     const ref = `REF-${Date.now().toString().slice(-6)}`;
     const codeBarre = `MAN-${Date.now().toString().slice(-8)}`;
     const backendPayload = {
@@ -159,6 +180,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await fetchProduits();
   }, [fetchCategories, fetchProduits]);
 
+    */ }
+ 
   const updateProduit = useCallback(async (updatedProduit: Produit) => {
     const backendPayload = {
       id: updatedProduit.id,

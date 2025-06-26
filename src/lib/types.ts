@@ -6,14 +6,15 @@ export type Categorie = {
 
 export type Produit = {
   id: number;
-  nom:string;
-  code_barre: string;
-  categorieId: number;
-  prix_vente: number;
-  quantite_stock: number;
-  alerte_stock: number;
+  nom: string;
   ref?: string;
+  code_barre?: string;
+  categorieId?: number;
+  categorie: string;
+  prix: number;
+  qte: number;
 };
+
 
 export type VenteLigne = {
   id: number;
