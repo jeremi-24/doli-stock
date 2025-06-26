@@ -2,10 +2,8 @@
   "use client";
   import * as React from "react";
   import * as z from "zod";
-  import Barcode from "react-barcode";
   import { useForm } from "react-hook-form";
   import { zodResolver } from "@hookform/resolvers/zod";
-  import * as api from '@/lib/api';
   import {
     Table,
     TableBody,
@@ -16,20 +14,18 @@
   } from "@/components/ui/table";
   import { Button } from "@/components/ui/button";
   import { useApp } from "@/context/app-provider";
-  import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse, FileUp, Printer, AlertCircle } from "lucide-react";
+  import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse, AlertCircle } from "lucide-react";
   import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-    DropdownMenuSeparator,
   } from "@/components/ui/dropdown-menu";
   import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
     DialogFooter,
     DialogClose,
   } from "@/components/ui/dialog";
@@ -72,111 +68,10 @@ const produitSchema = z.object({
 });
 
 
-  function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onImportSuccess: (newProducts: any[]) => void }) {
-    const [file, setFile] = React.useState<File | null>(null);
-    const [isImporting, setIsImporting] = React.useState(false);
-    const { toast } = useToast();
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files) setFile(e.target.files[0]);
-    };
-
-    const handleImport = async () => {
-      if (!file) {
-        toast({ variant: "destructive", title: "Aucun fichier sélectionné" });
-        return;
-      }
-      setIsImporting(true);
-
-      try {
-        const importedData = await api.importProducts(file);
-        onImportSuccess(importedData || []);
-        toast({ title: "Importation réussie", description: `${(importedData || []).length} produits ont été ajoutés ou mis à jour.` });
-        onOpenChange(false);
-        setFile(null);
-      } catch (error: any) {
-        toast({ variant: "destructive", title: "Échec de l'importation", description: error.message });
-      } finally {
-        setIsImporting(false);
-      }
-    };
-
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-headline">Importer des produits depuis Excel</DialogTitle>
-            <DialogDescription>
-              Le fichier doit contenir les colonnes : `nom`, `ref`, `codeBarre`, `categorieId`, `entrepotId`, `prix`, `qte`, `qteMin`. Les IDs de catégorie et d'entrepôt doivent correspondre à des entrées existantes.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <Input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileChange} disabled={isImporting} />
-            {file && <p className="text-sm text-muted-foreground">Fichier : {file.name}</p>}
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="ghost" disabled={isImporting}>Annuler</Button></DialogClose>
-            <Button onClick={handleImport} disabled={!file || isImporting}>{isImporting ? "Importation..." : "Importer"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  function BarcodePrintDialog({ open, onOpenChange, productsToPrint }: { open: boolean, onOpenChange: (open: boolean) => void, productsToPrint: Produit[] }) {
-    const printRef = React.useRef<HTMLDivElement>(null);
-
-    const handlePrint = () => {
-      const printContent = printRef.current;
-      if (printContent) {
-        const printWindow = window.open('', '', 'height=800,width=800');
-        printWindow?.document.write('<html><head><title>Imprimer les codes-barres</title>');
-        printWindow?.document.write(`<style>@media print { body { -webkit-print-color-adjust: exact; margin: 1cm; } @page { size: auto; margin: 1cm; } .no-print { display: none; } .barcode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 10px; } .barcode-item { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-inside: avoid; } .product-name { font-family: sans-serif; font-size: 10px; font-weight: bold; margin-bottom: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }</style>`);
-        printWindow?.document.write('</head><body>');
-        printWindow?.document.write(printContent.innerHTML);
-        printWindow?.document.write('</body></html>');
-        printWindow?.document.close();
-        printWindow?.focus();
-        setTimeout(() => { printWindow?.print(); printWindow?.close(); }, 500);
-      }
-    };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl">
-        <DialogHeader>
-          <DialogTitle className="font-headline">Imprimer les codes-barres</DialogTitle>
-          <DialogDescription>Ajustez la mise en page via la boîte de dialogue d'impression de votre navigateur.</DialogDescription>
-        </DialogHeader>
-        <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
-            <div ref={printRef} className="barcode-grid">
-            {productsToPrint.map((produit) => (
-                produit.codeBarre && (
-                  <div key={produit.id} className="barcode-item">
-                  <p className="product-name">{produit.nom}</p>
-                  <Barcode value={produit.codeBarre} height={40} width={1.5} fontSize={10} margin={5} />
-                  </div>
-                )
-            ))}
-            </div>
-        </div>
-        <DialogFooter>
-          <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-          <Button onClick={handlePrint} disabled={!productsToPrint || productsToPrint.length === 0}><Printer className="h-4 w-4 mr-2" />Imprimer</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-
   export default function StockPage() {
-    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduits, addMultipleProduits, isMounted } = useApp();
+    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduits, isMounted } = useApp();
     const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-    const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
-    const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
-    const [productsToPrint, setProductsToPrint] = React.useState<Produit[]>([]);
     const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
     const [isLoading, setIsLoading] = React.useState(false);
     const { toast } = useToast();
@@ -233,9 +128,6 @@ const produitSchema = z.object({
         setIsDialogOpen(true);
     };
     
-    const handlePrintAll = () => { setProductsToPrint(produits); setIsPrintDialogOpen(true); };
-    const handlePrintSingle = (produit: Produit) => { setProductsToPrint([produit]); setIsPrintDialogOpen(true); };
-    
     const onSubmit = async (values: z.infer<typeof produitSchema>) => {
       setIsLoading(true);
       const productData = { 
@@ -273,10 +165,6 @@ const produitSchema = z.object({
           setIsLoading(false);
       }
     };
-
-  const handleImportSuccess = (importedData: any[]) => {
-    addMultipleProduits(importedData);
-  };
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
@@ -309,8 +197,6 @@ const produitSchema = z.object({
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button size="sm" variant="outline" onClick={() => setIsImportDialogOpen(true)}><FileUp className="h-4 w-4 mr-2"/>Importer</Button>
-          <Button size="sm" variant="outline" onClick={handlePrintAll} disabled={produits.length === 0}><Printer className="h-4 w-4 mr-2"/>Imprimer Codes-barres</Button>
           <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
         </div>
       </div>
@@ -361,7 +247,6 @@ const produitSchema = z.object({
                           <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Menu</span></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleEdit(produit)}><Pencil className="mr-2 h-4 w-4" /> Modifier</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handlePrintSingle(produit)}><Printer className="mr-2 h-4 w-4" /> Imprimer le code-barres</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -414,8 +299,6 @@ const produitSchema = z.object({
           </Form>
         </DialogContent>
       </Dialog>
-      <ImportDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} onImportSuccess={handleImportSuccess} />
-      <BarcodePrintDialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen} productsToPrint={productsToPrint} />
     </div>
   );
 }

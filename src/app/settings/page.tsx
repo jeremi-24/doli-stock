@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import * as z from "zod";
+import Barcode from "react-barcode";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -14,8 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode, Warehouse, FileText, ShoppingCart, Import, Users, Store, Palette, Badge } from 'lucide-react';
-import type { ShopInfo, ThemeColors } from "@/lib/types";
+import { Settings, Barcode as BarcodeIcon, Warehouse, FileText, ShoppingCart, Import, Users, Store, Palette, Badge, FileUp, Printer } from 'lucide-react';
+import type { ShopInfo, ThemeColors, Produit } from "@/lib/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import * as api from '@/lib/api';
 
 const shopInfoSchema = z.object({
   name: z.string().min(1, "Le nom de la boutique est requis."),
@@ -191,9 +194,110 @@ function AppearanceForm() {
   );
 }
 
-export default function SettingsPage() {
-  const { activeModules, setActiveModules } = useApp();
+function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onImportSuccess: (newProducts: any[]) => void }) {
+  const [file, setFile] = React.useState<File | null>(null);
+  const [isImporting, setIsImporting] = React.useState(false);
   const { toast } = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) setFile(e.target.files[0]);
+  };
+
+  const handleImport = async () => {
+    if (!file) {
+      toast({ variant: "destructive", title: "Aucun fichier sélectionné" });
+      return;
+    }
+    setIsImporting(true);
+
+    try {
+      const importedData = await api.importProducts(file);
+      onImportSuccess(importedData || []);
+      toast({ title: "Importation réussie", description: `${(importedData || []).length} produits ont été ajoutés ou mis à jour.` });
+      onOpenChange(false);
+      setFile(null);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Échec de l'importation", description: error.message });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-headline">Importer des produits depuis Excel</DialogTitle>
+          <DialogDescription>
+            Le fichier doit contenir les colonnes : `nom`, `ref`, `codeBarre`, `categorieId`, `entrepotId`, `prix`, `qte`, `qteMin`. Les IDs de catégorie et d'entrepôt doivent correspondre à des entrées existantes.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <Input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileChange} disabled={isImporting} />
+          {file && <p className="text-sm text-muted-foreground">Fichier : {file.name}</p>}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="ghost" disabled={isImporting}>Annuler</Button></DialogClose>
+          <Button onClick={handleImport} disabled={!file || isImporting}>{isImporting ? "Importation..." : "Importer"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BarcodePrintDialog({ open, onOpenChange, productsToPrint }: { open: boolean, onOpenChange: (open: boolean) => void, productsToPrint: Produit[] }) {
+  const printRef = React.useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    const printContent = printRef.current;
+    if (printContent) {
+      const printWindow = window.open('', '', 'height=800,width=800');
+      printWindow?.document.write('<html><head><title>Imprimer les codes-barres</title>');
+      printWindow?.document.write(`<style>@media print { body { -webkit-print-color-adjust: exact; margin: 1cm; } @page { size: auto; margin: 1cm; } .no-print { display: none; } .barcode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 10px; } .barcode-item { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-inside: avoid; } .product-name { font-family: sans-serif; font-size: 10px; font-weight: bold; margin-bottom: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }</style>`);
+      printWindow?.document.write('</head><body>');
+      printWindow?.document.write(printContent.innerHTML);
+      printWindow?.document.write('</body></html>');
+      printWindow?.document.close();
+      printWindow?.focus();
+      setTimeout(() => { printWindow?.print(); printWindow?.close(); }, 500);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="font-headline">Imprimer les codes-barres</DialogTitle>
+          <DialogDescription>Ajustez la mise en page via la boîte de dialogue d'impression de votre navigateur.</DialogDescription>
+        </DialogHeader>
+        <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
+            <div ref={printRef} className="barcode-grid">
+            {productsToPrint.map((produit) => (
+                produit.codeBarre && (
+                  <div key={produit.id} className="barcode-item">
+                  <p className="product-name">{produit.nom}</p>
+                  <Barcode value={produit.codeBarre} height={40} width={1.5} fontSize={10} margin={5} />
+                  </div>
+                )
+            ))}
+            </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
+          <Button onClick={handlePrint} disabled={!productsToPrint || productsToPrint.length === 0}><Printer className="h-4 w-4 mr-2" />Imprimer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function SettingsPage() {
+  const { activeModules, setActiveModules, produits, addMultipleProduits } = useApp();
+  const { toast } = useToast();
+
+  const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
+  const [productsToPrint, setProductsToPrint] = React.useState<Produit[]>([]);
 
   const handleModuleToggle = (module: keyof typeof activeModules) => {
     setActiveModules(prev => {
@@ -205,6 +309,15 @@ export default function SettingsPage() {
       return newState;
     });
   };
+
+  const handleImportSuccess = (importedData: any[]) => {
+    addMultipleProduits(importedData);
+  };
+  
+  const handlePrintAll = () => { 
+    setProductsToPrint(produits); 
+    setIsPrintDialogOpen(true); 
+  };
   
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -215,7 +328,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="modules" className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
           <TabsTrigger value="modules"><Settings className="mr-2 h-4 w-4"/>Modules</TabsTrigger>
-          <TabsTrigger value="import"><Import className="mr-2 h-4 w-4"/>Import</TabsTrigger>
+          <TabsTrigger value="import"><Import className="mr-2 h-4 w-4"/>Import/Export</TabsTrigger>
           <TabsTrigger value="users"><Users className="mr-2 h-4 w-4"/>Utilisateurs</TabsTrigger>
           <TabsTrigger value="shop"><Store className="mr-2 h-4 w-4"/>Boutique</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4"/>Apparence</TabsTrigger>
@@ -282,7 +395,7 @@ export default function SettingsPage() {
               
               <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
                 <div className="flex items-start space-x-3">
-                    <Barcode className="h-6 w-6 mt-1 text-primary"/>
+                    <BarcodeIcon className="h-6 w-6 mt-1 text-primary"/>
                   <div>
                     <Label htmlFor="barcode-module" className="font-semibold text-base">Scanner de Code-barres</Label>
                     <p className="text-sm text-muted-foreground">
@@ -309,15 +422,28 @@ export default function SettingsPage() {
         <TabsContent value="import" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline">Import de Données</CardTitle>
-                <CardDescription>Gérez l'importation de vos données, comme la liste de produits.</CardDescription>
+                <CardTitle className="font-headline">Import et Impression</CardTitle>
+                <CardDescription>Gérez l'importation de vos données et imprimez des étiquettes.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
-                    <Import className="h-12 w-12 text-muted-foreground" />
-                    <p className="mt-4 text-sm text-muted-foreground">Vous pouvez importer des produits depuis la page "Stock".</p>
-                    <Button variant="outline" className="mt-4" asChild>
-                       <a href="/stock">Aller à la page Stock</a>
+              <CardContent className="space-y-4 pt-6">
+                <div className="space-y-2">
+                    <h3 className="font-medium">Importer des produits</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Ajoutez ou mettez à jour des produits en masse à partir d'un fichier Excel (.xlsx, .csv).
+                    </p>
+                    <Button onClick={() => setIsImportDialogOpen(true)}>
+                        <FileUp className="mr-2 h-4 w-4"/>
+                        Importer un fichier
+                    </Button>
+                </div>
+                <div className="space-y-2 pt-4 border-t">
+                    <h3 className="font-medium">Imprimer les codes-barres</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Générez une planche d'étiquettes avec les codes-barres de tous vos produits.
+                    </p>
+                    <Button variant="outline" onClick={handlePrintAll} disabled={produits.length === 0}>
+                        <Printer className="mr-2 h-4 w-4"/>
+                        Imprimer tous les codes-barres
                     </Button>
                 </div>
               </CardContent>
@@ -365,6 +491,8 @@ export default function SettingsPage() {
           <AppearanceForm />
         </TabsContent>
       </Tabs>
+      <ImportDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} onImportSuccess={handleImportSuccess} />
+      <BarcodePrintDialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen} productsToPrint={productsToPrint} />
     </div>
   );
 }
