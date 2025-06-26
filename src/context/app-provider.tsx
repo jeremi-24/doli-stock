@@ -12,9 +12,10 @@ interface AppContextType {
   categories: Categorie[];
   ventes: Vente[];
   factureModeles: FactureModele[];
-  addProduit: (produit: Omit<Produit, 'id'>) => void;
-  updateProduit: (produit: Produit) => void;
-  deleteProduit: (produitId: number) => void;
+  addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
+  updateProduit: (produit: Produit) => Promise<void>;
+  deleteProduit: (produitId: number) => Promise<void>;
+  fetchProduits: () => Promise<void>;
   addMultipleProduits: (produits: Omit<Produit, 'id'>[]) => void;
   fetchCategories: () => Promise<void>;
   addCategorie: (categorie: Omit<Categorie, 'id'>) => Promise<void>;
@@ -50,6 +51,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
   const { toast } = useToast();
 
+  // Helper to map backend product to frontend product
+  const mapToFrontendProduit = (backendProduit: any, categoriesList: Categorie[]): Produit => {
+    const categorie = categoriesList.find(c => c.nom === backendProduit.categorie);
+    return {
+      id: backendProduit.id,
+      nom: backendProduit.nom,
+      ref: backendProduit.ref,
+      code_barre: backendProduit.codeBarre,
+      categorie_id: categorie ? categorie.id : 0,
+      prix_achat: backendProduit.prixAchat || 0,
+      prix_vente: backendProduit.prix,
+      quantite_stock: backendProduit.qte,
+      unite: backendProduit.unite || 'pièce',
+      alerte_stock: backendProduit.qteMin || backendProduit.alerte_stock || 0,
+    };
+  };
+
+  // Helper to map frontend product to backend product for POST/PUT
+  const mapToBackendProduit = (frontendProduit: Partial<Produit>, categoriesList: Categorie[]) => {
+      const categorie = categoriesList.find(c => c.id === frontendProduit.categorie_id);
+      return {
+        id: frontendProduit.id,
+        nom: frontendProduit.nom,
+        ref: frontendProduit.ref,
+        qte: frontendProduit.quantite_stock,
+        qteMin: frontendProduit.alerte_stock,
+        prix: frontendProduit.prix_vente,
+        prixAchat: frontendProduit.prix_achat,
+        codeBarre: frontendProduit.code_barre,
+        unite: frontendProduit.unite,
+        categorie: categorie ? categorie.nom : '',
+      };
+  }
+
   const fetchCategories = useCallback(async () => {
     try {
       const apiCategories = await api.getCategories();
@@ -57,51 +92,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Failed to fetch categories:", error);
       const description = (error instanceof Error) ? error.message : 'Impossible de charger les catégories.';
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de connexion au Backend',
-        description: `${description} Utilisation des données locales de démo.`,
-      });
-      setCategories(sampleCategories); // Fallback to sample data
+      toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.`});
+      setCategories(sampleCategories);
     }
   }, [toast]);
 
+  const fetchProduits = useCallback(async () => {
+    try {
+      const apiProduits = await api.getProducts();
+      // Ensure categories are available for mapping
+      setProduits(prevProduits => {
+        const categoriesToMap = categories.length > 0 ? categories : sampleCategories;
+        return apiProduits.map(p => mapToFrontendProduit(p, categoriesToMap));
+      });
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+      const description = (error instanceof Error) ? error.message : 'Impossible de charger les produits.';
+      toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.` });
+      setProduits(sampleProduits);
+    }
+  }, [toast, categories]);
+
   useEffect(() => {
     const loadInitialData = async () => {
-      try {
-        await fetchCategories();
+      await fetchCategories();
+      await fetchProduits();
+      
+      const storedVentes = localStorage.getItem('stockhero_ventes');
+      if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
 
-        // Continue loading other data from localStorage
-        const storedProduits = localStorage.getItem('stockhero_produits');
-        setProduits(storedProduits ? JSON.parse(storedProduits) : sampleProduits);
-        
-        const storedVentes = localStorage.getItem('stockhero_ventes');
-        if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
+      const storedFactureModeles = localStorage.getItem('stockhero_facture_modeles');
+      setFactureModeles(storedFactureModeles ? JSON.parse(storedFactureModeles) : sampleFactureModeles);
 
-        const storedFactureModeles = localStorage.getItem('stockhero_facture_modeles');
-        setFactureModeles(storedFactureModeles ? JSON.parse(storedFactureModeles) : sampleFactureModeles);
+      const storedModules = localStorage.getItem('stockhero_modules');
+      if (storedModules) setActiveModules(JSON.parse(storedModules));
 
-        const storedModules = localStorage.getItem('stockhero_modules');
-        if (storedModules) setActiveModules(JSON.parse(storedModules));
-
-        const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
-        if (storedShopInfo) setShopInfo(JSON.parse(storedShopInfo));
-        
-        const storedThemeColors = localStorage.getItem('stockhero_themecolors');
-        if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
-      } catch (error) {
-        console.error("Failed to access localStorage or load initial data", error);
-        // Fallback to sample data
-        setProduits(sampleProduits);
-        setFactureModeles(sampleFactureModeles);
-      } finally {
-        setIsMounted(true);
-      }
+      const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
+      if (storedShopInfo) setShopInfo(JSON.parse(storedShopInfo));
+      
+      const storedThemeColors = localStorage.getItem('stockhero_themecolors');
+      if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
+      
+      setIsMounted(true);
     };
     loadInitialData();
-  }, [fetchCategories]);
+  }, []); // Run only once on mount
+
   
-  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_produits', JSON.stringify(produits)); }, [produits, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_facture_modeles', JSON.stringify(factureModeles)); }, [factureModeles, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_modules', JSON.stringify(activeModules)); }, [activeModules, isMounted]);
@@ -117,77 +154,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [themeColors, isMounted]);
 
 
-  // CRUD CATEGORIES (API-driven)
-  const addCategorie = async (categorieData: Omit<Categorie, 'id'>) => {
-    await api.createCategory(categorieData);
-    await fetchCategories();
+  // API-driven CRUD
+  const addCategorie = async (categorieData: Omit<Categorie, 'id'>) => { await api.createCategory(categorieData); await fetchCategories(); };
+  const updateCategorie = async (id: number, updatedCategorie: Partial<Categorie>) => { await api.updateCategory(id, updatedCategorie); await fetchCategories(); };
+  const deleteCategorie = async (categorieId: number) => { await api.deleteCategory(categorieId); await fetchCategories(); };
+
+  const addProduit = async (produitData: Omit<Produit, 'id'>) => {
+    const backendPayload = mapToBackendProduit(produitData, categories);
+    await api.createProduct(backendPayload);
+    await fetchProduits();
   };
-  const updateCategorie = async (id: number, updatedCategorie: Partial<Categorie>) => {
-    await api.updateCategory(id, updatedCategorie);
-    await fetchCategories();
+  const updateProduit = async (updatedProduit: Produit) => {
+    const backendPayload = mapToBackendProduit(updatedProduit, categories);
+    await api.updateProduct(updatedProduit.id, backendPayload);
+    await fetchProduits();
   };
-  const deleteCategorie = async (categorieId: number) => {
-    await api.deleteCategory(categorieId);
-    await fetchCategories();
+  const deleteProduit = async (produitId: number) => {
+    await api.deleteProduct(produitId);
+    await fetchProduits();
   };
 
-  // CRUD PRODUITS (Local for now)
-  const addProduit = (produitData: Omit<Produit, 'id'>) => {
-    const newProduit: Produit = { id: Date.now(), ...produitData };
-    setProduits((prev) => [...prev, newProduit]);
-  };
-  const updateProduit = (updatedProduit: Produit) => {
-    setProduits((prev) => prev.map((p) => (p.id === updatedProduit.id ? updatedProduit : p)));
-  };
-  const deleteProduit = (produitId: number) => {
-    setProduits((prev) => prev.filter((p) => p.id !== produitId));
-  };
-  const addMultipleProduits = (newProduits: Omit<Produit, 'id'>[]) => {
-    setProduits((prevProduits) => {
-      const existingBarcodes = new Set(prevProduits.map((p) => p.code_barre));
-      const uniqueNewProductsWithId: Produit[] = newProduits
-        .filter(p => !existingBarcodes.has(p.code_barre))
-        .map((p, index) => ({...p, id: Date.now() + index }));
-      return [...prevProduits, ...uniqueNewProductsWithId];
-    });
+  const addMultipleProduits = async (importedData: any[]) => {
+    // Assuming the import API returns products and we just need to refetch
+    await fetchProduits();
   };
   
   // GESTION VENTES (Local for now)
   const addVente = (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
-    setProduits(prevProduits => {
-      const newProduits = [...prevProduits];
-      for (const ligne of venteData.lignes) {
-        const productIndex = newProduits.findIndex(p => p.id === ligne.produit.id);
-        if (productIndex > -1) {
-          newProduits[productIndex] = {
-            ...newProduits[productIndex],
-            quantite_stock: newProduits[productIndex].quantite_stock - ligne.quantite
-          };
-        }
+    // This logic should be moved to backend eventually
+    const updatedProduits = [...produits];
+    for (const ligne of venteData.lignes) {
+      const productIndex = updatedProduits.findIndex(p => p.id === ligne.produit.id);
+      if (productIndex > -1) {
+        updatedProduits[productIndex].quantite_stock -= ligne.quantite;
+        // Call API to update product quantity on the backend
+        updateProduit(updatedProduits[productIndex]); 
       }
-      return newProduits;
-    });
+    }
+    setProduits(updatedProduits);
 
-    const newVente: Vente = {
-      ...venteData,
-      id: Date.now(),
-      date_vente: new Date(),
-      reste: venteData.montant_total - venteData.montant_paye,
-    };
+    const newVente: Vente = { ...venteData, id: Date.now(), date_vente: new Date(), reste: venteData.montant_total - venteData.montant_paye };
     setVentes(prev => [newVente, ...prev]);
   };
 
   // CRUD MODELES FACTURE (Local for now)
-  const addFactureModele = (modeleData: Omit<FactureModele, 'id'>) => {
-    const newModele: FactureModele = { id: `tmpl-${Date.now()}`, ...modeleData };
-    setFactureModeles((prev) => [...prev, newModele]);
-  };
-  const updateFactureModele = (updatedModele: FactureModele) => {
-    setFactureModeles((prev) => prev.map((m) => (m.id === updatedModele.id ? updatedModele : m)));
-  };
-  const deleteFactureModele = (modeleId: string) => {
-    setFactureModeles((prev) => prev.filter((m) => m.id !== modeleId));
-  };
+  const addFactureModele = (modeleData: Omit<FactureModele, 'id'>) => { const newModele: FactureModele = { id: `tmpl-${Date.now()}`, ...modeleData }; setFactureModeles((prev) => [...prev, newModele]); };
+  const updateFactureModele = (updatedModele: FactureModele) => { setFactureModeles((prev) => prev.map((m) => (m.id === updatedModele.id ? updatedModele : m))); };
+  const deleteFactureModele = (modeleId: string) => { setFactureModeles((prev) => prev.filter((m) => m.id !== modeleId)); };
 
 
   const value = {
@@ -198,6 +211,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addProduit,
     updateProduit,
     deleteProduit,
+    fetchProduits,
     addMultipleProduits,
     fetchCategories,
     addCategorie,

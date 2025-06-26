@@ -53,6 +53,7 @@ export async function getCategoryById(id: number): Promise<Categorie> {
 };
 
 export async function createCategory(data: { nom: string }): Promise<Categorie> {
+  // Le backend attend un objet Categorie complet, même pour la création
   const body = { id: 0, nom: data.nom, produits: [] };
   return apiFetch('/categorie', {
     method: 'POST',
@@ -73,7 +74,36 @@ export async function deleteCategory(id: number): Promise<null> {
   });
 };
 
+
 // ========== Products API ==========
+
+export async function getProducts(): Promise<any[]> {
+  return apiFetch('/produit');
+}
+
+export async function getProductById(id: number): Promise<any> {
+  return apiFetch(`/produit/${id}`);
+}
+
+export async function createProduct(data: any): Promise<any> {
+  return apiFetch('/produit', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProduct(id: number, data: Partial<any>): Promise<any> {
+  return apiFetch(`/produit/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProduct(id: number): Promise<null> {
+  return apiFetch(`/produit/${id}`, {
+    method: 'DELETE',
+  });
+}
 
 export async function importProducts(formData: FormData): Promise<Produit[]> {
   const url = `${API_BASE_URL}/produit/import`;

@@ -58,6 +58,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Produit } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const produitSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -171,12 +172,13 @@ function BarcodePrintDialog({ open, onOpenChange, productsToPrint }: { open: boo
 
 
 export default function StockPage() {
-  const { produits, categories, addProduit, updateProduit, deleteProduit, addMultipleProduits } = useApp();
+  const { produits, categories, addProduit, updateProduit, deleteProduit, addMultipleProduits, isMounted } = useApp();
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
   const [productsToPrint, setProductsToPrint] = React.useState<Produit[]>([]);
   const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
 
   const categoriesMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.nom])), [categories]);
@@ -208,23 +210,37 @@ export default function StockPage() {
   const handlePrintAll = () => { setProductsToPrint(produits); setIsPrintDialogOpen(true); };
   const handlePrintSingle = (produit: Produit) => { setProductsToPrint([produit]); setIsPrintDialogOpen(true); };
   
-  const onSubmit = (values: z.infer<typeof produitSchema>) => {
-    const productData = {
-        ...values,
-        categorie_id: parseInt(values.categorie_id, 10),
-    };
-
-    if (editingProduit) {
-      updateProduit({ ...editingProduit, ...productData });
-      toast({ title: "Produit mis à jour" });
-    } else {
-      addProduit(productData);
-      toast({ title: "Produit ajouté" });
+  const onSubmit = async (values: z.infer<typeof produitSchema>) => {
+    setIsLoading(true);
+    const productData = { ...values, categorie_id: parseInt(values.categorie_id, 10) };
+    
+    try {
+        if (editingProduit) {
+            await updateProduit({ ...editingProduit, ...productData });
+            toast({ title: "Produit mis à jour" });
+        } else {
+            await addProduit(productData);
+            toast({ title: "Produit ajouté" });
+        }
+        setIsDialogOpen(false);
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue.' });
+    } finally {
+        setIsLoading(false);
     }
-    setIsDialogOpen(false);
   };
 
-  const handleDelete = (produitId: number) => { deleteProduit(produitId); toast({ title: "Produit supprimé", variant: 'destructive' }); };
+  const handleDelete = async (produitId: number) => { 
+    setIsLoading(true);
+    try {
+        await deleteProduit(produitId); 
+        toast({ title: "Produit supprimé" });
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue lors de la suppression.' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   const handleImportSuccess = (importedData: any[]) => {
     addMultipleProduits(importedData);
@@ -249,7 +265,17 @@ export default function StockPage() {
             <Table>
               <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
               <TableBody>
-                {produits.length > 0 ? (
+                {!isMounted ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-1/4" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                        </TableRow>
+                    ))
+                ) : produits.length > 0 ? (
                   produits.map((produit) => (
                     <TableRow key={produit.id} className={produit.quantite_stock <= produit.alerte_stock ? 'bg-red-50 dark:bg-red-900/20' : ''}>
                       <TableCell className="font-medium">{produit.nom} {produit.quantite_stock <= produit.alerte_stock && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
@@ -265,7 +291,7 @@ export default function StockPage() {
                             <DropdownMenuSeparator />
                             <AlertDialog>
                                 <AlertDialogTrigger asChild><Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm"><Trash2 className="mr-2 h-4 w-4" /> Supprimer</Button></AlertDialogTrigger>
-                                <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible. Elle supprimera définitivement le produit "{produit.nom}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(produit.id)}>Supprimer</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                                <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible. Elle supprimera définitivement le produit "{produit.nom}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(produit.id)} disabled={isLoading}>{isLoading ? "Suppression..." : "Supprimer"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                             </AlertDialog>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -285,12 +311,12 @@ export default function StockPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="nom" render={({ field }) => (<FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="T-Shirt" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="code_barre" render={({ field }) => (<FormItem><FormLabel>Code-barres</FormLabel><FormControl><Input placeholder="1234567890" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="nom" render={({ field }) => (<FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="T-Shirt" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="code_barre" render={({ field }) => (<FormItem><FormLabel>Code-barres</FormLabel><FormControl><Input placeholder="1234567890" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <FormField control={form.control} name="categorie_id" render={({ field }) => (
                   <FormItem><FormLabel>Catégorie</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>
                         <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
                     </Select>
@@ -298,15 +324,18 @@ export default function StockPage() {
                 </FormItem>
               )} />
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="prix_achat" render={({ field }) => (<FormItem><FormLabel>Prix d'achat</FormLabel><FormControl><Input type="number" step="any" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="prix_vente" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="prix_achat" render={({ field }) => (<FormItem><FormLabel>Prix d'achat</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="prix_vente" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <FormField control={form.control} name="quantite_stock" render={({ field }) => (<FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="unite" render={({ field }) => (<FormItem><FormLabel>Unité</FormLabel><FormControl><Input placeholder="pièce, kg..." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="alerte_stock" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="quantite_stock" render={({ field }) => (<FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="unite" render={({ field }) => (<FormItem><FormLabel>Unité</FormLabel><FormControl><Input placeholder="pièce, kg..." {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="alerte_stock" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
               </div>
-              <DialogFooter><DialogClose asChild><Button type="button" variant="ghost">Annuler</Button></DialogClose><Button type="submit">{editingProduit ? "Sauvegarder" : "Créer le produit"}</Button></DialogFooter>
+              <DialogFooter>
+                  <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
+                  <Button type="submit" disabled={isLoading}>{isLoading ? "Sauvegarde..." : (editingProduit ? "Sauvegarder" : "Créer le produit")}</Button>
+              </DialogFooter>
             </form>
           </Form>
         </DialogContent>
