@@ -55,11 +55,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const apiCategories = await api.getCategories();
       setCategories(apiCategories);
+      return apiCategories;
     } catch (error) {
       console.error("Failed to fetch categories:", error);
       const description = (error instanceof Error) ? error.message : 'Impossible de charger les catégories.';
       toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.`});
       setCategories(sampleCategories);
+      return sampleCategories;
     }
   }, [toast]);
   
@@ -75,7 +77,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         prix_vente: p.prix,
         quantite_stock: p.qte,
         alerte_stock: p.qteMin || 0,
-        categorieId: categoryNameToIdMap.get(p.categorie) ?? 0, // Assign ID from map, fallback to 0
+        categorieId: categoryNameToIdMap.get(p.categorie) ?? 0, // Map name to ID
       }));
       setProduits(frontendProduits);
     } catch (error) {
@@ -88,18 +90,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const loadInitialData = async () => {
-      let fetchedCategories: Categorie[] = [];
-      try {
-        fetchedCategories = await api.getCategories();
-        setCategories(fetchedCategories);
-      } catch (error) {
-        console.error("Failed to fetch categories:", error);
-        const description = (error instanceof Error) ? error.message : 'Impossible de charger les catégories.';
-        toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.`});
-        fetchedCategories = sampleCategories;
-        setCategories(fetchedCategories);
-      }
-      
+      const fetchedCategories = await fetchCategories();
       await fetchProduits(fetchedCategories);
       
       const storedVentes = localStorage.getItem('stockhero_ventes');
