@@ -51,9 +51,9 @@ export type FactureModele = {
   id: string;
   nom: string;
   logoUrl?: string;
-  headerContent?: string;
-  footerContent?: string;
-  primaryColor?: string;
+  header?: string;
+  footer?: string;
+  color?: string;
 };
 
 export type AssignationPayload = {
@@ -103,3 +103,5 @@ export type Utilisateur = {
   identifiant: string;
   mot_de_passe_hash: string;
 };
+
+    

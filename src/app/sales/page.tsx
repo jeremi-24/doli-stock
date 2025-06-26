@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from '@/context/app-provider';
 import type { Vente, FactureModele } from '@/lib/types';
@@ -63,7 +63,7 @@ function SaleDetailsDialog({ vente, factureModeles }: { vente: Vente, factureMod
         }
     };
 
-    const primaryColorStyle = template?.primaryColor ? { color: `hsl(${template.primaryColor})` } : {};
+    const primaryColorStyle = template?.color ? { color: `hsl(${template.color})` } : {};
 
     return (
         <Dialog>
@@ -83,7 +83,7 @@ function SaleDetailsDialog({ vente, factureModeles }: { vente: Vente, factureMod
                         </div>
                         <div className="text-right">
                             <h1 className="text-3xl font-bold" style={primaryColorStyle}>
-                                {template?.headerContent || 'FACTURE'}
+                                {template?.header || 'FACTURE'}
                             </h1>
                             <p className="text-muted-foreground">N° : {String(vente.id).substring(String(vente.id).length-6)}</p>
                             <p className="text-muted-foreground">Date : {format(new Date(vente.date_vente), 'd MMMM yyyy', { locale: fr })}</p>
@@ -110,8 +110,8 @@ function SaleDetailsDialog({ vente, factureModeles }: { vente: Vente, factureMod
 
                     {/* Footer */}
                     <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-                       {template?.footerContent ? (
-                            <p>{template.footerContent}</p>
+                       {template?.footer ? (
+                            <p>{template.footer}</p>
                         ) : (
                             <p>Merci pour votre confiance !</p>
                         )}
@@ -176,3 +176,5 @@ export default function SalesPage() {
     </div>
   );
 }
+
+    

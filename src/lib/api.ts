@@ -1,6 +1,6 @@
 
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot, AssignationPayload, PaginatedProduits } from './types';
+import type { Categorie, Produit, Entrepot, AssignationPayload, PaginatedProduits, FactureModele } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api';
@@ -144,3 +144,19 @@ export async function importProducts(file: File): Promise<Produit[]> {
     throw error;
   }
 };
+
+// ========== FactureModeles API ==========
+export async function getFactureModeles(): Promise<FactureModele[]> { 
+    return apiFetch('/facture-modele'); 
+}
+export async function createFactureModele(data: Omit<FactureModele, 'id'>): Promise<FactureModele> {
+  return apiFetch('/facture-modele', { method: 'POST', body: JSON.stringify(data) });
+}
+export async function updateFactureModele(id: string, data: Partial<FactureModele>): Promise<FactureModele> {
+  return apiFetch(`/facture-modele/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export async function deleteFactureModele(id: string): Promise<null> {
+  return apiFetch(`/facture-modele/${id}`, { method: 'DELETE' });
+}
+
+    

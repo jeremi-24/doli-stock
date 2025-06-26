@@ -18,20 +18,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from "@/hooks/use-toast";
 import { FileSignature, PlusCircle, MoreHorizontal, Pencil, Trash2, Eye } from 'lucide-react';
 import type { FactureModele } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const colorRegex = /^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/;
-const hslColorSchema = z.string().regex(colorRegex, "Format invalide. Utilisez 'H S% L%'").optional().or(z.literal(''));
+const colorSchema = z.string().regex(colorRegex, "Format invalide. Utilisez 'H S% L%'").optional().or(z.literal(''));
 
 const modeleSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
   logoUrl: z.string().url({ message: "Veuillez entrer une URL valide pour le logo." }).optional().or(z.literal('')),
-  headerContent: z.string().optional(),
-  footerContent: z.string().optional(),
-  primaryColor: hslColorSchema,
+  header: z.string().optional(),
+  footer: z.string().optional(),
+  color: colorSchema,
 });
 
-function InvoicePreview({ logoUrl, headerContent, footerContent, primaryColor }: Partial<FactureModele>) {
-  const primaryColorStyle = primaryColor ? { color: `hsl(${primaryColor})` } : {};
+function InvoicePreview({ logoUrl, header, footer, color }: Partial<Omit<FactureModele, 'id' | 'nom'>>) {
+  const primaryColorStyle = color ? { color: `hsl(${color})` } : {};
 
   return (
     <div className="bg-white p-6 rounded-md shadow-sm border aspect-[210/297] scale-95 origin-top mx-auto">
@@ -48,7 +49,7 @@ function InvoicePreview({ logoUrl, headerContent, footerContent, primaryColor }:
         </div>
         <div className="text-right">
           <h1 className="text-2xl font-bold" style={primaryColorStyle}>
-            {headerContent || 'FACTURE'}
+            {header || 'FACTURE'}
           </h1>
           <p className="text-xs text-gray-500">N° : FACT-001</p>
           <p className="text-xs text-gray-500">Date : 01/01/2024</p>
@@ -68,21 +69,22 @@ function InvoicePreview({ logoUrl, headerContent, footerContent, primaryColor }:
       </div>
        {/* Footer */}
       <div className="mt-8 pt-4 border-t text-center text-xs text-gray-500 absolute bottom-6 inset-x-6">
-        <p>{footerContent || 'Merci de votre confiance et à bientôt !'}</p>
+        <p>{footer || 'Merci de votre confiance et à bientôt !'}</p>
       </div>
     </div>
   )
 }
 
 export default function InvoiceTemplatesPage() {
-    const { factureModeles, addFactureModele, updateFactureModele, deleteFactureModele } = useApp();
+    const { factureModeles, addFactureModele, updateFactureModele, deleteFactureModele, isMounted } = useApp();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingModele, setEditingModele] = useState<FactureModele | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm<z.infer<typeof modeleSchema>>({
         resolver: zodResolver(modeleSchema),
-        defaultValues: { nom: "", logoUrl: "", headerContent: "", footerContent: "", primaryColor: "" },
+        defaultValues: { nom: "", logoUrl: "", header: "", footer: "", color: "" },
     });
     
     const watchedValues = form.watch();
@@ -90,9 +92,15 @@ export default function InvoiceTemplatesPage() {
     useEffect(() => {
         if (isDialogOpen) {
             if (editingModele) {
-                form.reset(editingModele);
+                form.reset({
+                    nom: editingModele.nom || "",
+                    logoUrl: editingModele.logoUrl || "",
+                    header: editingModele.header || "",
+                    footer: editingModele.footer || "",
+                    color: editingModele.color || "",
+                });
             } else {
-                form.reset({ nom: "", logoUrl: "", headerContent: "", footerContent: "", primaryColor: "" });
+                form.reset({ nom: "", logoUrl: "", header: "", footer: "", color: "" });
             }
         }
     }, [editingModele, form, isDialogOpen]);
@@ -107,20 +115,36 @@ export default function InvoiceTemplatesPage() {
         setIsDialogOpen(true);
     };
 
-    const onSubmit = (values: z.infer<typeof modeleSchema>) => {
-        if (editingModele) {
-            updateFactureModele({ ...editingModele, ...values });
-            toast({ title: "Modèle mis à jour" });
-        } else {
-            addFactureModele(values);
-            toast({ title: "Modèle ajouté" });
+    const onSubmit = async (values: z.infer<typeof modeleSchema>) => {
+        setIsLoading(true);
+        try {
+            if (editingModele) {
+                await updateFactureModele({ ...editingModele, ...values });
+                toast({ title: "Modèle mis à jour" });
+            } else {
+                await addFactureModele(values);
+                toast({ title: "Modèle ajouté" });
+            }
+            setIsDialogOpen(false);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue.';
+            toast({ variant: 'destructive', title: 'Erreur', description: errorMessage });
+        } finally {
+            setIsLoading(false);
         }
-        setIsDialogOpen(false);
     };
 
-    const handleDelete = (modeleId: string) => {
-        deleteFactureModele(modeleId);
-        toast({ title: "Modèle supprimé" });
+    const handleDelete = async (modeleId: string) => {
+        setIsLoading(true);
+        try {
+            await deleteFactureModele(modeleId);
+            toast({ title: "Modèle supprimé" });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue.';
+            toast({ variant: 'destructive', title: 'Erreur', description: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
     };
     
     return (
@@ -149,7 +173,14 @@ export default function InvoiceTemplatesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {factureModeles.length > 0 ? (
+                                {!isMounted ? (
+                                    Array.from({ length: 3 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
+                                            <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : factureModeles.length > 0 ? (
                                     factureModeles.map((modele) => (
                                         <TableRow key={modele.id}>
                                             <TableCell className="font-medium">{modele.nom}</TableCell>
@@ -181,7 +212,9 @@ export default function InvoiceTemplatesPage() {
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
                                                                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDelete(modele.id)}>Supprimer</AlertDialogAction>
+                                                                    <AlertDialogAction onClick={() => handleDelete(modele.id)} disabled={isLoading}>
+                                                                        {isLoading ? "Suppression..." : "Supprimer"}
+                                                                    </AlertDialogAction>
                                                                 </AlertDialogFooter>
                                                             </AlertDialogContent>
                                                         </AlertDialog>
@@ -218,20 +251,22 @@ export default function InvoiceTemplatesPage() {
                                  <FormField control={form.control} name="logoUrl" render={({ field }) => (
                                     <FormItem><FormLabel>URL du logo</FormLabel><FormControl><Input placeholder="https://votresite.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                <FormField control={form.control} name="headerContent" render={({ field }) => (
-                                    <FormItem><FormLabel>Titre de la facture</FormLabel><FormControl><Input placeholder="ex: FACTURE" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormField control={form.control} name="header" render={({ field }) => (
+                                    <FormItem><FormLabel>Entête</FormLabel><FormControl><Input placeholder="ex: FACTURE" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                <FormField control={form.control} name="footerContent" render={({ field }) => (
-                                    <FormItem><FormLabel>Notes de bas de page</FormLabel><FormControl><Textarea placeholder="ex: Conditions de paiement..." {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormField control={form.control} name="footer" render={({ field }) => (
+                                    <FormItem><FormLabel>Pied de page</FormLabel><FormControl><Textarea placeholder="ex: Conditions de paiement..." {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                <FormField control={form.control} name="primaryColor" render={({ field }) => (
-                                    <FormItem><FormLabel>Couleur principale</FormLabel><FormControl><Input placeholder="ex: 231 48% 48%" {...field} /></FormControl><FormDescription>Entrez une couleur au format HSL (ex: 231 48% 48%).</FormDescription><FormMessage /></FormItem>
+                                <FormField control={form.control} name="color" render={({ field }) => (
+                                    <FormItem><FormLabel>Couleur</FormLabel><FormControl><Input placeholder="ex: 231 48% 48%" {...field} /></FormControl><FormDescription>Entrez une couleur au format HSL (ex: 231 48% 48%).</FormDescription><FormMessage /></FormItem>
                                 )}/>
                             </form>
                         </Form>
                         <DialogFooter className="mt-auto pt-4 border-t">
-                            <DialogClose asChild><Button type="button" variant="ghost">Annuler</Button></DialogClose>
-                            <Button type="button" onClick={form.handleSubmit(onSubmit)}>{editingModele ? "Sauvegarder" : "Créer"}</Button>
+                            <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
+                            <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
+                                {isLoading ? "Sauvegarde..." : (editingModele ? "Sauvegarder" : "Créer")}
+                            </Button>
                         </DialogFooter>
                       </div>
 
@@ -248,3 +283,5 @@ export default function InvoiceTemplatesPage() {
         </div>
     );
 }
+
+    

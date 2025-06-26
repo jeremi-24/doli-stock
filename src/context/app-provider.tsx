@@ -26,9 +26,9 @@ interface AppContextType {
   updateEntrepot: (id: number, entrepot: Partial<Entrepot>) => Promise<void>;
   deleteEntrepots: (entrepotIds: number[]) => Promise<void>;
   addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => Promise<void>;
-  addFactureModele: (modele: Omit<FactureModele, 'id'>) => void;
-  updateFactureModele: (modele: FactureModele) => void;
-  deleteFactureModele: (modeleId: string) => void;
+  addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
+  updateFactureModele: (modele: FactureModele) => Promise<void>;
+  deleteFactureModele: (modeleId: string) => Promise<void>;
   activeModules: ActiveModules;
   setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
   shopInfo: ShopInfo;
@@ -78,9 +78,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [toast]);
   
   const fetchStaticData = useCallback(async () => {
-    const [categoriesResult, entrepotsResult] = await Promise.allSettled([
+    const [categoriesResult, entrepotsResult, factureModelesResult] = await Promise.allSettled([
       api.getCategories(),
       api.getEntrepots(),
+      api.getFactureModeles(),
     ]);
 
     if (categoriesResult.status === 'fulfilled') {
@@ -100,6 +101,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les entrepôts: ${description}` });
       setEntrepots([]);
     }
+
+    if (factureModelesResult.status === 'fulfilled') {
+      setFactureModeles(factureModelesResult.value || []);
+    } else {
+      console.error("Failed to fetch invoice templates:", factureModelesResult.reason);
+      const description = (factureModelesResult.reason instanceof Error) ? factureModelesResult.reason.message : 'Erreur inconnue';
+      toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les modèles de facture: ${description}` });
+      setFactureModeles([]);
+    }
+
   }, [toast]);
 
 
@@ -110,8 +121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       const storedVentes = localStorage.getItem('stockhero_ventes');
       if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
-      const storedFactureModeles = localStorage.getItem('stockhero_facture_modeles');
-      setFactureModeles(storedFactureModeles ? JSON.parse(storedFactureModeles) : []);
+      
       const storedModules = localStorage.getItem('stockhero_modules');
       if (storedModules) setActiveModules(JSON.parse(storedModules));
       const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
@@ -125,7 +135,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [fetchStaticData, fetchProduitsPage]);
   
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
-  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_facture_modeles', JSON.stringify(factureModeles)); }, [factureModeles, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_modules', JSON.stringify(activeModules)); }, [activeModules, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_shopinfo', JSON.stringify(shopInfo)); }, [shopInfo, isMounted]);
   useEffect(() => {
@@ -183,16 +192,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [produits, refetchCurrentPage, toast]);
 
-  const addFactureModele = useCallback((modeleData: Omit<FactureModele, 'id'>) => {
-    const newModele: FactureModele = { id: `tmpl-${Date.now()}`, ...modeleData };
-    setFactureModeles((prev) => [...prev, newModele]);
-  }, []);
-  const updateFactureModele = useCallback((updatedModele: FactureModele) => {
-    setFactureModeles((prev) => prev.map((m) => (m.id === updatedModele.id ? updatedModele : m)));
-  }, []);
-  const deleteFactureModele = useCallback((modeleId: string) => {
-    setFactureModeles((prev) => prev.filter((m) => m.id !== modeleId));
-  }, []);
+  const addFactureModele = useCallback(async (modeleData: Omit<FactureModele, 'id'>) => {
+    await api.createFactureModele(modeleData);
+    await fetchStaticData();
+  }, [fetchStaticData]);
+  const updateFactureModele = useCallback(async (updatedModele: FactureModele) => {
+    await api.updateFactureModele(updatedModele.id, updatedModele);
+    await fetchStaticData();
+  }, [fetchStaticData]);
+  const deleteFactureModele = useCallback(async (modeleId: string) => {
+    await api.deleteFactureModele(modeleId);
+    await fetchStaticData();
+  }, [fetchStaticData]);
 
   const value = useMemo(() => ({
     produits, categories, entrepots, ventes, factureModeles,
@@ -208,7 +219,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
-    activeModules, shopInfo, themeColors,
+    activeModules, setActiveModules, shopInfo, setShopInfo, themeColors,
     isMounted, pagination, fetchProduitsPage, isProduitsLoading
   ]);
 
@@ -226,3 +237,5 @@ export function useApp() {
   }
   return context;
 }
+
+    
