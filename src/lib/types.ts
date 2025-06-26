@@ -62,18 +62,6 @@ export type AssignationPayload = {
     entrepotId?: number;
 };
 
-export type PaginatedProduits = {
-  content: Produit[];
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number;
-  numberOfElements: number;
-  last: boolean;
-  first: boolean;
-};
-
-
 // ----- App Settings Types (unchanged) -----
 
 export type ActiveModules = {
@@ -103,5 +91,3 @@ export type Utilisateur = {
   identifiant: string;
   mot_de_passe_hash: string;
 };
-
-    

@@ -53,10 +53,9 @@
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
   import type { Produit } from "@/lib/types";
   import { useToast } from "@/hooks/use-toast";
-  import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+  import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
   import { Skeleton } from "@/components/ui/skeleton";
   import { Checkbox } from "@/components/ui/checkbox";
-  import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink, PaginationEllipsis } from "@/components/ui/pagination";
 
 const produitSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -79,7 +78,7 @@ const assignSchema = z.object({
 
 
   export default function StockPage() {
-    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduits, assignProduits, isMounted, pagination, fetchProduitsPage, isProduitsLoading } = useApp();
+    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduits, assignProduits, isMounted } = useApp();
     const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [isAssignDialogOpen, setIsAssignDialogOpen] = React.useState(false);
@@ -90,10 +89,6 @@ const assignSchema = z.object({
     const categoriesMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.nom])), [categories]);
     const entrepotsMap = React.useMemo(() => new Map(entrepots.map(e => [e.id, e.nom])), [entrepots]);
     
-    React.useEffect(() => {
-        fetchProduitsPage(0, 10);
-    }, [fetchProduitsPage]);
-
     const form = useForm<z.infer<typeof produitSchema>>({
       resolver: zodResolver(produitSchema),
       defaultValues: {
@@ -114,11 +109,10 @@ const assignSchema = z.object({
     }, [isAssignDialogOpen, assignForm]);
 
     const handleSelectAll = (checked: boolean | string) => {
-        const allOnPageIds = produits.map(p => p.id);
         if (checked) {
-          setSelectedProduits((prev) => [...new Set([...prev, ...allOnPageIds])]);
+          setSelectedProduits(produits.map((p) => p.id));
         } else {
-          setSelectedProduits((prev) => prev.filter(id => !allOnPageIds.includes(id)));
+          setSelectedProduits([]);
         }
     };
 
@@ -218,43 +212,7 @@ const assignSchema = z.object({
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
-  const isAllOnPageSelected = produits.length > 0 && produits.every(p => selectedProduits.includes(p.id));
-
-  const renderPagination = () => {
-    if (!pagination) return null;
-    const { totalPages, number: currentPage } = pagination;
-    const pageNumbers = [];
-    const visiblePages = 5;
-
-    let startPage = Math.max(0, currentPage - Math.floor(visiblePages / 2));
-    let endPage = Math.min(totalPages - 1, startPage + visiblePages - 1);
-    
-    if (endPage - startPage + 1 < visiblePages) {
-        startPage = Math.max(0, endPage - visiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        pageNumbers.push(i);
-    }
-    
-    return (
-        <PaginationContent>
-            <PaginationItem>
-                <PaginationPrevious onClick={() => fetchProduitsPage(currentPage - 1)} aria-disabled={pagination.first} className={pagination.first ? "pointer-events-none opacity-50" : undefined} />
-            </PaginationItem>
-            {startPage > 0 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
-            {pageNumbers.map(page => (
-                <PaginationItem key={page}>
-                    <PaginationLink onClick={() => fetchProduitsPage(page)} isActive={page === currentPage}>{page + 1}</PaginationLink>
-                </PaginationItem>
-            ))}
-            {endPage < totalPages - 1 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
-            <PaginationItem>
-                <PaginationNext onClick={() => fetchProduitsPage(currentPage + 1)} aria-disabled={pagination.last} className={pagination.last ? "pointer-events-none opacity-50" : undefined} />
-            </PaginationItem>
-        </PaginationContent>
-    );
-  };
+  const isAllSelected = produits.length > 0 && selectedProduits.length === produits.length;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -302,14 +260,14 @@ const assignSchema = z.object({
               <TableHeader><TableRow>
                 <TableHead className="w-[40px]">
                     <Checkbox
-                        checked={isAllOnPageSelected}
+                        checked={isAllSelected}
                         onCheckedChange={handleSelectAll}
-                        aria-label="Select all on page"
+                        aria-label="Select all"
                     />
                 </TableHead>
                 <TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Entrepôt</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
               <TableBody>
-                {isProduitsLoading || !isMounted ? (
+                {!isMounted ? (
                     Array.from({ length: 10 }).map((_, i) => (
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-5 w-5" /></TableCell>
@@ -351,19 +309,11 @@ const assignSchema = z.object({
             </Table>
           </div>
         </CardContent>
-        {pagination && pagination.totalPages > 1 && (
-            <CardFooter className="flex items-center justify-between pt-4">
-                 <div className="text-sm text-muted-foreground">
-                    {selectedProduits.length} de {pagination.totalElements} ligne(s) sélectionnée(s).
-                </div>
-                <Pagination>
-                   {renderPagination()}
-                </Pagination>
-                 <div className="text-sm text-muted-foreground">
-                    Page {pagination.number + 1} sur {pagination.totalPages}
-                </div>
-            </CardFooter>
-        )}
+        <CardFooter className="pt-4">
+          <div className="text-sm text-muted-foreground">
+            {selectedProduits.length} sur {produits.length} produit(s) sélectionné(s). Total: {produits.length} produits.
+          </div>
+        </CardFooter>
       </Card>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -376,7 +326,7 @@ const assignSchema = z.object({
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="categorieId" render={({ field }) => (
                     <FormItem><FormLabel>Catégorie</FormLabel>
-                      <Select onValueChange={field.onChange} value={String(field.value)} disabled={isLoading}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>
                           <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
                       </Select>
@@ -385,7 +335,7 @@ const assignSchema = z.object({
                 )} />
                  <FormField control={form.control} name="entrepotId" render={({ field }) => (
                     <FormItem><FormLabel>Entrepôt</FormLabel>
-                      <Select onValueChange={field.onChange} value={String(field.value)} disabled={isLoading}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un entrepôt" /></SelectTrigger></FormControl>
                           <SelectContent>{entrepots.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
                       </Select>
