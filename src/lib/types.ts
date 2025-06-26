@@ -1,6 +1,7 @@
 export type Categorie = {
   id: number;
   nom: string;
+  nbProduits?: number;
   produits?: any[];
 };
 

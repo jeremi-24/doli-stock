@@ -73,7 +73,7 @@ export default function CategoriesPage() {
 
     const handleDelete = async (categorieId: number) => {
         const categorieToDelete = categories.find(c => c.id === categorieId);
-        const isUsed = categorieToDelete && categorieToDelete.produits && categorieToDelete.produits.length > 0;
+        const isUsed = categorieToDelete && categorieToDelete.nbProduits && categorieToDelete.nbProduits > 0;
 
         if (isUsed) {
             toast({ variant: 'destructive', title: 'Suppression impossible', description: 'Cette catégorie est utilisée par au moins un produit.' });
@@ -89,10 +89,6 @@ export default function CategoriesPage() {
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const getCategoryUsage = (categorie: Categorie) => {
-        return categorie.produits ? categorie.produits.length : 0;
     };
     
     return (
@@ -134,7 +130,7 @@ export default function CategoriesPage() {
                                     categories.map((cat) => (
                                         <TableRow key={cat.id}>
                                             <TableCell className="font-medium">{cat.nom}</TableCell>
-                                            <TableCell className="text-right">{getCategoryUsage(cat)}</TableCell>
+                                            <TableCell className="text-right">{cat.nbProduits ?? 0}</TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
