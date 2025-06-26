@@ -64,10 +64,8 @@ const produitSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
   code_barre: z.string().min(5, "Le code-barres doit contenir au moins 5 caractères."),
   categorie_id: z.string().min(1, "Veuillez sélectionner une catégorie."),
-  prix_achat: z.coerce.number().min(0, "Le prix d'achat doit être un nombre positif."),
   prix_vente: z.coerce.number().min(0, "Le prix de vente doit être un nombre positif."),
   quantite_stock: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
-  unite: z.string().min(1, "L'unité est requise."),
   alerte_stock: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
 });
 
@@ -110,7 +108,7 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
         <DialogHeader>
           <DialogTitle className="font-headline">Importer des produits depuis Excel</DialogTitle>
           <DialogDescription>
-            Le fichier doit contenir les colonnes : `nom`, `code_barre`, `categorie_nom`, `prix_achat`, `prix_vente`, `quantite_stock`, `unite`, `alerte_stock`. La `categorie_nom` doit correspondre à une catégorie existante.
+            Le fichier doit contenir les colonnes : `nom`, `code_barre`, `categorie_nom`, `prix`, `qte`, `qteMin`. La `categorie_nom` doit correspondre à une catégorie existante.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -186,8 +184,8 @@ export default function StockPage() {
   const form = useForm<z.infer<typeof produitSchema>>({
     resolver: zodResolver(produitSchema),
     defaultValues: {
-      nom: "", code_barre: "", categorie_id: "", prix_achat: 0,
-      prix_vente: 0, quantite_stock: 0, unite: "pièce", alerte_stock: 0,
+      nom: "", code_barre: "", categorie_id: "",
+      prix_vente: 0, quantite_stock: 0, alerte_stock: 0,
     },
   });
 
@@ -199,8 +197,8 @@ export default function StockPage() {
         });
     } else {
         form.reset({
-            nom: "", code_barre: "", categorie_id: "", prix_achat: 0,
-            prix_vente: 0, quantite_stock: 0, unite: "pièce", alerte_stock: 0,
+            nom: "", code_barre: "", categorie_id: "",
+            prix_vente: 0, quantite_stock: 0, alerte_stock: 0,
         });
     }
   }, [editingProduit, form]);
@@ -281,7 +279,7 @@ export default function StockPage() {
                       <TableCell className="font-medium">{produit.nom} {produit.quantite_stock <= produit.alerte_stock && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
                       <TableCell>{categoriesMap.get(produit.categorie_id) || 'N/A'}</TableCell>
                       <TableCell>{formatCurrency(produit.prix_vente)}</TableCell>
-                      <TableCell className="text-right">{produit.quantite_stock} {produit.unite}(s)</TableCell>
+                      <TableCell className="text-right">{produit.quantite_stock}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Menu</span></Button></DropdownMenuTrigger>
@@ -323,13 +321,9 @@ export default function StockPage() {
                   <FormMessage />
                 </FormItem>
               )} />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="prix_achat" render={({ field }) => (<FormItem><FormLabel>Prix d'achat</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="prix_vente" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
               <div className="grid grid-cols-3 gap-4">
+                <FormField control={form.control} name="prix_vente" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="quantite_stock" render={({ field }) => (<FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="unite" render={({ field }) => (<FormItem><FormLabel>Unité</FormLabel><FormControl><Input placeholder="pièce, kg..." {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="alerte_stock" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <DialogFooter>

@@ -2,7 +2,6 @@ export type Categorie = {
   id: number;
   nom: string;
   nbProduits?: number;
-  produits?: any[];
 };
 
 export type Produit = {
@@ -10,10 +9,8 @@ export type Produit = {
   nom:string;
   code_barre: string;
   categorie_id: number;
-  prix_achat: number;
   prix_vente: number;
   quantite_stock: number;
-  unite: string;
   alerte_stock: number;
   ref?: string;
 };

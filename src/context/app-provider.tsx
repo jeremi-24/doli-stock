@@ -52,25 +52,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   // Helper to map backend product to frontend product
-  const mapToFrontendProduit = (backendProduit: any, categoriesList: Categorie[]): Produit => {
-    const categorie = categoriesList.find(c => c.nom === backendProduit.categorie);
+  const mapToFrontendProduit = (backendProduit: any): Produit => {
     return {
       id: backendProduit.id,
       nom: backendProduit.nom,
       ref: backendProduit.ref,
       code_barre: backendProduit.codeBarre,
-      categorie_id: categorie ? categorie.id : 0,
-      prix_achat: backendProduit.prixAchat || 0,
+      categorie_id: backendProduit.categorie_id,
       prix_vente: backendProduit.prix,
       quantite_stock: backendProduit.qte,
-      unite: backendProduit.unite || 'pièce',
-      alerte_stock: backendProduit.qteMin || backendProduit.alerte_stock || 0,
+      alerte_stock: backendProduit.qteMin || 0,
     };
   };
 
   // Helper to map frontend product to backend product for POST/PUT
-  const mapToBackendProduit = (frontendProduit: Partial<Produit>, categoriesList: Categorie[]) => {
-      const categorie = categoriesList.find(c => c.id === frontendProduit.categorie_id);
+  const mapToBackendProduit = (frontendProduit: Partial<Produit>) => {
       return {
         id: frontendProduit.id,
         nom: frontendProduit.nom,
@@ -78,10 +74,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         qte: frontendProduit.quantite_stock,
         qteMin: frontendProduit.alerte_stock,
         prix: frontendProduit.prix_vente,
-        prixAchat: frontendProduit.prix_achat,
         codeBarre: frontendProduit.code_barre,
-        unite: frontendProduit.unite,
-        categorie: categorie ? categorie.nom : '',
+        categorie_id: frontendProduit.categorie_id,
       };
   }
 
@@ -100,37 +94,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const fetchProduits = useCallback(async () => {
     try {
       const apiProduits = await api.getProducts();
-      // Ensure categories are available for mapping
-      setProduits(prevProduits => {
-        const categoriesToMap = categories.length > 0 ? categories : sampleCategories;
-        return apiProduits.map(p => mapToFrontendProduit(p, categoriesToMap));
-      });
+      setProduits(apiProduits.map(p => mapToFrontendProduit(p)));
     } catch (error) {
       console.error("Failed to fetch products:", error);
       const description = (error instanceof Error) ? error.message : 'Impossible de charger les produits.';
       toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.` });
       setProduits(sampleProduits);
     }
-  }, [toast, categories]);
+  }, [toast]);
 
   useEffect(() => {
     const loadInitialData = async () => {
-      // We will handle fetching and setting inside this useEffect to avoid race conditions.
       try {
-        // First, fetch categories and wait for the state to be set.
-        // We can't guarantee state is set, so we fetch and hold the result.
-        const loadedCategories = await api.getCategories();
-        setCategories(loadedCategories);
-        
-        // Then, fetch products
-        const apiProduits = await api.getProducts();
-        
-        // Now map products using the *just fetched* categories, not the state variable
-        const mappedProduits = apiProduits.map(p => mapToFrontendProduit(p, loadedCategories));
-        setProduits(mappedProduits);
-
+        await fetchCategories();
+        await fetchProduits();
       } catch (error) {
-          // Fallback logic for both calls
           console.error("Failed to fetch initial data:", error);
           const description = (error instanceof Error) ? error.message : 'Impossible de charger les données initiales.';
           toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.`});
@@ -180,12 +158,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteCategorie = async (categorieId: number) => { await api.deleteCategory(categorieId); await fetchCategories(); };
 
   const addProduit = async (produitData: Omit<Produit, 'id'>) => {
-    const backendPayload = mapToBackendProduit(produitData, categories);
+    const backendPayload = mapToBackendProduit(produitData);
     await api.createProduct(backendPayload);
     await fetchProduits();
   };
   const updateProduit = async (updatedProduit: Produit) => {
-    const backendPayload = mapToBackendProduit(updatedProduit, categories);
+    const backendPayload = mapToBackendProduit(updatedProduit);
     await api.updateProduct(updatedProduit.id, backendPayload);
     await fetchProduits();
   };

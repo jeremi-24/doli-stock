@@ -90,7 +90,7 @@ function BarcodeScannerCard() {
                         <Package className="h-5 w-5 text-muted-foreground" />
                         <div>
                         <p className="text-sm text-muted-foreground">En Stock</p>
-                        <p className="font-semibold">{scannedProduct.quantite_stock} {scannedProduct.unite}(s)</p>
+                        <p className="font-semibold">{scannedProduct.quantite_stock}</p>
                         </div>
                     </div>
                     </div>
