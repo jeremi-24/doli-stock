@@ -1,3 +1,4 @@
+
 export type Categorie = {
   id: number;
   nom: string;
@@ -59,6 +60,17 @@ export type AssignationPayload = {
     produitIds: number[];
     categorieId?: number;
     entrepotId?: number;
+};
+
+export type PaginatedProduits = {
+  content: Produit[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  numberOfElements: number;
+  last: boolean;
+  first: boolean;
 };
 
 

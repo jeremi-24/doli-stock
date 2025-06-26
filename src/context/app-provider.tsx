@@ -2,9 +2,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload } from '@/lib/types';
+import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, PaginatedProduits } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+
+type PaginationState = Omit<PaginatedProduits, 'content'> | null;
 
 interface AppContextType {
   produits: Produit[];
@@ -34,6 +36,9 @@ interface AppContextType {
   themeColors: ThemeColors;
   setThemeColors: React.Dispatch<React.SetStateAction<ThemeColors>>;
   isMounted: boolean;
+  pagination: PaginationState;
+  fetchProduitsPage: (page: number, size?: number) => Promise<void>;
+  isProduitsLoading: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -52,13 +57,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
   const [shopInfo, setShopInfo] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
+  const [pagination, setPagination] = useState<PaginationState>(null);
+  const [isProduitsLoading, setIsProduitsLoading] = useState(true);
   const { toast } = useToast();
-
-  const fetchAppData = useCallback(async () => {
-    const [categoriesResult, entrepotsResult, produitsResult] = await Promise.allSettled([
+  
+  const fetchProduitsPage = useCallback(async (page: number = 0, size: number = 10) => {
+    setIsProduitsLoading(true);
+    try {
+        const response = await api.getProducts(page, size);
+        const { content, ...paginationInfo } = response;
+        setProduits(content || []);
+        setPagination(paginationInfo);
+    } catch (error) {
+        const description = (error instanceof Error) ? error.message : 'Erreur inconnue';
+        toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les produits: ${description}` });
+        setProduits([]);
+    } finally {
+        setIsProduitsLoading(false);
+    }
+  }, [toast]);
+  
+  const fetchStaticData = useCallback(async () => {
+    const [categoriesResult, entrepotsResult] = await Promise.allSettled([
       api.getCategories(),
       api.getEntrepots(),
-      api.getProducts()
     ]);
 
     if (categoriesResult.status === 'fulfilled') {
@@ -78,23 +100,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les entrepôts: ${description}` });
       setEntrepots([]);
     }
-
-    if (produitsResult.status === 'fulfilled') {
-      setProduits(produitsResult.value || []);
-    } else {
-      console.error("Failed to fetch products:", produitsResult.reason);
-      const description = (produitsResult.reason instanceof Error) ? produitsResult.reason.message : 'Erreur inconnue';
-      toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les produits: ${description}` });
-      setProduits([]);
-    }
   }, [toast]);
 
 
   useEffect(() => {
     const loadInitialData = async () => {
-      await fetchAppData();
+      await fetchStaticData();
+      await fetchProduitsPage(0, 10);
       
-      // Load local data
       const storedVentes = localStorage.getItem('stockhero_ventes');
       if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
       const storedFactureModeles = localStorage.getItem('stockhero_facture_modeles');
@@ -109,7 +122,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsMounted(true);
     };
     loadInitialData();
-  }, [fetchAppData]);
+  }, [fetchStaticData, fetchProduitsPage]);
   
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_facture_modeles', JSON.stringify(factureModeles)); }, [factureModeles, isMounted]);
@@ -124,22 +137,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (themeColors.accent) root.style.setProperty('--accent', themeColors.accent);
     }
   }, [themeColors, isMounted]);
+  
+  const refetchCurrentPage = useCallback(() => {
+      if (pagination) {
+        fetchProduitsPage(pagination.number, pagination.size);
+      } else {
+        fetchProduitsPage();
+      }
+  }, [pagination, fetchProduitsPage]);
 
-  const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => { await api.createCategory(data); await fetchAppData(); }, [fetchAppData]);
-  const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchAppData(); }, [fetchAppData]);
-  const deleteCategories = useCallback(async (ids: number[]) => { await api.deleteCategories(ids); await fetchAppData(); }, [fetchAppData]);
+  const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => { await api.createCategory(data); await fetchStaticData(); }, [fetchStaticData]);
+  const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchStaticData(); }, [fetchStaticData]);
+  const deleteCategories = useCallback(async (ids: number[]) => { await api.deleteCategories(ids); await fetchStaticData(); }, [fetchStaticData]);
 
-  const addEntrepot = useCallback(async (data: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => { await api.createEntrepot(data); await fetchAppData(); }, [fetchAppData]);
-  const updateEntrepot = useCallback(async (id: number, data: Partial<Entrepot>) => { await api.updateEntrepot(id, data); await fetchAppData(); }, [fetchAppData]);
-  const deleteEntrepots = useCallback(async (ids: number[]) => { await api.deleteEntrepots(ids); await fetchAppData(); }, [fetchAppData]);
+  const addEntrepot = useCallback(async (data: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => { await api.createEntrepot(data); await fetchStaticData(); }, [fetchStaticData]);
+  const updateEntrepot = useCallback(async (id: number, data: Partial<Entrepot>) => { await api.updateEntrepot(id, data); await fetchStaticData(); }, [fetchStaticData]);
+  const deleteEntrepots = useCallback(async (ids: number[]) => { await api.deleteEntrepots(ids); await fetchStaticData(); }, [fetchStaticData]);
 
-  const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => { await api.createProduct(data); await fetchAppData(); }, [fetchAppData]);
-  const updateProduit = useCallback(async (data: Produit) => { await api.updateProduct(data.id, data); await fetchAppData(); }, [fetchAppData]);
-  const deleteProduits = useCallback(async (ids: number[]) => { await api.deleteProducts(ids); await fetchAppData(); }, [fetchAppData]);
-  const assignProduits = useCallback(async (data: AssignationPayload) => { await api.assignProducts(data); await fetchAppData(); }, [fetchAppData]);
-  const addMultipleProduits = useCallback(async () => { await fetchAppData(); }, [fetchAppData]);
+  const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => { await api.createProduct(data); await refetchCurrentPage(); }, [refetchCurrentPage]);
+  const updateProduit = useCallback(async (data: Produit) => { await api.updateProduct(data.id, data); await refetchCurrentPage(); }, [refetchCurrentPage]);
+  const deleteProduits = useCallback(async (ids: number[]) => { await api.deleteProducts(ids); await refetchCurrentPage(); }, [refetchCurrentPage]);
+  const assignProduits = useCallback(async (data: AssignationPayload) => { await api.assignProducts(data); await refetchCurrentPage(); }, [refetchCurrentPage]);
+  const addMultipleProduits = useCallback(async () => { await refetchCurrentPage(); }, [refetchCurrentPage]);
   
   const addVente = useCallback(async (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
+    // This function will now be less accurate as it might not have all products in memory.
+    // A more robust solution might be needed if products not on the current page are sold.
+    // For now, it works with the currently loaded products.
     const updatePromises = venteData.lignes.map(ligne => {
       const productToUpdate = produits.find(p => p.id === ligne.produit.id);
       if (productToUpdate) {
@@ -150,14 +174,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
     try {
       await Promise.all(updatePromises);
-      await fetchAppData();
+      await refetchCurrentPage();
       const newVente: Vente = { ...venteData, id: Date.now(), date_vente: new Date(), reste: venteData.montant_total - venteData.montant_paye };
       setVentes(prev => [newVente, ...prev]);
     } catch (error) {
        console.error("Failed to update stock during sale:", error);
        toast({ variant: 'destructive', title: 'Erreur de Vente', description: "La mise à jour du stock a échoué."});
     }
-  }, [produits, fetchAppData, toast]);
+  }, [produits, refetchCurrentPage, toast]);
 
   const addFactureModele = useCallback((modeleData: Omit<FactureModele, 'id'>) => {
     const newModele: FactureModele = { id: `tmpl-${Date.now()}`, ...modeleData };
@@ -177,16 +201,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted,
+    isMounted, pagination, fetchProduitsPage, isProduitsLoading,
   }), [
     produits, categories, entrepots, ventes, factureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
-    activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted,
-    fetchAppData
+    activeModules, shopInfo, themeColors,
+    isMounted, pagination, fetchProduitsPage, isProduitsLoading
   ]);
 
   return (
