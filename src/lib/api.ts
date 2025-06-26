@@ -53,7 +53,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 }
 
 // ========== Categories API ==========
-export async function getCategories(): Promise<Categorie[]> { return apiFetch('/categorie'); };
+export async function getCategories(): Promise<Categorie[]> { return apiFetch('/categories'); };
 export async function createCategory(data: { nom: string }): Promise<Categorie> {
   const body = { nom: data.nom };
   return apiFetch('/categorie', { method: 'POST', body: JSON.stringify(body) });
@@ -66,7 +66,7 @@ export async function deleteCategory(id: number): Promise<null> {
 };
 
 // ========== Entrepots API ==========
-export async function getEntrepots(): Promise<Entrepot[]> { return apiFetch('/entrepot'); };
+export async function getEntrepots(): Promise<Entrepot[]> { return apiFetch('/entrepots'); };
 export async function createEntrepot(data: { nom: string, ref: string }): Promise<Entrepot> {
   const body = { nom: data.nom, ref: data.ref };
   return apiFetch('/entrepot', { method: 'POST', body: JSON.stringify(body) });
@@ -79,7 +79,7 @@ export async function deleteEntrepot(id: number): Promise<null> {
 };
 
 // ========== Products API ==========
-export async function getProducts(): Promise<any[]> { return apiFetch('/produit'); }
+export async function getProducts(): Promise<any[]> { return apiFetch('/produits'); }
 export async function createProduct(data: any): Promise<any> {
   return apiFetch('/produit', { method: 'POST', body: JSON.stringify(data) });
 }
