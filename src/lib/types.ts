@@ -4,16 +4,23 @@ export type Categorie = {
   nbProduits?: number;
 };
 
+export type Entrepot = {
+  id: number;
+  nom: string;
+  ref: string;
+  nbProduits?: number;
+};
+
 export type Produit = {
   id: number;
   nom:string;
-  code_barre: string;
+  ref: string;
+  qte: number;
+  qteMin: number;
+  prix: number;
+  codeBarre: string;
   categorieId: number;
-  prix_vente: number;
-  quantite_stock: number;
-  alerte_stock: number;
-  ref?: string;
-  entrepotId?: number;
+  entrepotId: number;
 };
 
 export type VenteLigne = {
