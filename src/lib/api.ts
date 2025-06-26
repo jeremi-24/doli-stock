@@ -25,16 +25,21 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
       let userMessage = `La requête API a échoué: ${statusText} (status: ${response.status})`;
       if (response.status === 504) {
           userMessage = 'Le serveur backend ne répond pas (Gateway Timeout 504). Veuillez vérifier qu\'il est bien démarré et accessible.';
+      } else if (errorBody) {
+         userMessage = `${userMessage}: ${errorBody}`;
       }
 
       throw new Error(userMessage);
     }
 
-    if (response.status === 204 || response.headers.get('content-length') === '0') {
+    const text = await response.text();
+    try {
+      return text ? JSON.parse(text) : null;
+    } catch (error) {
+      console.warn(`API response for ${endpoint} was successful but not valid JSON. Response body: "${text}"`);
       return null;
     }
 
-    return response.json();
   } catch (error) {
     console.error('Erreur de connexion API:', { url, error });
     // Re-throw the error so it can be caught by the calling function
