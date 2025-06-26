@@ -11,13 +11,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { Entrepot } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const entrepotSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -25,11 +26,12 @@ const entrepotSchema = z.object({
 });
 
 export default function EntrepotsPage() {
-    const { entrepots, addEntrepot, updateEntrepot, deleteEntrepot, isMounted } = useApp();
+    const { entrepots, addEntrepot, updateEntrepot, deleteEntrepots, isMounted } = useApp();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingEntrepot, setEditingEntrepot] = useState<Entrepot | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedEntrepots, setSelectedEntrepots] = useState<number[]>([]);
 
     const form = useForm<z.infer<typeof entrepotSchema>>({
         resolver: zodResolver(entrepotSchema),
@@ -47,6 +49,22 @@ export default function EntrepotsPage() {
             form.reset({ nom: "", ref: "" });
         }
     }, [editingEntrepot, form]);
+
+    const handleSelectAll = (checked: boolean | string) => {
+        if (checked) {
+          setSelectedEntrepots(entrepots.map((e) => e.id));
+        } else {
+          setSelectedEntrepots([]);
+        }
+    };
+
+    const handleSelectOne = (id: number, checked: boolean) => {
+        if (checked) {
+            setSelectedEntrepots((prev) => [...prev, id]);
+        } else {
+            setSelectedEntrepots((prev) => prev.filter((eId) => eId !== id));
+        }
+    };
 
     const handleAddNew = () => {
         setEditingEntrepot(null);
@@ -76,19 +94,18 @@ export default function EntrepotsPage() {
         }
     };
 
-    const handleDelete = async (entrepotId: number) => {
-        const entrepotToDelete = entrepots.find(e => e.id === entrepotId);
-        const isUsed = entrepotToDelete && entrepotToDelete.quantite && entrepotToDelete.quantite > 0;
-
-        if (isUsed) {
-            toast({ variant: 'destructive', title: 'Suppression impossible', description: 'Cet entrepôt est utilisé par au moins un produit.' });
+    const handleDeleteSelected = async () => {
+        const usedEntrepots = entrepots.filter(e => selectedEntrepots.includes(e.id) && e.quantite && e.quantite > 0);
+        if (usedEntrepots.length > 0) {
+            toast({ variant: 'destructive', title: 'Suppression impossible', description: `Les entrepôts suivants contiennent des produits: ${usedEntrepots.map(e => e.nom).join(', ')}` });
             return;
         }
 
         setIsLoading(true);
         try {
-            await deleteEntrepot(entrepotId);
-            toast({ title: "Entrepôt supprimé" });
+            await deleteEntrepots(selectedEntrepots);
+            toast({ title: "Entrepôts supprimés" });
+            setSelectedEntrepots([]);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue lors de la suppression.' });
         } finally {
@@ -100,7 +117,31 @@ export default function EntrepotsPage() {
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center">
                 <h1 className="font-headline text-3xl font-semibold">Gestion des Entrepôts</h1>
-                <div className="ml-auto">
+                <div className="ml-auto flex items-center gap-2">
+                    {selectedEntrepots.length > 0 && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                    <Trash2 className="h-4 w-4 mr-2"/>
+                                    Supprimer ({selectedEntrepots.length})
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Cette action est irréversible. Elle supprimera définitivement {selectedEntrepots.length} entrepôt(s).
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteSelected} disabled={isLoading}>
+                                    {isLoading ? "Suppression..." : "Supprimer"}
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
                     <Button size="sm" onClick={handleAddNew}>
                         <PlusCircle className="h-4 w-4 mr-2" />
                         Ajouter un entrepôt
@@ -117,6 +158,13 @@ export default function EntrepotsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-[40px]">
+                                        <Checkbox
+                                            checked={selectedEntrepots.length === entrepots.length && entrepots.length > 0}
+                                            onCheckedChange={handleSelectAll}
+                                            aria-label="Select all"
+                                        />
+                                    </TableHead>
                                     <TableHead>Nom de l'Entrepôt</TableHead>
                                     <TableHead>Référence</TableHead>
                                     <TableHead className="text-right">Quantité</TableHead>
@@ -128,6 +176,7 @@ export default function EntrepotsPage() {
                                 {!isMounted ? (
                                     Array.from({ length: 3 }).map((_, i) => (
                                         <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-5" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-1/4" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
@@ -137,7 +186,14 @@ export default function EntrepotsPage() {
                                     ))
                                 ) : entrepots.length > 0 ? (
                                     entrepots.map((ent) => (
-                                        <TableRow key={ent.id}>
+                                        <TableRow key={ent.id} data-state={selectedEntrepots.includes(ent.id) ? "selected" : undefined}>
+                                            <TableCell>
+                                                <Checkbox
+                                                    checked={selectedEntrepots.includes(ent.id)}
+                                                    onCheckedChange={(checked) => handleSelectOne(ent.id, !!checked)}
+                                                    aria-label={`Select entrepot ${ent.nom}`}
+                                                />
+                                            </TableCell>
                                             <TableCell className="font-medium">{ent.nom}</TableCell>
                                             <TableCell>{ent.ref}</TableCell>
                                             <TableCell className="text-right">{ent.quantite ?? 0}</TableCell>
@@ -154,26 +210,6 @@ export default function EntrepotsPage() {
                                                         <DropdownMenuItem onClick={() => handleEdit(ent)}>
                                                             <Pencil className="mr-2 h-4 w-4" /> Modifier
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
-                                                                    <Trash2 className="mr-2 h-4 w-4" /> Supprimer
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        Cette action est irréversible. Elle supprimera définitivement l'entrepôt "{ent.nom}".
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDelete(ent.id)} disabled={isLoading}>{isLoading ? "Suppression..." : "Supprimer"}</AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
@@ -181,7 +217,7 @@ export default function EntrepotsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={6} className="h-24 text-center">
                                             Aucun entrepôt trouvé. Commencez par en ajouter un.
                                         </TableCell>
                                     </TableRow>

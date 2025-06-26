@@ -58,6 +58,7 @@
   import { useToast } from "@/hooks/use-toast";
   import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
   import { Skeleton } from "@/components/ui/skeleton";
+  import { Checkbox } from "@/components/ui/checkbox";
 
 const produitSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -170,7 +171,8 @@ const produitSchema = z.object({
 
 
   export default function StockPage() {
-    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduit, addMultipleProduits, isMounted } = useApp();
+    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduits, addMultipleProduits, isMounted } = useApp();
+    const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
@@ -189,6 +191,22 @@ const produitSchema = z.object({
         prix: 0, qte: 0, qteMin: 0,
       },
     });
+
+    const handleSelectAll = (checked: boolean | string) => {
+        if (checked) {
+          setSelectedProduits(produits.map((p) => p.id));
+        } else {
+          setSelectedProduits([]);
+        }
+    };
+
+    const handleSelectOne = (id: number, checked: boolean) => {
+        if (checked) {
+            setSelectedProduits((prev) => [...prev, id]);
+        } else {
+            setSelectedProduits((prev) => prev.filter((pId) => pId !== id));
+        }
+    };
 
     const handleAddNew = () => {
       setEditingProduit(null);
@@ -243,11 +261,12 @@ const produitSchema = z.object({
       }
     };
 
-    const handleDelete = async (produitId: number) => { 
+    const handleDeleteSelected = async () => { 
       setIsLoading(true);
       try {
-          await deleteProduit(produitId); 
-          toast({ title: "Produit supprimé" });
+          await deleteProduits(selectedProduits); 
+          toast({ title: "Produits supprimés" });
+          setSelectedProduits([]);
       } catch (error) {
           toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue lors de la suppression.' });
       } finally {
@@ -266,6 +285,30 @@ const produitSchema = z.object({
       <div className="flex items-center">
         <h1 className="font-headline text-3xl font-semibold">Gestion du Stock</h1>
         <div className="ml-auto flex items-center gap-2">
+          {selectedProduits.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2"/>
+                  Supprimer ({selectedProduits.length})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Cette action est irréversible. Elle supprimera définitivement {selectedProduits.length} produit(s).
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteSelected} disabled={isLoading}>
+                    {isLoading ? "Suppression..." : "Supprimer"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button size="sm" variant="outline" onClick={() => setIsImportDialogOpen(true)}><FileUp className="h-4 w-4 mr-2"/>Importer</Button>
           <Button size="sm" variant="outline" onClick={handlePrintAll} disabled={produits.length === 0}><Printer className="h-4 w-4 mr-2"/>Imprimer Codes-barres</Button>
           <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
@@ -276,11 +319,20 @@ const produitSchema = z.object({
         <CardContent>
           <div className="rounded-lg border">
             <Table>
-              <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Entrepôt</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow>
+                <TableHead className="w-[40px]">
+                    <Checkbox
+                        checked={selectedProduits.length === produits.length && produits.length > 0}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                    />
+                </TableHead>
+                <TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Entrepôt</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
               <TableBody>
                 {!isMounted ? (
                     Array.from({ length: 5 }).map((_, i) => (
                         <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-5" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
@@ -291,7 +343,14 @@ const produitSchema = z.object({
                     ))
                 ) : produits.length > 0 ? (
                   produits.map((produit) => (
-                    <TableRow key={produit.id} className={produit.qte <= produit.qteMin ? 'bg-red-50 dark:bg-red-900/20' : ''}>
+                    <TableRow key={produit.id} data-state={selectedProduits.includes(produit.id) ? "selected" : undefined} className={produit.qte <= produit.qteMin ? 'bg-red-50 dark:bg-red-900/20' : ''}>
+                      <TableCell>
+                        <Checkbox
+                            checked={selectedProduits.includes(produit.id)}
+                            onCheckedChange={(checked) => handleSelectOne(produit.id, !!checked)}
+                            aria-label={`Select produit ${produit.nom}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{produit.nom} {produit.qte <= produit.qteMin && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
                       <TableCell>{categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
                       <TableCell>{entrepotsMap.get(produit.entrepotId) || 'N/A'}</TableCell>
@@ -303,17 +362,12 @@ const produitSchema = z.object({
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleEdit(produit)}><Pencil className="mr-2 h-4 w-4" /> Modifier</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handlePrintSingle(produit)}><Printer className="mr-2 h-4 w-4" /> Imprimer le code-barres</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild><Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm"><Trash2 className="mr-2 h-4 w-4" /> Supprimer</Button></AlertDialogTrigger>
-                                <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible. Elle supprimera définitivement le produit "{produit.nom}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(produit.id)} disabled={isLoading}>{isLoading ? "Suppression..." : "Supprimer"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                            </AlertDialog>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
-                ) : ( <TableRow><TableCell colSpan={6} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
+                ) : ( <TableRow><TableCell colSpan={7} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
               </TableBody>
             </Table>
           </div>
