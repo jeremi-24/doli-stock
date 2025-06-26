@@ -12,7 +12,7 @@ interface AppContextType {
   categories: Categorie[];
   ventes: Vente[];
   factureModeles: FactureModele[];
-  addProduit: (produit: Omit<Produit, 'id' | 'code_barre' | 'ref'>) => Promise<void>;
+  addProduit: (produit: Omit<Produit, 'id' | 'code_barre' | 'ref' | 'entrepotId'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduit: (produitId: number) => Promise<void>;
   addMultipleProduits: (newProducts: any[]) => Promise<void>;
@@ -74,6 +74,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         quantite_stock: p.qte,
         alerte_stock: p.qteMin || 0,
         categorieId: p.categorie_id,
+        entrepotId: p.entrepotId,
       }));
       setProduits(frontendProduits);
     } catch (error) {
@@ -142,17 +143,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [fetchCategories, fetchProduits]);
 
   // API-driven CRUD for PRODUCTS
-  const addProduit = useCallback(async (produitData: Omit<Produit, 'id' | 'code_barre' | 'ref'>) => {
+  const addProduit = useCallback(async (produitData: Omit<Produit, 'id' | 'code_barre' | 'ref' | 'entrepotId'>) => {
     const ref = `REF-${Date.now().toString().slice(-6)}`;
     const codeBarre = `MAN-${Date.now().toString().slice(-8)}`;
     const backendPayload = {
+        id: 0,
         nom: produitData.nom,
         ref: ref,
         qte: produitData.quantite_stock,
         qteMin: produitData.alerte_stock,
         prix: produitData.prix_vente,
         codeBarre: codeBarre,
-        categorie_id: produitData.categorieId,
+        categorieId: produitData.categorieId,
+        entrepotId: 1, // Hardcoded default
     };
     await api.createProduct(backendPayload);
     await fetchCategories();
@@ -168,7 +171,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       qteMin: updatedProduit.alerte_stock,
       prix: updatedProduit.prix_vente,
       codeBarre: updatedProduit.code_barre,
-      categorie_id: updatedProduit.categorieId,
+      categorieId: updatedProduit.categorieId,
+      entrepotId: updatedProduit.entrepotId || 1, // Use existing or default
     };
     await api.updateProduct(updatedProduit.id, backendPayload);
     await fetchCategories();

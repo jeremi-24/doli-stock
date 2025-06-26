@@ -13,6 +13,7 @@ export type Produit = {
   quantite_stock: number;
   alerte_stock: number;
   ref?: string;
+  entrepotId?: number;
 };
 
 export type VenteLigne = {
