@@ -24,7 +24,7 @@ const categorieSchema = z.object({
 });
 
 export default function CategoriesPage() {
-    const { categories, produits, addCategorie, updateCategorie, deleteCategorie, fetchCategories, isMounted } = useApp();
+    const { categories, addCategorie, updateCategorie, deleteCategorie, isMounted } = useApp();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCategorie, setEditingCategorie] = useState<Categorie | null>(null);
@@ -57,7 +57,7 @@ export default function CategoriesPage() {
         setIsLoading(true);
         try {
             if (editingCategorie) {
-                await updateCategorie(editingCategorie.id, { ...editingCategorie, ...values });
+                await updateCategorie(editingCategorie.id, values);
                 toast({ title: "Catégorie mise à jour" });
             } else {
                 await addCategorie(values);
@@ -72,11 +72,14 @@ export default function CategoriesPage() {
     };
 
     const handleDelete = async (categorieId: number) => {
-        const isUsed = produits.some(p => p.categorie_id === categorieId);
+        const categorieToDelete = categories.find(c => c.id === categorieId);
+        const isUsed = categorieToDelete && categorieToDelete.nbProduits && categorieToDelete.nbProduits > 0;
+
         if (isUsed) {
             toast({ variant: 'destructive', title: 'Suppression impossible', description: 'Cette catégorie est utilisée par au moins un produit.' });
             return;
         }
+
         setIsLoading(true);
         try {
             await deleteCategorie(categorieId);
@@ -86,10 +89,6 @@ export default function CategoriesPage() {
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const getCategoryUsage = (categorieId: number) => {
-        return produits.filter(p => p.categorie_id === categorieId).length;
     };
     
     return (
@@ -131,7 +130,7 @@ export default function CategoriesPage() {
                                     categories.map((cat) => (
                                         <TableRow key={cat.id}>
                                             <TableCell className="font-medium">{cat.nom}</TableCell>
-                                            <TableCell className="text-right">{getCategoryUsage(cat.id)}</TableCell>
+                                            <TableCell className="text-right">{cat.nbProduits ?? 0}</TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>

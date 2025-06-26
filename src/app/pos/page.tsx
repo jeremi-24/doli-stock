@@ -122,7 +122,7 @@ export default function POSPage() {
     const categoryId = categoryNameToId.get(activeTab);
     return produits
       .filter(p => p.quantite_stock > 0)
-      .filter(p => activeTab === 'Tout' || p.categorie_id === categoryId)
+      .filter(p => activeTab === 'Tout' || p.categorieId === categoryId)
       .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [produits, activeTab, searchTerm, categoryNameToId]);
 

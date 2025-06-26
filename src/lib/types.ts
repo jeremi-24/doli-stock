@@ -1,18 +1,19 @@
 export type Categorie = {
   id: number;
   nom: string;
+  nbProduits?: number;
 };
 
 export type Produit = {
   id: number;
-  nom: string;
+  nom:string;
   code_barre: string;
-  categorie_id: number;
-  prix_achat: number;
+  categorieId: number;
   prix_vente: number;
   quantite_stock: number;
-  unite: string;
   alerte_stock: number;
+  ref?: string;
+  entrepotId?: number;
 };
 
 export type VenteLigne = {
