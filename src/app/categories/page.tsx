@@ -90,7 +90,7 @@ export default function CategoriesPage() {
     };
 
     const handleDeleteSelected = async () => {
-        const usedCategories = categories.filter(c => selectedCategories.includes(c.id) && c.nbProduits && c.nbProduits > 0);
+        const usedCategories = categories.filter(c => selectedCategories.includes(c.id) && c.nProd && c.nProd > 0);
         if (usedCategories.length > 0) {
             toast({ variant: 'destructive', title: 'Suppression impossible', description: `Les catégories suivantes sont utilisées et ne peuvent pas être supprimées: ${usedCategories.map(c => c.nom).join(', ')}` });
             return;
@@ -186,7 +186,7 @@ export default function CategoriesPage() {
                                                 />
                                             </TableCell>
                                             <TableCell className="font-medium">{cat.nom}</TableCell>
-                                            <TableCell className="text-right">{cat.nbProduits ?? 0}</TableCell>
+                                            <TableCell className="text-right">{cat.nProd ?? 0}</TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>

@@ -1,7 +1,7 @@
 export type Categorie = {
   id: number;
   nom: string;
-  nbProduits?: number;
+  nProd?: number;
 };
 
 export type Entrepot = {

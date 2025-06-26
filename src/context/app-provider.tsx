@@ -17,7 +17,7 @@ interface AppContextType {
   deleteProduits: (produitIds: number[]) => Promise<void>;
   assignProduits: (data: AssignationPayload) => Promise<void>;
   addMultipleProduits: (newProducts: any[]) => Promise<void>;
-  addCategorie: (categorie: Omit<Categorie, 'id' | 'nbProduits'>) => Promise<void>;
+  addCategorie: (categorie: Omit<Categorie, 'id' | 'nProd'>) => Promise<void>;
   updateCategorie: (id: number, categorie: Partial<Categorie>) => Promise<void>;
   deleteCategories: (categorieIds: number[]) => Promise<void>;
   addEntrepot: (entrepot: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => Promise<void>;
@@ -125,7 +125,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [themeColors, isMounted]);
 
-  const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nbProduits'>) => { await api.createCategory(data); await fetchAppData(); }, [fetchAppData]);
+  const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => { await api.createCategory(data); await fetchAppData(); }, [fetchAppData]);
   const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchAppData(); }, [fetchAppData]);
   const deleteCategories = useCallback(async (ids: number[]) => { await api.deleteCategories(ids); await fetchAppData(); }, [fetchAppData]);
 
