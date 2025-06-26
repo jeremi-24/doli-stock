@@ -15,8 +15,7 @@ interface AppContextType {
   addProduit: (produit: Omit<Produit, 'id' | 'code_barre' | 'ref'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduit: (produitId: number) => Promise<void>;
-  fetchProduits: () => Promise<void>;
-  addMultipleProduits: (produits: Omit<Produit, 'id'>[]) => Promise<void>;
+  addMultipleProduits: (newProducts: any[]) => Promise<void>;
   fetchCategories: () => Promise<void>;
   addCategorie: (categorie: Omit<Categorie, 'id' | 'nbProduits'>) => Promise<void>;
   updateCategorie: (id: number, categorie: Partial<Categorie>) => Promise<void>;
@@ -55,19 +54,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const apiCategories = await api.getCategories();
       setCategories(apiCategories);
-      return apiCategories;
     } catch (error) {
       console.error("Failed to fetch categories:", error);
       const description = (error instanceof Error) ? error.message : 'Impossible de charger les catégories.';
       toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.`});
       setCategories(sampleCategories);
-      return sampleCategories;
     }
   }, [toast]);
   
-  const fetchProduits = useCallback(async (currentCategories: Categorie[]) => {
-    if (currentCategories.length === 0) return;
-    const categoryNameToIdMap = new Map(currentCategories.map(c => [c.nom, c.id]));
+  const fetchProduits = useCallback(async () => {
     try {
       const apiProduits = await api.getProducts();
       const frontendProduits = apiProduits.map((p: any) => ({
@@ -78,21 +73,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         prix_vente: p.prix,
         quantite_stock: p.qte,
         alerte_stock: p.qteMin || 0,
-        categorieId: categoryNameToIdMap.get(p.categorie) ?? 0,
+        categorieId: p.categorie_id,
       }));
       setProduits(frontendProduits);
     } catch (error) {
       console.error("Failed to fetch products:", error);
       const description = (error instanceof Error) ? error.message : 'Impossible de charger les produits.';
       toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.` });
-      setProduits(sampleProduits.map(p => ({ ...p, ref: `REF-${p.id}`})));
+      setProduits(sampleProduits);
     }
   }, [toast]);
 
   useEffect(() => {
     const loadInitialData = async () => {
-      const fetchedCategories = await fetchCategories();
-      await fetchProduits(fetchedCategories);
+      await fetchCategories();
+      await fetchProduits();
       
       const storedVentes = localStorage.getItem('stockhero_ventes');
       if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
@@ -143,13 +138,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteCategorie = useCallback(async (categorieId: number) => {
     await api.deleteCategory(categorieId);
     await fetchCategories();
-  }, [fetchCategories]);
+    await fetchProduits();
+  }, [fetchCategories, fetchProduits]);
 
   // API-driven CRUD for PRODUCTS
-  const refetchProduits = useCallback(async () => {
-    await fetchProduits(categories);
-  }, [fetchProduits, categories]);
-
   const addProduit = useCallback(async (produitData: Omit<Produit, 'id' | 'code_barre' | 'ref'>) => {
     const ref = `REF-${Date.now().toString().slice(-6)}`;
     const codeBarre = `MAN-${Date.now().toString().slice(-8)}`;
@@ -163,8 +155,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         categorie_id: produitData.categorieId,
     };
     await api.createProduct(backendPayload);
-    await refetchProduits();
-  }, [refetchProduits]);
+    await fetchCategories();
+    await fetchProduits();
+  }, [fetchCategories, fetchProduits]);
 
   const updateProduit = useCallback(async (updatedProduit: Produit) => {
     const backendPayload = {
@@ -178,17 +171,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       categorie_id: updatedProduit.categorieId,
     };
     await api.updateProduct(updatedProduit.id, backendPayload);
-    await refetchProduits();
-  }, [refetchProduits]);
+    await fetchCategories();
+    await fetchProduits();
+  }, [fetchCategories, fetchProduits]);
 
   const deleteProduit = useCallback(async (produitId: number) => {
     await api.deleteProduct(produitId);
-    await refetchProduits();
-  }, [refetchProduits]);
+    await fetchCategories();
+    await fetchProduits();
+  }, [fetchCategories, fetchProduits]);
 
   const addMultipleProduits = useCallback(async (importedData: any[]) => {
-    await refetchProduits();
-  }, [refetchProduits]);
+    await fetchCategories();
+    await fetchProduits();
+  }, [fetchCategories, fetchProduits]);
   
   // GESTION VENTES (Local for now)
   const addVente = useCallback(async (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
@@ -203,14 +199,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     try {
       await Promise.all(updatePromises);
-      await refetchProduits();
+      await fetchCategories();
+      await fetchProduits();
       const newVente: Vente = { ...venteData, id: Date.now(), date_vente: new Date(), reste: venteData.montant_total - venteData.montant_paye };
       setVentes(prev => [newVente, ...prev]);
     } catch (error) {
        console.error("Failed to update stock during sale:", error);
        toast({ variant: 'destructive', title: 'Erreur de Vente', description: "La mise à jour du stock a échoué."});
     }
-  }, [produits, refetchProduits, toast]);
+  }, [produits, fetchCategories, fetchProduits, toast]);
 
   // CRUD MODELES FACTURE (Local for now)
   const addFactureModele = useCallback((modeleData: Omit<FactureModele, 'id'>) => {
@@ -235,7 +232,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addProduit,
     updateProduit,
     deleteProduit,
-    fetchProduits: refetchProduits,
     addMultipleProduits,
     fetchCategories,
     addCategorie,
@@ -260,7 +256,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addProduit,
     updateProduit,
     deleteProduit,
-    refetchProduits,
     addMultipleProduits,
     fetchCategories,
     addCategorie,
@@ -271,7 +266,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateFactureModele,
     deleteFactureModele,
     activeModules,
+    setActiveModules,
     shopInfo,
+    setShopInfo,
     themeColors,
     isMounted
   ]);
