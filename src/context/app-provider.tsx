@@ -58,7 +58,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       nom: backendProduit.nom,
       ref: backendProduit.ref,
       code_barre: backendProduit.codeBarre,
-      categorie_id: backendProduit.categorie_id,
+      categorieId: backendProduit.categorie_id,
       prix_vente: backendProduit.prix,
       quantite_stock: backendProduit.qte,
       alerte_stock: backendProduit.qteMin || 0,
@@ -75,7 +75,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         qteMin: frontendProduit.alerte_stock,
         prix: frontendProduit.prix_vente,
         codeBarre: frontendProduit.code_barre,
-        categorie_id: frontendProduit.categorie_id,
+        categorie_id: frontendProduit.categorieId,
       };
   }
 
@@ -105,16 +105,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const loadInitialData = async () => {
-      try {
-        await fetchCategories();
-        await fetchProduits();
-      } catch (error) {
-          console.error("Failed to fetch initial data:", error);
-          const description = (error instanceof Error) ? error.message : 'Impossible de charger les données initiales.';
-          toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.`});
-          setCategories(sampleCategories);
-          setProduits(sampleProduits);
-      }
+      // Fetch categories first, as products depend on them for display
+      await fetchCategories();
+      await fetchProduits();
       
       const storedVentes = localStorage.getItem('stockhero_ventes');
       if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));

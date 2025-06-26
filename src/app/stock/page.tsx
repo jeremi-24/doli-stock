@@ -63,7 +63,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const produitSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
   code_barre: z.string().min(5, "Le code-barres doit contenir au moins 5 caractères."),
-  categorie_id: z.string().min(1, "Veuillez sélectionner une catégorie."),
+  categorieId: z.string().min(1, "Veuillez sélectionner une catégorie."),
   prix_vente: z.coerce.number().min(0, "Le prix de vente doit être un nombre positif."),
   quantite_stock: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
   alerte_stock: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
@@ -184,7 +184,7 @@ export default function StockPage() {
   const form = useForm<z.infer<typeof produitSchema>>({
     resolver: zodResolver(produitSchema),
     defaultValues: {
-      nom: "", code_barre: "", categorie_id: "",
+      nom: "", code_barre: "", categorieId: "",
       prix_vente: 0, quantite_stock: 0, alerte_stock: 0,
     },
   });
@@ -194,7 +194,7 @@ export default function StockPage() {
     form.reset({
       nom: "",
       code_barre: "",
-      categorie_id: "",
+      categorieId: "",
       prix_vente: 0,
       quantite_stock: 0,
       alerte_stock: 0,
@@ -206,7 +206,7 @@ export default function StockPage() {
     setEditingProduit(produit);
     form.reset({
       ...produit,
-      categorie_id: String(produit.categorie_id),
+      categorieId: String(produit.categorieId),
     });
     setIsDialogOpen(true);
   };
@@ -216,7 +216,7 @@ export default function StockPage() {
   
   const onSubmit = async (values: z.infer<typeof produitSchema>) => {
     setIsLoading(true);
-    const productData = { ...values, categorie_id: parseInt(values.categorie_id, 10) };
+    const productData = { ...values, categorieId: parseInt(values.categorieId, 10) };
     
     try {
         if (editingProduit) {
@@ -283,7 +283,7 @@ export default function StockPage() {
                   produits.map((produit) => (
                     <TableRow key={produit.id} className={produit.quantite_stock <= produit.alerte_stock ? 'bg-red-50 dark:bg-red-900/20' : ''}>
                       <TableCell className="font-medium">{produit.nom} {produit.quantite_stock <= produit.alerte_stock && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
-                      <TableCell>{categoriesMap.get(produit.categorie_id) || 'N/A'}</TableCell>
+                      <TableCell>{categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
                       <TableCell>{formatCurrency(produit.prix_vente)}</TableCell>
                       <TableCell className="text-right">{produit.quantite_stock}</TableCell>
                       <TableCell className="text-right">
@@ -318,7 +318,7 @@ export default function StockPage() {
                 <FormField control={form.control} name="nom" render={({ field }) => (<FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="T-Shirt" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="code_barre" render={({ field }) => (<FormItem><FormLabel>Code-barres</FormLabel><FormControl><Input placeholder="1234567890" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
               </div>
-              <FormField control={form.control} name="categorie_id" render={({ field }) => (
+              <FormField control={form.control} name="categorieId" render={({ field }) => (
                   <FormItem><FormLabel>Catégorie</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>

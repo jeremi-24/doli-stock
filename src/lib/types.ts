@@ -8,7 +8,7 @@ export type Produit = {
   id: number;
   nom:string;
   code_barre: string;
-  categorie_id: number;
+  categorieId: number;
   prix_vente: number;
   quantite_stock: number;
   alerte_stock: number;
