@@ -1,3 +1,4 @@
+
 "use client";
 import * as React from "react";
 import * as z from "zod";
@@ -188,22 +189,28 @@ export default function StockPage() {
     },
   });
 
-  React.useEffect(() => {
-    if (editingProduit) {
-        form.reset({
-            ...editingProduit,
-            categorie_id: String(editingProduit.categorie_id),
-        });
-    } else {
-        form.reset({
-            nom: "", code_barre: "", categorie_id: "",
-            prix_vente: 0, quantite_stock: 0, alerte_stock: 0,
-        });
-    }
-  }, [editingProduit, form]);
+  const handleAddNew = () => {
+    setEditingProduit(null);
+    form.reset({
+      nom: "",
+      code_barre: "",
+      categorie_id: "",
+      prix_vente: 0,
+      quantite_stock: 0,
+      alerte_stock: 0,
+    });
+    setIsDialogOpen(true);
+  };
 
-  const handleAddNew = () => { setEditingProduit(null); setIsDialogOpen(true); };
-  const handleEdit = (produit: Produit) => { setEditingProduit(produit); setIsDialogOpen(true); };
+  const handleEdit = (produit: Produit) => {
+    setEditingProduit(produit);
+    form.reset({
+      ...produit,
+      categorie_id: String(produit.categorie_id),
+    });
+    setIsDialogOpen(true);
+  };
+  
   const handlePrintAll = () => { setProductsToPrint(produits); setIsPrintDialogOpen(true); };
   const handlePrintSingle = (produit: Produit) => { setProductsToPrint([produit]); setIsPrintDialogOpen(true); };
   
