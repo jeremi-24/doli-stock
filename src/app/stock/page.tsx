@@ -87,13 +87,10 @@ const produitSchema = z.object({
       }
       setIsImporting(true);
 
-      const formData = new FormData();
-      formData.append("file", file);
-
       try {
-        const importedData = await api.importProducts(formData);
-        onImportSuccess(importedData);
-        toast({ title: "Importation réussie", description: `${importedData.length} produits ont été ajoutés ou mis à jour.` });
+        const importedData = await api.importProducts(file);
+        onImportSuccess(importedData || []);
+        toast({ title: "Importation réussie", description: `${(importedData || []).length} produits ont été ajoutés ou mis à jour.` });
         onOpenChange(false);
         setFile(null);
       } catch (error: any) {
@@ -109,11 +106,11 @@ const produitSchema = z.object({
           <DialogHeader>
             <DialogTitle className="font-headline">Importer des produits depuis Excel</DialogTitle>
             <DialogDescription>
-              Le fichier doit contenir les colonnes : `nom`, `code_barre`, `categorie_nom`, `prix`, `qte`, `qteMin`. La `categorie_nom` doit correspondre à une catégorie existante.
+              Le fichier doit contenir les colonnes : `nom`, `ref`, `codeBarre`, `categorieId`, `entrepotId`, `prix`, `qte`, `qteMin`. Les IDs de catégorie et d'entrepôt doivent correspondre à des entrées existantes.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Input type="file" accept=".xlsx, .xls" onChange={handleFileChange} disabled={isImporting} />
+            <Input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileChange} disabled={isImporting} />
             {file && <p className="text-sm text-muted-foreground">Fichier : {file.name}</p>}
           </div>
           <DialogFooter>

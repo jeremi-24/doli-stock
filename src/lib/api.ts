@@ -1,3 +1,4 @@
+
 // This is now a client-side library. No 'use server' directive.
 import type { Categorie, Produit, Entrepot } from './types';
 
@@ -92,13 +93,44 @@ export async function updateProduct(id: number, data: Partial<any>): Promise<any
 export async function deleteProduct(id: number): Promise<null> {
   return apiFetch(`/produit/${id}`, { method: 'DELETE' });
 }
-export async function importProducts(formData: FormData): Promise<Produit[]> {
-  const url = `${API_BASE_URL}/produit/import`;
-  const res = await fetch(url, { method: 'POST', body: formData });
-  if (!res.ok) {
-    const errorBody = await res.text();
-    console.error(`API Error: ${res.status} ${res.statusText}`, errorBody);
-    throw new Error("L'importation des produits a échoué.");
+export async function importProducts(file: File): Promise<Produit[]> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/produit/import`, {
+      method: 'POST',
+      body: formData,
+      // NOTE: Do not set 'Content-Type' header. The browser will set it
+      // to 'multipart/form-data' with the correct boundary.
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      const statusText = response.statusText || 'Erreur inconnue';
+      let userMessage = `La requête API a échoué: ${statusText} (status: ${response.status})`;
+       if (response.status === 504) {
+          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout 504). Veuillez vérifier qu\'il est bien démarré et accessible.';
+      } else if (errorBody) {
+         try {
+            const errorJson = JSON.parse(errorBody);
+            userMessage = errorJson.error || errorJson.message || userMessage;
+         } catch(e) {
+            userMessage = `${userMessage}: ${errorBody}`;
+         }
+      }
+      throw new Error(userMessage);
+    }
+    
+    const text = await response.text();
+    try {
+      return text ? JSON.parse(text) : null;
+    } catch (error) {
+      console.warn(`API response for /produit/import was successful but not valid JSON. Response body: "${text}"`);
+      return null;
+    }
+  } catch (error) {
+    console.error('Erreur de connexion API pour importProducts:', { error });
+    throw error;
   }
-  return res.json();
 };
