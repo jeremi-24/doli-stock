@@ -12,7 +12,7 @@ interface AppContextType {
   categories: Categorie[];
   ventes: Vente[];
   factureModeles: FactureModele[];
-  addProduit: (produit: Omit<Produit, 'id' | 'code_barre'>) => Promise<void>;
+  addProduit: (produit: Omit<Produit, 'id' | 'code_barre' | 'ref'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduit: (produitId: number) => Promise<void>;
   fetchProduits: () => Promise<void>;
@@ -85,7 +85,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to fetch products:", error);
       const description = (error instanceof Error) ? error.message : 'Impossible de charger les produits.';
       toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.` });
-      setProduits(sampleProduits);
+      setProduits(sampleProduits.map(p => ({ ...p, ref: `REF-${p.id}`})));
     }
   }, [toast]);
 
@@ -150,9 +150,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await fetchProduits(categories);
   }, [fetchProduits, categories]);
 
-  const addProduit = useCallback(async (produitData: Omit<Produit, 'id' | 'code_barre'>) => {
-    const categoryIdToNameMap = new Map(categories.map(c => [c.id, c.nom]));
-    const ref = produitData.ref || `REF-${Date.now().toString().slice(-6)}`;
+  const addProduit = useCallback(async (produitData: Omit<Produit, 'id' | 'code_barre' | 'ref'>) => {
+    const ref = `REF-${Date.now().toString().slice(-6)}`;
     const codeBarre = `MAN-${Date.now().toString().slice(-8)}`;
     const backendPayload = {
         nom: produitData.nom,
@@ -161,14 +160,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         qteMin: produitData.alerte_stock,
         prix: produitData.prix_vente,
         codeBarre: codeBarre,
-        categorie: categoryIdToNameMap.get(produitData.categorieId),
+        categorie_id: produitData.categorieId,
     };
     await api.createProduct(backendPayload);
     await refetchProduits();
-  }, [categories, refetchProduits]);
+  }, [refetchProduits]);
 
   const updateProduit = useCallback(async (updatedProduit: Produit) => {
-    const categoryIdToNameMap = new Map(categories.map(c => [c.id, c.nom]));
     const backendPayload = {
       id: updatedProduit.id,
       nom: updatedProduit.nom,
@@ -177,11 +175,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       qteMin: updatedProduit.alerte_stock,
       prix: updatedProduit.prix_vente,
       codeBarre: updatedProduit.code_barre,
-      categorie: categoryIdToNameMap.get(updatedProduit.categorieId),
+      categorie_id: updatedProduit.categorieId,
     };
     await api.updateProduct(updatedProduit.id, backendPayload);
     await refetchProduits();
-  }, [categories, refetchProduits]);
+  }, [refetchProduits]);
 
   const deleteProduit = useCallback(async (produitId: number) => {
     await api.deleteProduct(produitId);
