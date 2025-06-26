@@ -2,24 +2,26 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele } from '@/lib/types';
-import { sampleProduits, sampleCategories, sampleFactureModeles } from '@/lib/data';
+import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 interface AppContextType {
   produits: Produit[];
   categories: Categorie[];
+  entrepots: Entrepot[];
   ventes: Vente[];
   factureModeles: FactureModele[];
-  addProduit: (produit: Omit<Produit, 'id' | 'code_barre' | 'ref' | 'entrepotId'>) => Promise<void>;
+  addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduit: (produitId: number) => Promise<void>;
   addMultipleProduits: (newProducts: any[]) => Promise<void>;
-  fetchCategories: () => Promise<void>;
   addCategorie: (categorie: Omit<Categorie, 'id' | 'nbProduits'>) => Promise<void>;
   updateCategorie: (id: number, categorie: Partial<Categorie>) => Promise<void>;
   deleteCategorie: (categorieId: number) => Promise<void>;
+  addEntrepot: (entrepot: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => Promise<void>;
+  updateEntrepot: (id: number, entrepot: Partial<Entrepot>) => Promise<void>;
+  deleteEntrepot: (entrepotId: number) => Promise<void>;
   addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => Promise<void>;
   addFactureModele: (modele: Omit<FactureModele, 'id'>) => void;
   updateFactureModele: (modele: FactureModele) => void;
@@ -43,6 +45,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
   const [produits, setProduits] = useState<Produit[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
+  const [entrepots, setEntrepots] = useState<Entrepot[]>([]);
   const [ventes, setVentes] = useState<Vente[]>([]);
   const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
@@ -50,65 +53,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
   const { toast } = useToast();
 
-  const fetchCategories = useCallback(async () => {
+  const fetchAppData = useCallback(async () => {
     try {
-      const apiCategories = await api.getCategories();
-      setCategories(apiCategories);
+      const [apiCategories, apiEntrepots, apiProduits] = await Promise.all([
+        api.getCategories(),
+        api.getEntrepots(),
+        api.getProducts()
+      ]);
+      setCategories(apiCategories || []);
+      setEntrepots(apiEntrepots || []);
+      setProduits(apiProduits || []);
     } catch (error) {
-      console.error("Failed to fetch categories:", error);
-      const description = (error instanceof Error) ? error.message : 'Impossible de charger les catégories.';
-      toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.`});
-      setCategories(sampleCategories);
-    }
-  }, [toast]);
-  
-  const fetchProduits = useCallback(async () => {
-    try {
-      const apiProduits = await api.getProducts();
-      const frontendProduits = apiProduits.map((p: any) => ({
-        id: p.id,
-        nom: p.nom,
-        ref: p.ref,
-        code_barre: p.codeBarre,
-        prix_vente: p.prix,
-        quantite_stock: p.qte,
-        alerte_stock: p.qteMin || 0,
-        categorieId: p.categorie_id,
-        entrepotId: p.entrepotId,
-      }));
-      setProduits(frontendProduits);
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-      const description = (error instanceof Error) ? error.message : 'Impossible de charger les produits.';
-      toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.` });
-      setProduits(sampleProduits);
+      console.error("Failed to fetch app data:", error);
+      const description = (error instanceof Error) ? error.message : 'Impossible de charger les données.';
+      toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Les données ne peuvent pas être chargées.` });
+      setCategories([]);
+      setEntrepots([]);
+      setProduits([]);
     }
   }, [toast]);
 
   useEffect(() => {
     const loadInitialData = async () => {
-      await fetchCategories();
-      await fetchProduits();
+      await fetchAppData();
       
+      // Load local data
       const storedVentes = localStorage.getItem('stockhero_ventes');
       if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
-
       const storedFactureModeles = localStorage.getItem('stockhero_facture_modeles');
-      setFactureModeles(storedFactureModeles ? JSON.parse(storedFactureModeles) : sampleFactureModeles);
-
+      setFactureModeles(storedFactureModeles ? JSON.parse(storedFactureModeles) : []);
       const storedModules = localStorage.getItem('stockhero_modules');
       if (storedModules) setActiveModules(JSON.parse(storedModules));
-
       const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
       if (storedShopInfo) setShopInfo(JSON.parse(storedShopInfo));
-      
       const storedThemeColors = localStorage.getItem('stockhero_themecolors');
       if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
       
       setIsMounted(true);
     };
     loadInitialData();
-  }, [fetchCategories, fetchProduits]);
+  }, [fetchAppData]);
   
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_facture_modeles', JSON.stringify(factureModeles)); }, [factureModeles, isMounted]);
@@ -124,156 +108,65 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [themeColors, isMounted]);
 
+  const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nbProduits'>) => { await api.createCategory(data); await fetchAppData(); }, [fetchAppData]);
+  const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchAppData(); }, [fetchAppData]);
+  const deleteCategorie = useCallback(async (id: number) => { await api.deleteCategory(id); await fetchAppData(); }, [fetchAppData]);
 
-  // API-driven CRUD for CATEGORIES
-  const addCategorie = useCallback(async (categorieData: Omit<Categorie, 'id' | 'nbProduits'>) => {
-    await api.createCategory(categorieData);
-    await fetchCategories();
-  }, [fetchCategories]);
+  const addEntrepot = useCallback(async (data: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => { await api.createEntrepot(data); await fetchAppData(); }, [fetchAppData]);
+  const updateEntrepot = useCallback(async (id: number, data: Partial<Entrepot>) => { await api.updateEntrepot(id, data); await fetchAppData(); }, [fetchAppData]);
+  const deleteEntrepot = useCallback(async (id: number) => { await api.deleteEntrepot(id); await fetchAppData(); }, [fetchAppData]);
 
-  const updateCategorie = useCallback(async (id: number, updatedCategorie: Partial<Categorie>) => {
-    await api.updateCategory(id, updatedCategorie);
-    await fetchCategories();
-  }, [fetchCategories]);
-
-  const deleteCategorie = useCallback(async (categorieId: number) => {
-    await api.deleteCategory(categorieId);
-    await fetchCategories();
-    await fetchProduits();
-  }, [fetchCategories, fetchProduits]);
-
-  // API-driven CRUD for PRODUCTS
-  const addProduit = useCallback(async (produitData: Omit<Produit, 'id' | 'code_barre' | 'ref' | 'entrepotId'>) => {
-    const ref = `REF-${Date.now().toString().slice(-6)}`;
-    const codeBarre = `MAN-${Date.now().toString().slice(-8)}`;
-    const backendPayload = {
-        id: 0,
-        nom: produitData.nom,
-        ref: ref,
-        qte: produitData.quantite_stock,
-        qteMin: produitData.alerte_stock,
-        prix: produitData.prix_vente,
-        codeBarre: codeBarre,
-        categorieId: produitData.categorieId,
-        entrepotId: 1, // Hardcoded default
-    };
-    await api.createProduct(backendPayload);
-    await fetchCategories();
-    await fetchProduits();
-  }, [fetchCategories, fetchProduits]);
-
-  const updateProduit = useCallback(async (updatedProduit: Produit) => {
-    const backendPayload = {
-      id: updatedProduit.id,
-      nom: updatedProduit.nom,
-      ref: updatedProduit.ref,
-      qte: updatedProduit.quantite_stock,
-      qteMin: updatedProduit.alerte_stock,
-      prix: updatedProduit.prix_vente,
-      codeBarre: updatedProduit.code_barre,
-      categorieId: updatedProduit.categorieId,
-      entrepotId: updatedProduit.entrepotId || 1, // Use existing or default
-    };
-    await api.updateProduct(updatedProduit.id, backendPayload);
-    await fetchCategories();
-    await fetchProduits();
-  }, [fetchCategories, fetchProduits]);
-
-  const deleteProduit = useCallback(async (produitId: number) => {
-    await api.deleteProduct(produitId);
-    await fetchCategories();
-    await fetchProduits();
-  }, [fetchCategories, fetchProduits]);
-
-  const addMultipleProduits = useCallback(async (importedData: any[]) => {
-    await fetchCategories();
-    await fetchProduits();
-  }, [fetchCategories, fetchProduits]);
+  const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => { await api.createProduct(data); await fetchAppData(); }, [fetchAppData]);
+  const updateProduit = useCallback(async (data: Produit) => { await api.updateProduct(data.id, data); await fetchAppData(); }, [fetchAppData]);
+  const deleteProduit = useCallback(async (id: number) => { await api.deleteProduct(id); await fetchAppData(); }, [fetchAppData]);
+  const addMultipleProduits = useCallback(async () => { await fetchAppData(); }, [fetchAppData]);
   
-  // GESTION VENTES (Local for now)
   const addVente = useCallback(async (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
     const updatePromises = venteData.lignes.map(ligne => {
       const productToUpdate = produits.find(p => p.id === ligne.produit.id);
       if (productToUpdate) {
-        const newQuantity = productToUpdate.quantite_stock - ligne.quantite;
+        const newQuantity = productToUpdate.qte - ligne.quantite;
         return api.updateProduct(productToUpdate.id, { qte: newQuantity });
       }
       return Promise.resolve();
     });
-
     try {
       await Promise.all(updatePromises);
-      await fetchCategories();
-      await fetchProduits();
+      await fetchAppData();
       const newVente: Vente = { ...venteData, id: Date.now(), date_vente: new Date(), reste: venteData.montant_total - venteData.montant_paye };
       setVentes(prev => [newVente, ...prev]);
     } catch (error) {
        console.error("Failed to update stock during sale:", error);
        toast({ variant: 'destructive', title: 'Erreur de Vente', description: "La mise à jour du stock a échoué."});
     }
-  }, [produits, fetchCategories, fetchProduits, toast]);
+  }, [produits, fetchAppData, toast]);
 
-  // CRUD MODELES FACTURE (Local for now)
   const addFactureModele = useCallback((modeleData: Omit<FactureModele, 'id'>) => {
     const newModele: FactureModele = { id: `tmpl-${Date.now()}`, ...modeleData };
     setFactureModeles((prev) => [...prev, newModele]);
   }, []);
-
   const updateFactureModele = useCallback((updatedModele: FactureModele) => {
     setFactureModeles((prev) => prev.map((m) => (m.id === updatedModele.id ? updatedModele : m)));
   }, []);
-
   const deleteFactureModele = useCallback((modeleId: string) => {
     setFactureModeles((prev) => prev.filter((m) => m.id !== modeleId));
   }, []);
 
-
   const value = useMemo(() => ({
-    produits,
-    categories,
-    ventes,
-    factureModeles,
-    addProduit,
-    updateProduit,
-    deleteProduit,
-    addMultipleProduits,
-    fetchCategories,
-    addCategorie,
-    updateCategorie,
-    deleteCategorie,
-    addVente,
-    addFactureModele,
-    updateFactureModele,
-    deleteFactureModele,
-    activeModules,
-    setActiveModules,
-    shopInfo,
-    setShopInfo,
-    themeColors,
-    setThemeColors,
+    produits, categories, entrepots, ventes, factureModeles,
+    addProduit, updateProduit, deleteProduit, addMultipleProduits,
+    addCategorie, updateCategorie, deleteCategorie,
+    addEntrepot, updateEntrepot, deleteEntrepot,
+    addVente, addFactureModele, updateFactureModele, deleteFactureModele,
+    activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted,
   }), [
-    produits,
-    categories,
-    ventes,
-    factureModeles,
-    addProduit,
-    updateProduit,
-    deleteProduit,
-    addMultipleProduits,
-    fetchCategories,
-    addCategorie,
-    updateCategorie,
-    deleteCategorie,
-    addVente,
-    addFactureModele,
-    updateFactureModele,
-    deleteFactureModele,
-    activeModules,
-    setActiveModules,
-    shopInfo,
-    setShopInfo,
-    themeColors,
+    produits, categories, entrepots, ventes, factureModeles,
+    addProduit, updateProduit, deleteProduit, addMultipleProduits,
+    addCategorie, updateCategorie, deleteCategorie,
+    addEntrepot, updateEntrepot, deleteEntrepot,
+    addVente, addFactureModele, updateFactureModele, deleteFactureModele,
+    activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted
   ]);
 

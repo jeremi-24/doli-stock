@@ -1,5 +1,5 @@
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit } from './types';
+import type { Categorie, Produit, Entrepot } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = 'http://localhost:8080';
@@ -48,75 +48,45 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 }
 
 // ========== Categories API ==========
-
-export async function getCategories(): Promise<Categorie[]> {
-  return apiFetch('/categorie');
-};
-
-export async function getCategoryById(id: number): Promise<Categorie> {
-  return apiFetch(`/categorie/${id}`);
-};
-
+export async function getCategories(): Promise<Categorie[]> { return apiFetch('/categorie'); };
 export async function createCategory(data: { nom: string }): Promise<Categorie> {
   const body = { nom: data.nom, produits: [] };
-  return apiFetch('/categorie', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+  return apiFetch('/categorie', { method: 'POST', body: JSON.stringify(body) });
 };
-
 export async function updateCategory(id: number, data: Partial<Categorie>): Promise<Categorie> {
-  return apiFetch(`/categorie/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
+  return apiFetch(`/categorie/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 };
-
 export async function deleteCategory(id: number): Promise<null> {
-  return apiFetch(`/categorie/${id}`, {
-    method: 'DELETE',
-  });
+  return apiFetch(`/categorie/${id}`, { method: 'DELETE' });
 };
 
+// ========== Entrepots API ==========
+export async function getEntrepots(): Promise<Entrepot[]> { return apiFetch('/entrepot'); };
+export async function createEntrepot(data: { nom: string, ref: string }): Promise<Entrepot> {
+  const body = { nom: data.nom, ref: data.ref };
+  return apiFetch('/entrepot', { method: 'POST', body: JSON.stringify(body) });
+};
+export async function updateEntrepot(id: number, data: Partial<Entrepot>): Promise<Entrepot> {
+  return apiFetch(`/entrepot/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+};
+export async function deleteEntrepot(id: number): Promise<null> {
+  return apiFetch(`/entrepot/${id}`, { method: 'DELETE' });
+};
 
 // ========== Products API ==========
-
-export async function getProducts(): Promise<any[]> {
-  return apiFetch('/produit');
-}
-
-export async function getProductById(id: number): Promise<any> {
-  return apiFetch(`/produit/${id}`);
-}
-
+export async function getProducts(): Promise<any[]> { return apiFetch('/produit'); }
 export async function createProduct(data: any): Promise<any> {
-  return apiFetch('/produit', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+  return apiFetch('/produit', { method: 'POST', body: JSON.stringify(data) });
 }
-
 export async function updateProduct(id: number, data: Partial<any>): Promise<any> {
-  return apiFetch(`/produit/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
+  return apiFetch(`/produit/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 }
-
 export async function deleteProduct(id: number): Promise<null> {
-  return apiFetch(`/produit/${id}`, {
-    method: 'DELETE',
-  });
+  return apiFetch(`/produit/${id}`, { method: 'DELETE' });
 }
-
 export async function importProducts(formData: FormData): Promise<Produit[]> {
   const url = `${API_BASE_URL}/produit/import`;
-  
-  const res = await fetch(url, {
-    method: 'POST',
-    body: formData,
-  });
-  
+  const res = await fetch(url, { method: 'POST', body: formData });
   if (!res.ok) {
     const errorBody = await res.text();
     console.error(`API Error: ${res.status} ${res.statusText}`, errorBody);

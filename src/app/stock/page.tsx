@@ -44,7 +44,6 @@
     AlertDialogTitle,
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog";
-
   import {
     Form,
     FormControl,
@@ -62,11 +61,13 @@
 
 const produitSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
-  code_barre: z.string().optional(),
+  ref: z.string().min(2, "La référence doit contenir au moins 2 caractères."),
+  codeBarre: z.string().optional(),
   categorieId: z.string().min(1, "Veuillez sélectionner une catégorie."),
-  prix_vente: z.coerce.number().min(0, "Le prix de vente doit être un nombre positif."),
-  quantite_stock: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
-  alerte_stock: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
+  entrepotId: z.string().min(1, "Veuillez sélectionner un entrepôt."),
+  prix: z.coerce.number().min(0, "Le prix doit être un nombre positif."),
+  qte: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
+  qteMin: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
 });
 
 
@@ -152,10 +153,10 @@ const produitSchema = z.object({
         <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
             <div ref={printRef} className="barcode-grid">
             {productsToPrint.map((produit) => (
-                produit.code_barre && (
+                produit.codeBarre && (
                   <div key={produit.id} className="barcode-item">
                   <p className="product-name">{produit.nom}</p>
-                  <Barcode value={produit.code_barre} height={40} width={1.5} fontSize={10} margin={5} />
+                  <Barcode value={produit.codeBarre} height={40} width={1.5} fontSize={10} margin={5} />
                   </div>
                 )
             ))}
@@ -172,7 +173,7 @@ const produitSchema = z.object({
 
 
   export default function StockPage() {
-    const { produits, categories, addProduit, updateProduit, deleteProduit, addMultipleProduits, isMounted } = useApp();
+    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduit, addMultipleProduits, isMounted } = useApp();
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
@@ -182,24 +183,22 @@ const produitSchema = z.object({
     const { toast } = useToast();
 
     const categoriesMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.nom])), [categories]);
+    const entrepotsMap = React.useMemo(() => new Map(entrepots.map(e => [e.id, e.nom])), [entrepots]);
 
     const form = useForm<z.infer<typeof produitSchema>>({
       resolver: zodResolver(produitSchema),
       defaultValues: {
-        nom: "", code_barre: "", categorieId: "",
-        prix_vente: 0, quantite_stock: 0, alerte_stock: 0,
+        nom: "", ref: "", codeBarre: "", categorieId: "", entrepotId: "",
+        prix: 0, qte: 0, qteMin: 0,
       },
     });
 
     const handleAddNew = () => {
       setEditingProduit(null);
       form.reset({
-        nom: "",
-        code_barre: "",
-        categorieId: "",
-        prix_vente: 0,
-        quantite_stock: 0,
-        alerte_stock: 0,
+        nom: "", ref: "", codeBarre: `BC-${Date.now().toString().slice(-8)}`,
+        categorieId: "", entrepotId: "",
+        prix: 0, qte: 0, qteMin: 0,
       });
       setIsDialogOpen(true);
     };
@@ -209,6 +208,7 @@ const produitSchema = z.object({
       form.reset({
         ...produit,
         categorieId: String(produit.categorieId),
+        entrepotId: String(produit.entrepotId),
       });
       setIsDialogOpen(true);
     };
@@ -218,7 +218,12 @@ const produitSchema = z.object({
     
     const onSubmit = async (values: z.infer<typeof produitSchema>) => {
       setIsLoading(true);
-      const productData = { ...values, categorieId: parseInt(values.categorieId, 10) };
+      const productData = { 
+          ...values, 
+          categorieId: parseInt(values.categorieId, 10),
+          entrepotId: parseInt(values.entrepotId, 10),
+          codeBarre: values.codeBarre || `BC-${Date.now().toString().slice(-8)}`
+      };
       
       try {
           if (editingProduit) {
@@ -269,12 +274,13 @@ const produitSchema = z.object({
         <CardContent>
           <div className="rounded-lg border">
             <Table>
-              <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Entrepôt</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
               <TableBody>
                 {!isMounted ? (
                     Array.from({ length: 5 }).map((_, i) => (
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-1/4" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
@@ -283,11 +289,12 @@ const produitSchema = z.object({
                     ))
                 ) : produits.length > 0 ? (
                   produits.map((produit) => (
-                    <TableRow key={produit.id} className={produit.quantite_stock <= produit.alerte_stock ? 'bg-red-50 dark:bg-red-900/20' : ''}>
-                      <TableCell className="font-medium">{produit.nom} {produit.quantite_stock <= produit.alerte_stock && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
+                    <TableRow key={produit.id} className={produit.qte <= produit.qteMin ? 'bg-red-50 dark:bg-red-900/20' : ''}>
+                      <TableCell className="font-medium">{produit.nom} {produit.qte <= produit.qteMin && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
                       <TableCell>{categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
-                      <TableCell>{formatCurrency(produit.prix_vente)}</TableCell>
-                      <TableCell className="text-right">{produit.quantite_stock}</TableCell>
+                      <TableCell>{entrepotsMap.get(produit.entrepotId) || 'N/A'}</TableCell>
+                      <TableCell>{formatCurrency(produit.prix)}</TableCell>
+                      <TableCell className="text-right">{produit.qte}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Menu</span></Button></DropdownMenuTrigger>
@@ -304,7 +311,7 @@ const produitSchema = z.object({
                       </TableCell>
                     </TableRow>
                   ))
-                ) : ( <TableRow><TableCell colSpan={5} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
+                ) : ( <TableRow><TableCell colSpan={6} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
               </TableBody>
             </Table>
           </div>
@@ -317,20 +324,31 @@ const produitSchema = z.object({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
               <FormField control={form.control} name="nom" render={({ field }) => (<FormItem><FormLabel>Nom du produit</FormLabel><FormControl><Input placeholder="T-Shirt" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-              
-              <FormField control={form.control} name="categorieId" render={({ field }) => (
-                  <FormItem><FormLabel>Catégorie</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>
-                        <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
-                    </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField control={form.control} name="ref" render={({ field }) => (<FormItem><FormLabel>Référence</FormLabel><FormControl><Input placeholder="REF-001" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="categorieId" render={({ field }) => (
+                    <FormItem><FormLabel>Catégorie</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>
+                          <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
+                      </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                 <FormField control={form.control} name="entrepotId" render={({ field }) => (
+                    <FormItem><FormLabel>Entrepôt</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un entrepôt" /></SelectTrigger></FormControl>
+                          <SelectContent>{entrepots.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
+                      </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
               <div className="grid grid-cols-3 gap-4">
-                <FormField control={form.control} name="prix_vente" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="quantite_stock" render={({ field }) => (<FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="alerte_stock" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="prix" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="qte" render={({ field }) => (<FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="qteMin" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <DialogFooter>
                   <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
