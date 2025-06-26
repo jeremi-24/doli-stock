@@ -1,5 +1,5 @@
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot } from './types';
+import type { Categorie, Produit, Entrepot, AssignationPayload } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api';
@@ -92,6 +92,14 @@ export async function updateProduct(id: number, data: Partial<any>): Promise<any
 export async function deleteProducts(ids: number[]): Promise<null> {
   return apiFetch(`/produit`, { method: 'DELETE', body: JSON.stringify(ids) });
 }
+export async function assignProducts(data: AssignationPayload): Promise<null> {
+    const payload = {
+        produitIds: data.produitIds,
+        ...(data.categorieId && { categorieId: data.categorieId }),
+        ...(data.entrepotId && { entrepotId: data.entrepotId }),
+    };
+  return apiFetch(`/assignation`, { method: 'POST', body: JSON.stringify(payload) });
+};
 export async function importProducts(file: File): Promise<Produit[]> {
   const formData = new FormData();
   formData.append('file', file);

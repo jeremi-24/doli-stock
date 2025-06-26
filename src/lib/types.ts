@@ -55,6 +55,12 @@ export type FactureModele = {
   primaryColor?: string;
 };
 
+export type AssignationPayload = {
+    produitIds: number[];
+    categorieId?: number;
+    entrepotId?: number;
+};
+
 
 // ----- App Settings Types (unchanged) -----
 

@@ -14,7 +14,7 @@
   } from "@/components/ui/table";
   import { Button } from "@/components/ui/button";
   import { useApp } from "@/context/app-provider";
-  import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse, AlertCircle } from "lucide-react";
+  import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse, AlertCircle, Shuffle } from "lucide-react";
   import {
     DropdownMenu,
     DropdownMenuContent,
@@ -28,6 +28,7 @@
     DialogTitle,
     DialogFooter,
     DialogClose,
+    DialogDescription,
   } from "@/components/ui/dialog";
   import {
     AlertDialog,
@@ -67,11 +68,20 @@ const produitSchema = z.object({
   qteMin: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
 });
 
+const assignSchema = z.object({
+    categorieId: z.string().optional(),
+    entrepotId: z.string().optional(),
+}).refine(data => !!data.categorieId || !!data.entrepotId, {
+    message: "Veuillez sélectionner au moins une catégorie ou un entrepôt.",
+    path: ["categorieId"], 
+});
+
 
   export default function StockPage() {
-    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduits, isMounted } = useApp();
+    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduits, assignProduits, isMounted } = useApp();
     const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [isAssignDialogOpen, setIsAssignDialogOpen] = React.useState(false);
     const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
     const [isLoading, setIsLoading] = React.useState(false);
     const { toast } = useToast();
@@ -86,6 +96,17 @@ const produitSchema = z.object({
         prix: 0, qte: 0, qteMin: 0,
       },
     });
+
+    const assignForm = useForm<z.infer<typeof assignSchema>>({
+        resolver: zodResolver(assignSchema),
+        defaultValues: { categorieId: "", entrepotId: "" },
+    });
+
+    React.useEffect(() => {
+        if (!isAssignDialogOpen) {
+            assignForm.reset({ categorieId: "", entrepotId: "" });
+        }
+    }, [isAssignDialogOpen, assignForm]);
 
     const handleSelectAll = (checked: boolean | string) => {
         if (checked) {
@@ -165,6 +186,29 @@ const produitSchema = z.object({
           setIsLoading(false);
       }
     };
+
+    const onAssignSubmit = async (values: z.infer<typeof assignSchema>) => {
+        setIsLoading(true);
+        try {
+            const dataToSubmit = {
+                produitIds: selectedProduits,
+                categorieId: values.categorieId ? parseInt(values.categorieId, 10) : undefined,
+                entrepotId: values.entrepotId ? parseInt(values.entrepotId, 10) : undefined,
+            };
+            
+            await assignProduits(dataToSubmit);
+            
+            toast({ title: "Produits assignés avec succès." });
+            setIsAssignDialogOpen(false);
+            setSelectedProduits([]);
+
+        } catch (error) {
+             const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'assignation.';
+             toast({ variant: 'destructive', title: 'Erreur d\'assignation', description: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
+    };
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
@@ -174,6 +218,11 @@ const produitSchema = z.object({
         <h1 className="font-headline text-3xl font-semibold">Gestion du Stock</h1>
         <div className="ml-auto flex items-center gap-2">
           {selectedProduits.length > 0 && (
+            <>
+            <Button size="sm" variant="outline" onClick={() => setIsAssignDialogOpen(true)}>
+                <Shuffle className="h-4 w-4 mr-2"/>
+                Assigner ({selectedProduits.length})
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm">
@@ -196,6 +245,7 @@ const produitSchema = z.object({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            </>
           )}
           <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
         </div>
@@ -297,6 +347,43 @@ const produitSchema = z.object({
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle className="font-headline">Assignation groupée</DialogTitle>
+                <DialogDescription>
+                    Assigner {selectedProduits.length} produit(s) à une nouvelle catégorie et/ou un nouvel entrepôt.
+                </DialogDescription>
+            </DialogHeader>
+             <Form {...assignForm}>
+                <form onSubmit={assignForm.handleSubmit(onAssignSubmit)} className="space-y-4 py-2">
+                    <FormField control={assignForm.control} name="categorieId" render={({ field }) => (
+                        <FormItem><FormLabel>Nouvelle Catégorie (Optionnel)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Choisir une catégorie" /></SelectTrigger></FormControl>
+                                <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={assignForm.control} name="entrepotId" render={({ field }) => (
+                        <FormItem><FormLabel>Nouvel Entrepôt (Optionnel)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Choisir un entrepôt" /></SelectTrigger></FormControl>
+                                <SelectContent>{entrepots.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <DialogFooter>
+                        <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
+                        <Button type="submit" disabled={isLoading}>{isLoading ? "Assignation..." : "Assigner"}</Button>
+                    </DialogFooter>
+                </form>
+            </Form>
         </DialogContent>
       </Dialog>
     </div>
