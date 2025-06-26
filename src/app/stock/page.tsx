@@ -384,7 +384,7 @@ const produitSchema = z.object({
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="categorieId" render={({ field }) => (
                     <FormItem><FormLabel>Catégorie</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                      <Select key={`cat-${editingProduit?.id || 'new'}`} onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>
                           <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
                       </Select>
@@ -393,7 +393,7 @@ const produitSchema = z.object({
                 )} />
                  <FormField control={form.control} name="entrepotId" render={({ field }) => (
                     <FormItem><FormLabel>Entrepôt</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                      <Select key={`ent-${editingProduit?.id || 'new'}`} onValueChange={field.onChange} value={field.value} disabled={isLoading}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un entrepôt" /></SelectTrigger></FormControl>
                           <SelectContent>{entrepots.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
                       </Select>
