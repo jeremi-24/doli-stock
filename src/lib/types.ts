@@ -39,7 +39,7 @@ export type Vente = {
   montant_total: number;
   montant_paye: number;
   reste: number;
-  type_paiement: 'cash' | 'flooz' | 'tmoney' | 'carte';
+  type_paiement?: 'cash' | 'flooz' | 'tmoney' | 'carte';
   vendeur: string;
   date_vente: Date;
   type: 'pos' | 'manual';
