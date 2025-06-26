@@ -80,39 +80,24 @@ const produitSchema = z.object({
       if (e.target.files) setFile(e.target.files[0]);
     };
 
-    const handleImport = () => {
+    const handleImport = async () => {
       if (!file) {
         toast({ variant: "destructive", title: "Aucun fichier sélectionné" });
         return;
       }
       setIsImporting(true);
 
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-
-      reader.onload = async () => {
-        try {
-          const base64File = reader.result?.toString().split(',')[1];
-          if (!base64File) {
-            throw new Error("Impossible de lire le contenu du fichier.");
-          }
-          
-          const importedData = await api.importProducts(base64File);
-          onImportSuccess(importedData || []);
-          toast({ title: "Importation réussie", description: `${(importedData || []).length} produits ont été ajoutés ou mis à jour.` });
-          onOpenChange(false);
-          setFile(null);
-        } catch (error: any) {
-          toast({ variant: "destructive", title: "Échec de l'importation", description: error.message });
-        } finally {
-          setIsImporting(false);
-        }
-      };
-
-      reader.onerror = () => {
-        toast({ variant: "destructive", title: "Erreur de lecture du fichier" });
+      try {
+        const importedData = await api.importProducts(file);
+        onImportSuccess(importedData || []);
+        toast({ title: "Importation réussie", description: `${(importedData || []).length} produits ont été ajoutés ou mis à jour.` });
+        onOpenChange(false);
+        setFile(null);
+      } catch (error: any) {
+        toast({ variant: "destructive", title: "Échec de l'importation", description: error.message });
+      } finally {
         setIsImporting(false);
-      };
+      }
     };
 
     return (
