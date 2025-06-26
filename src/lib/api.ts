@@ -92,13 +92,9 @@ export async function updateProduct(id: number, data: Partial<any>): Promise<any
 export async function deleteProduct(id: number): Promise<null> {
   return apiFetch(`/produit/${id}`, { method: 'DELETE' });
 }
-export async function importProducts(formData: FormData): Promise<Produit[]> {
-  const url = `${API_BASE_URL}/produit/import`;
-  const res = await fetch(url, { method: 'POST', body: formData });
-  if (!res.ok) {
-    const errorBody = await res.text();
-    console.error(`API Error: ${res.status} ${res.statusText}`, errorBody);
-    throw new Error("L'importation des produits a échoué.");
-  }
-  return res.json();
+export async function importProducts(fileAsBase64: string): Promise<Produit[]> {
+  return apiFetch('/produit/import', {
+    method: 'POST',
+    body: JSON.stringify({ file: fileAsBase64 }),
+  });
 };

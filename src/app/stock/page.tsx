@@ -80,27 +80,39 @@ const produitSchema = z.object({
       if (e.target.files) setFile(e.target.files[0]);
     };
 
-    const handleImport = async () => {
+    const handleImport = () => {
       if (!file) {
         toast({ variant: "destructive", title: "Aucun fichier sélectionné" });
         return;
       }
       setIsImporting(true);
 
-      const formData = new FormData();
-      formData.append("file", file);
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
 
-      try {
-        const importedData = await api.importProducts(formData);
-        onImportSuccess(importedData);
-        toast({ title: "Importation réussie", description: `${importedData.length} produits ont été ajoutés ou mis à jour.` });
-        onOpenChange(false);
-        setFile(null);
-      } catch (error: any) {
-        toast({ variant: "destructive", title: "Échec de l'importation", description: error.message });
-      } finally {
+      reader.onload = async () => {
+        try {
+          const base64File = reader.result?.toString().split(',')[1];
+          if (!base64File) {
+            throw new Error("Impossible de lire le contenu du fichier.");
+          }
+          
+          const importedData = await api.importProducts(base64File);
+          onImportSuccess(importedData || []);
+          toast({ title: "Importation réussie", description: `${(importedData || []).length} produits ont été ajoutés ou mis à jour.` });
+          onOpenChange(false);
+          setFile(null);
+        } catch (error: any) {
+          toast({ variant: "destructive", title: "Échec de l'importation", description: error.message });
+        } finally {
+          setIsImporting(false);
+        }
+      };
+
+      reader.onerror = () => {
+        toast({ variant: "destructive", title: "Erreur de lecture du fichier" });
         setIsImporting(false);
-      }
+      };
     };
 
     return (
@@ -109,11 +121,11 @@ const produitSchema = z.object({
           <DialogHeader>
             <DialogTitle className="font-headline">Importer des produits depuis Excel</DialogTitle>
             <DialogDescription>
-              Le fichier doit contenir les colonnes : `nom`, `code_barre`, `categorie_nom`, `prix`, `qte`, `qteMin`. La `categorie_nom` doit correspondre à une catégorie existante.
+              Le fichier doit contenir les colonnes : `nom`, `ref`, `codeBarre`, `categorieId`, `entrepotId`, `prix`, `qte`, `qteMin`. Les IDs de catégorie et d'entrepôt doivent correspondre à des entrées existantes.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Input type="file" accept=".xlsx, .xls" onChange={handleFileChange} disabled={isImporting} />
+            <Input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileChange} disabled={isImporting} />
             {file && <p className="text-sm text-muted-foreground">Fichier : {file.name}</p>}
           </div>
           <DialogFooter>
