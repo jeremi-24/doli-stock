@@ -2,7 +2,7 @@
 import type { Categorie, Produit } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://192.168.1.140:8080';
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -53,8 +53,7 @@ export async function getCategoryById(id: number): Promise<Categorie> {
 };
 
 export async function createCategory(data: { nom: string }): Promise<Categorie> {
-  // Le backend attend un objet Categorie complet, même pour la création
-  const body = { id: 0, nom: data.nom, produits: [] };
+  const body = { nom: data.nom, produits: [] };
   return apiFetch('/categorie', {
     method: 'POST',
     body: JSON.stringify(body),
