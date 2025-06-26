@@ -51,34 +51,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
   const { toast } = useToast();
 
-  // Helper to map backend product to frontend product
-  const mapToFrontendProduit = (backendProduit: any): Produit => {
-    return {
-      id: backendProduit.id,
-      nom: backendProduit.nom,
-      ref: backendProduit.ref,
-      code_barre: backendProduit.codeBarre,
-      categorieId: backendProduit.categorie_id,
-      prix_vente: backendProduit.prix,
-      quantite_stock: backendProduit.qte,
-      alerte_stock: backendProduit.qteMin || 0,
-    };
-  };
-
-  // Helper to map frontend product to backend product for POST/PUT
-  const mapToBackendProduit = (frontendProduit: Partial<Produit>) => {
-      return {
-        id: frontendProduit.id,
-        nom: frontendProduit.nom,
-        ref: frontendProduit.ref,
-        qte: frontendProduit.quantite_stock,
-        qteMin: frontendProduit.alerte_stock,
-        prix: frontendProduit.prix_vente,
-        codeBarre: frontendProduit.code_barre,
-        categorie_id: frontendProduit.categorieId,
-      };
-  }
-
   const fetchCategories = useCallback(async () => {
     try {
       const apiCategories = await api.getCategories();
@@ -90,11 +62,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCategories(sampleCategories);
     }
   }, [toast]);
-
-  const fetchProduits = useCallback(async () => {
+  
+  const fetchProduits = useCallback(async (currentCategories: Categorie[]) => {
+    const categoryNameToIdMap = new Map(currentCategories.map(c => [c.nom, c.id]));
     try {
       const apiProduits = await api.getProducts();
-      setProduits(apiProduits.map(p => mapToFrontendProduit(p)));
+      const frontendProduits = apiProduits.map((p: any) => ({
+        id: p.id,
+        nom: p.nom,
+        ref: p.ref,
+        code_barre: p.codeBarre,
+        prix_vente: p.prix,
+        quantite_stock: p.qte,
+        alerte_stock: p.qteMin || 0,
+        categorieId: categoryNameToIdMap.get(p.categorie) ?? 0, // Assign ID from map, fallback to 0
+      }));
+      setProduits(frontendProduits);
     } catch (error) {
       console.error("Failed to fetch products:", error);
       const description = (error instanceof Error) ? error.message : 'Impossible de charger les produits.';
@@ -105,9 +88,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const loadInitialData = async () => {
-      // Fetch categories first, as products depend on them for display
-      await fetchCategories();
-      await fetchProduits();
+      let fetchedCategories: Categorie[] = [];
+      try {
+        fetchedCategories = await api.getCategories();
+        setCategories(fetchedCategories);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+        const description = (error instanceof Error) ? error.message : 'Impossible de charger les catégories.';
+        toast({ variant: 'destructive', title: 'Erreur de connexion au Backend', description: `${description} Utilisation des données locales de démo.`});
+        fetchedCategories = sampleCategories;
+        setCategories(fetchedCategories);
+      }
+      
+      await fetchProduits(fetchedCategories);
       
       const storedVentes = localStorage.getItem('stockhero_ventes');
       if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
@@ -128,7 +121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     loadInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // This effect should run only once on mount.
+  }, []);
   
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_facture_modeles', JSON.stringify(factureModeles)); }, [factureModeles, isMounted]);
@@ -145,44 +138,65 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [themeColors, isMounted]);
 
 
-  // API-driven CRUD
+  // API-driven CRUD for CATEGORIES
   const addCategorie = async (categorieData: Omit<Categorie, 'id' | 'nbProduits'>) => { await api.createCategory(categorieData); await fetchCategories(); };
   const updateCategorie = async (id: number, updatedCategorie: Partial<Categorie>) => { await api.updateCategory(id, updatedCategorie); await fetchCategories(); };
   const deleteCategorie = async (categorieId: number) => { await api.deleteCategory(categorieId); await fetchCategories(); };
 
+  // API-driven CRUD for PRODUCTS
+  const refetchProduits = async () => {
+    await fetchProduits(categories);
+  }
+
   const addProduit = async (produitData: Omit<Produit, 'id'>) => {
-    const backendPayload = mapToBackendProduit(produitData);
+    const categoryIdToNameMap = new Map(categories.map(c => [c.id, c.nom]));
+    const backendPayload = {
+        nom: produitData.nom,
+        ref: produitData.ref,
+        qte: produitData.quantite_stock,
+        qteMin: produitData.alerte_stock,
+        prix: produitData.prix_vente,
+        codeBarre: produitData.code_barre,
+        categorie: categoryIdToNameMap.get(produitData.categorieId),
+    };
     await api.createProduct(backendPayload);
-    await fetchProduits();
+    await refetchProduits();
   };
   const updateProduit = async (updatedProduit: Produit) => {
-    const backendPayload = mapToBackendProduit(updatedProduit);
+    const categoryIdToNameMap = new Map(categories.map(c => [c.id, c.nom]));
+    const backendPayload = {
+      id: updatedProduit.id,
+      nom: updatedProduit.nom,
+      ref: updatedProduit.ref,
+      qte: updatedProduit.quantite_stock,
+      qteMin: updatedProduit.alerte_stock,
+      prix: updatedProduit.prix_vente,
+      codeBarre: updatedProduit.code_barre,
+      categorie: categoryIdToNameMap.get(updatedProduit.categorieId),
+    };
     await api.updateProduct(updatedProduit.id, backendPayload);
-    await fetchProduits();
+    await refetchProduits();
   };
   const deleteProduit = async (produitId: number) => {
     await api.deleteProduct(produitId);
-    await fetchProduits();
+    await refetchProduits();
   };
 
   const addMultipleProduits = async (importedData: any[]) => {
-    // Assuming the import API returns products and we just need to refetch
-    await fetchProduits();
+    await refetchProduits();
   };
   
   // GESTION VENTES (Local for now)
   const addVente = (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
-    // This logic should be moved to backend eventually
     const updatedProduits = [...produits];
     for (const ligne of venteData.lignes) {
       const productIndex = updatedProduits.findIndex(p => p.id === ligne.produit.id);
       if (productIndex > -1) {
-        updatedProduits[productIndex].quantite_stock -= ligne.quantite;
-        // Call API to update product quantity on the backend
-        updateProduit(updatedProduits[productIndex]); 
+        const productToUpdate = { ...updatedProduits[productIndex] };
+        productToUpdate.quantite_stock -= ligne.quantite;
+        updateProduit(productToUpdate); 
       }
     }
-    setProduits(updatedProduits);
 
     const newVente: Vente = { ...venteData, id: Date.now(), date_vente: new Date(), reste: venteData.montant_total - venteData.montant_paye };
     setVentes(prev => [newVente, ...prev]);
@@ -202,7 +216,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addProduit,
     updateProduit,
     deleteProduit,
-    fetchProduits,
+    fetchProduits: refetchProduits,
     addMultipleProduits,
     fetchCategories,
     addCategorie,
