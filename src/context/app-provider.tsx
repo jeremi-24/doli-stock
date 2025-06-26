@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele } from '@/lib/types';
 import { sampleProduits, sampleCategories, sampleFactureModeles } from '@/lib/data';
 import * as api from '@/lib/api';
@@ -12,16 +12,16 @@ interface AppContextType {
   categories: Categorie[];
   ventes: Vente[];
   factureModeles: FactureModele[];
-  addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
+  addProduit: (produit: Omit<Produit, 'id' | 'code_barre'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduit: (produitId: number) => Promise<void>;
   fetchProduits: () => Promise<void>;
-  addMultipleProduits: (produits: Omit<Produit, 'id'>[]) => void;
+  addMultipleProduits: (produits: Omit<Produit, 'id'>[]) => Promise<void>;
   fetchCategories: () => Promise<void>;
   addCategorie: (categorie: Omit<Categorie, 'id' | 'nbProduits'>) => Promise<void>;
   updateCategorie: (id: number, categorie: Partial<Categorie>) => Promise<void>;
   deleteCategorie: (categorieId: number) => Promise<void>;
-  addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => void;
+  addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => Promise<void>;
   addFactureModele: (modele: Omit<FactureModele, 'id'>) => void;
   updateFactureModele: (modele: FactureModele) => void;
   deleteFactureModele: (modeleId: string) => void;
@@ -66,6 +66,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [toast]);
   
   const fetchProduits = useCallback(async (currentCategories: Categorie[]) => {
+    if (currentCategories.length === 0) return;
     const categoryNameToIdMap = new Map(currentCategories.map(c => [c.nom, c.id]));
     try {
       const apiProduits = await api.getProducts();
@@ -77,7 +78,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         prix_vente: p.prix,
         quantite_stock: p.qte,
         alerte_stock: p.qteMin || 0,
-        categorieId: categoryNameToIdMap.get(p.categorie) ?? 0, // Map name to ID
+        categorieId: categoryNameToIdMap.get(p.categorie) ?? 0,
       }));
       setProduits(frontendProduits);
     } catch (error) {
@@ -111,8 +112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsMounted(true);
     };
     loadInitialData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchCategories, fetchProduits]);
   
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_facture_modeles', JSON.stringify(factureModeles)); }, [factureModeles, isMounted]);
@@ -130,22 +130,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   // API-driven CRUD for CATEGORIES
-  const addCategorie = async (categorieData: Omit<Categorie, 'id' | 'nbProduits'>) => { await api.createCategory(categorieData); await fetchCategories(); };
-  const updateCategorie = async (id: number, updatedCategorie: Partial<Categorie>) => { await api.updateCategory(id, updatedCategorie); await fetchCategories(); };
-  const deleteCategorie = async (categorieId: number) => { await api.deleteCategory(categorieId); await fetchCategories(); };
+  const addCategorie = useCallback(async (categorieData: Omit<Categorie, 'id' | 'nbProduits'>) => {
+    await api.createCategory(categorieData);
+    await fetchCategories();
+  }, [fetchCategories]);
+
+  const updateCategorie = useCallback(async (id: number, updatedCategorie: Partial<Categorie>) => {
+    await api.updateCategory(id, updatedCategorie);
+    await fetchCategories();
+  }, [fetchCategories]);
+
+  const deleteCategorie = useCallback(async (categorieId: number) => {
+    await api.deleteCategory(categorieId);
+    await fetchCategories();
+  }, [fetchCategories]);
 
   // API-driven CRUD for PRODUCTS
-  const refetchProduits = async () => {
+  const refetchProduits = useCallback(async () => {
     await fetchProduits(categories);
-  }
+  }, [fetchProduits, categories]);
 
-  const addProduit = async (produitData: Omit<Produit, 'id'>) => {
+  const addProduit = useCallback(async (produitData: Omit<Produit, 'id' | 'code_barre'>) => {
     const categoryIdToNameMap = new Map(categories.map(c => [c.id, c.nom]));
-    
-    // Auto-generate ref and code_barre if not provided
     const ref = produitData.ref || `REF-${Date.now().toString().slice(-6)}`;
-    const codeBarre = produitData.code_barre || `MAN-${Date.now().toString().slice(-8)}`;
-
+    const codeBarre = `MAN-${Date.now().toString().slice(-8)}`;
     const backendPayload = {
         nom: produitData.nom,
         ref: ref,
@@ -157,8 +165,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     await api.createProduct(backendPayload);
     await refetchProduits();
-  };
-  const updateProduit = async (updatedProduit: Produit) => {
+  }, [categories, refetchProduits]);
+
+  const updateProduit = useCallback(async (updatedProduit: Produit) => {
     const categoryIdToNameMap = new Map(categories.map(c => [c.id, c.nom]));
     const backendPayload = {
       id: updatedProduit.id,
@@ -172,39 +181,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     await api.updateProduct(updatedProduit.id, backendPayload);
     await refetchProduits();
-  };
-  const deleteProduit = async (produitId: number) => {
+  }, [categories, refetchProduits]);
+
+  const deleteProduit = useCallback(async (produitId: number) => {
     await api.deleteProduct(produitId);
     await refetchProduits();
-  };
+  }, [refetchProduits]);
 
-  const addMultipleProduits = async (importedData: any[]) => {
+  const addMultipleProduits = useCallback(async (importedData: any[]) => {
     await refetchProduits();
-  };
+  }, [refetchProduits]);
   
   // GESTION VENTES (Local for now)
-  const addVente = (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
-    const updatedProduits = [...produits];
-    for (const ligne of venteData.lignes) {
-      const productIndex = updatedProduits.findIndex(p => p.id === ligne.produit.id);
-      if (productIndex > -1) {
-        const productToUpdate = { ...updatedProduits[productIndex] };
-        productToUpdate.quantite_stock -= ligne.quantite;
-        updateProduit(productToUpdate); 
+  const addVente = useCallback(async (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
+    const updatePromises = venteData.lignes.map(ligne => {
+      const productToUpdate = produits.find(p => p.id === ligne.produit.id);
+      if (productToUpdate) {
+        const newQuantity = productToUpdate.quantite_stock - ligne.quantite;
+        return api.updateProduct(productToUpdate.id, { qte: newQuantity });
       }
-    }
+      return Promise.resolve();
+    });
 
-    const newVente: Vente = { ...venteData, id: Date.now(), date_vente: new Date(), reste: venteData.montant_total - venteData.montant_paye };
-    setVentes(prev => [newVente, ...prev]);
-  };
+    try {
+      await Promise.all(updatePromises);
+      await refetchProduits();
+      const newVente: Vente = { ...venteData, id: Date.now(), date_vente: new Date(), reste: venteData.montant_total - venteData.montant_paye };
+      setVentes(prev => [newVente, ...prev]);
+    } catch (error) {
+       console.error("Failed to update stock during sale:", error);
+       toast({ variant: 'destructive', title: 'Erreur de Vente', description: "La mise à jour du stock a échoué."});
+    }
+  }, [produits, refetchProduits, toast]);
 
   // CRUD MODELES FACTURE (Local for now)
-  const addFactureModele = (modeleData: Omit<FactureModele, 'id'>) => { const newModele: FactureModele = { id: `tmpl-${Date.now()}`, ...modeleData }; setFactureModeles((prev) => [...prev, newModele]); };
-  const updateFactureModele = (updatedModele: FactureModele) => { setFactureModeles((prev) => prev.map((m) => (m.id === updatedModele.id ? updatedModele : m))); };
-  const deleteFactureModele = (modeleId: string) => { setFactureModeles((prev) => prev.filter((m) => m.id !== modeleId)); };
+  const addFactureModele = useCallback((modeleData: Omit<FactureModele, 'id'>) => {
+    const newModele: FactureModele = { id: `tmpl-${Date.now()}`, ...modeleData };
+    setFactureModeles((prev) => [...prev, newModele]);
+  }, []);
+
+  const updateFactureModele = useCallback((updatedModele: FactureModele) => {
+    setFactureModeles((prev) => prev.map((m) => (m.id === updatedModele.id ? updatedModele : m)));
+  }, []);
+
+  const deleteFactureModele = useCallback((modeleId: string) => {
+    setFactureModeles((prev) => prev.filter((m) => m.id !== modeleId));
+  }, []);
 
 
-  const value = {
+  const value = useMemo(() => ({
     produits,
     categories,
     ventes,
@@ -229,7 +254,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     themeColors,
     setThemeColors,
     isMounted,
-  };
+  }), [
+    produits,
+    categories,
+    ventes,
+    factureModeles,
+    addProduit,
+    updateProduit,
+    deleteProduit,
+    refetchProduits,
+    addMultipleProduits,
+    fetchCategories,
+    addCategorie,
+    updateCategorie,
+    deleteCategorie,
+    addVente,
+    addFactureModele,
+    updateFactureModele,
+    deleteFactureModele,
+    activeModules,
+    shopInfo,
+    themeColors,
+    isMounted
+  ]);
 
   return (
     <AppContext.Provider value={value}>
