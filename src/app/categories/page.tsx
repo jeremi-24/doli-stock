@@ -57,7 +57,7 @@ export default function CategoriesPage() {
         setIsLoading(true);
         try {
             if (editingCategorie) {
-                await updateCategorie(editingCategorie.id, { ...editingCategorie, ...values });
+                await updateCategorie(editingCategorie.id, values);
                 toast({ title: "Catégorie mise à jour" });
             } else {
                 await addCategorie(values);
