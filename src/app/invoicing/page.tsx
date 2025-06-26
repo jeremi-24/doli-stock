@@ -39,7 +39,7 @@ export default function InvoicingPage() {
     if (!selectedProduit) return;
     const produitToAdd = produits.find(p => p.id === parseInt(selectedProduit, 10));
     if (produitToAdd) {
-      if (produitToAdd.quantite_stock < 1) {
+      if (produitToAdd.qte < 1) {
         toast({ title: "Rupture de stock", variant: "destructive" });
         return;
       }
@@ -47,8 +47,8 @@ export default function InvoicingPage() {
         id: Date.now(),
         produit: produitToAdd,
         quantite: 1,
-        prix_unitaire: produitToAdd.prix_vente,
-        prix_total: produitToAdd.prix_vente,
+        prix_unitaire: produitToAdd.prix,
+        prix_total: produitToAdd.prix,
       };
       setLignes([...lignes, newLigne]);
       setSelectedProduit(undefined);
@@ -61,7 +61,7 @@ export default function InvoicingPage() {
 
   const handleQuantityChange = (produitId: number, quantity: number) => {
     const produitInStock = produits.find(p => p.id === produitId);
-    if (produitInStock && quantity > produitInStock.quantite_stock) {
+    if (produitInStock && quantity > produitInStock.qte) {
       toast({ title: "Limite de stock dépassée", variant: "destructive" });
       return;
     }
@@ -150,7 +150,7 @@ export default function InvoicingPage() {
                 {lignes.length > 0 ? lignes.map(item => (
                   <TableRow key={item.produit.id}>
                     <TableCell className="font-medium">{item.produit.nom}</TableCell>
-                    <TableCell><Input type="number" value={item.quantite} onChange={(e) => handleQuantityChange(item.produit.id, parseInt(e.target.value))} min="1" max={produits.find(p => p.id === item.produit.id)?.quantite_stock} className="h-8 w-20"/></TableCell>
+                    <TableCell><Input type="number" value={item.quantite} onChange={(e) => handleQuantityChange(item.produit.id, parseInt(e.target.value))} min="1" max={produits.find(p => p.id === item.produit.id)?.qte} className="h-8 w-20"/></TableCell>
                     <TableCell className="text-right">{formatCurrency(item.prix_unitaire)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(item.prix_total)}</TableCell>
                     <TableCell><Button onClick={() => handleRemoveItem(item.produit.id)} variant="ghost" size="icon" aria-label="Supprimer"><Trash2 className="h-4 w-4 text-red-500" /></Button></TableCell>

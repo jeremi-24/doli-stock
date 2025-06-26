@@ -121,7 +121,7 @@ export default function POSPage() {
   const filteredProducts = useMemo(() => {
     const categoryId = categoryNameToId.get(activeTab);
     return produits
-      .filter(p => p.quantite_stock > 0)
+      .filter(p => p.qte > 0)
       .filter(p => activeTab === 'Tout' || p.categorieId === categoryId)
       .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [produits, activeTab, searchTerm, categoryNameToId]);
@@ -135,7 +135,7 @@ export default function POSPage() {
         return;
     }
 
-    if (newQuantity > produitInStock.quantite_stock) {
+    if (newQuantity > produitInStock.qte) {
         toast({ title: "Limite de stock atteinte", variant: "destructive" });
         return; 
     }
@@ -150,14 +150,14 @@ export default function POSPage() {
   };
 
   const handleAddToCart = (produit: Produit) => {
-    if (produit.quantite_stock <= 0) {
+    if (produit.qte <= 0) {
        toast({ title: "Rupture de stock", variant: 'destructive' });
        return;
     }
     
     const existingItem = cart.find(item => item.produit.id === produit.id);
     if (existingItem) {
-      if (existingItem.quantite >= produit.quantite_stock) {
+      if (existingItem.quantite >= produit.qte) {
         toast({ title: "Limite de stock atteinte", variant: 'destructive' });
         return;
       }
@@ -167,8 +167,8 @@ export default function POSPage() {
           id: Date.now(),
           produit: produit,
           quantite: 1,
-          prix_unitaire: produit.prix_vente,
-          prix_total: produit.prix_vente
+          prix_unitaire: produit.prix,
+          prix_total: produit.prix
       };
       setCart(currentCart => [...currentCart, newLigne]);
     }
@@ -214,9 +214,9 @@ export default function POSPage() {
                               <CardContent className="p-3 flex-1 flex flex-col justify-between">
                                   <div>
                                       <h3 className="font-semibold truncate text-sm">{produit.nom}</h3>
-                                      <p className="text-xs text-muted-foreground">{produit.quantite_stock} en stock</p>
+                                      <p className="text-xs text-muted-foreground">{produit.qte} en stock</p>
                                   </div>
-                                  <p className="text-base text-primary font-bold mt-2">{formatCurrency(produit.prix_vente)}</p>
+                                  <p className="text-base text-primary font-bold mt-2">{formatCurrency(produit.prix)}</p>
                               </CardContent>
                           </Card>
                       ))}
