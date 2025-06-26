@@ -1,4 +1,3 @@
-
 // This is now a client-side library. No 'use server' directive.
 import type { Categorie, Produit, Entrepot } from './types';
 
@@ -63,8 +62,8 @@ export async function updateCategory(id: number, data: Partial<Categorie>): Prom
   const body = { ...data, id };
   return apiFetch(`/categorie/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 };
-export async function deleteCategory(id: number): Promise<null> {
-  return apiFetch(`/categorie/${id}`, { method: 'DELETE' });
+export async function deleteCategories(ids: number[]): Promise<null> {
+  return apiFetch(`/categorie`, { method: 'DELETE', body: JSON.stringify(ids) });
 };
 
 // ========== Entrepots API ==========
@@ -77,8 +76,8 @@ export async function updateEntrepot(id: number, data: Partial<Entrepot>): Promi
   const body = { ...data, id };
   return apiFetch(`/entrepot/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 };
-export async function deleteEntrepot(id: number): Promise<null> {
-  return apiFetch(`/entrepot/${id}`, { method: 'DELETE' });
+export async function deleteEntrepots(ids: number[]): Promise<null> {
+  return apiFetch(`/entrepot`, { method: 'DELETE', body: JSON.stringify(ids) });
 };
 
 // ========== Products API ==========
@@ -90,8 +89,8 @@ export async function updateProduct(id: number, data: Partial<any>): Promise<any
   const body = { ...data, id };
   return apiFetch(`/produit/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 }
-export async function deleteProduct(id: number): Promise<null> {
-  return apiFetch(`/produit/${id}`, { method: 'DELETE' });
+export async function deleteProducts(ids: number[]): Promise<null> {
+  return apiFetch(`/produit`, { method: 'DELETE', body: JSON.stringify(ids) });
 }
 export async function importProducts(file: File): Promise<Produit[]> {
   const formData = new FormData();

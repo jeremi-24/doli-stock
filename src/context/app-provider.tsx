@@ -14,14 +14,14 @@ interface AppContextType {
   factureModeles: FactureModele[];
   addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
-  deleteProduit: (produitId: number) => Promise<void>;
+  deleteProduits: (produitIds: number[]) => Promise<void>;
   addMultipleProduits: (newProducts: any[]) => Promise<void>;
   addCategorie: (categorie: Omit<Categorie, 'id' | 'nbProduits'>) => Promise<void>;
   updateCategorie: (id: number, categorie: Partial<Categorie>) => Promise<void>;
-  deleteCategorie: (categorieId: number) => Promise<void>;
+  deleteCategories: (categorieIds: number[]) => Promise<void>;
   addEntrepot: (entrepot: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => Promise<void>;
   updateEntrepot: (id: number, entrepot: Partial<Entrepot>) => Promise<void>;
-  deleteEntrepot: (entrepotId: number) => Promise<void>;
+  deleteEntrepots: (entrepotIds: number[]) => Promise<void>;
   addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => Promise<void>;
   addFactureModele: (modele: Omit<FactureModele, 'id'>) => void;
   updateFactureModele: (modele: FactureModele) => void;
@@ -126,15 +126,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nbProduits'>) => { await api.createCategory(data); await fetchAppData(); }, [fetchAppData]);
   const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchAppData(); }, [fetchAppData]);
-  const deleteCategorie = useCallback(async (id: number) => { await api.deleteCategory(id); await fetchAppData(); }, [fetchAppData]);
+  const deleteCategories = useCallback(async (ids: number[]) => { await api.deleteCategories(ids); await fetchAppData(); }, [fetchAppData]);
 
   const addEntrepot = useCallback(async (data: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => { await api.createEntrepot(data); await fetchAppData(); }, [fetchAppData]);
   const updateEntrepot = useCallback(async (id: number, data: Partial<Entrepot>) => { await api.updateEntrepot(id, data); await fetchAppData(); }, [fetchAppData]);
-  const deleteEntrepot = useCallback(async (id: number) => { await api.deleteEntrepot(id); await fetchAppData(); }, [fetchAppData]);
+  const deleteEntrepots = useCallback(async (ids: number[]) => { await api.deleteEntrepots(ids); await fetchAppData(); }, [fetchAppData]);
 
   const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => { await api.createProduct(data); await fetchAppData(); }, [fetchAppData]);
   const updateProduit = useCallback(async (data: Produit) => { await api.updateProduct(data.id, data); await fetchAppData(); }, [fetchAppData]);
-  const deleteProduit = useCallback(async (id: number) => { await api.deleteProduct(id); await fetchAppData(); }, [fetchAppData]);
+  const deleteProduits = useCallback(async (ids: number[]) => { await api.deleteProducts(ids); await fetchAppData(); }, [fetchAppData]);
   const addMultipleProduits = useCallback(async () => { await fetchAppData(); }, [fetchAppData]);
   
   const addVente = useCallback(async (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
@@ -170,17 +170,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({
     produits, categories, entrepots, ventes, factureModeles,
-    addProduit, updateProduit, deleteProduit, addMultipleProduits,
-    addCategorie, updateCategorie, deleteCategorie,
-    addEntrepot, updateEntrepot, deleteEntrepot,
+    addProduit, updateProduit, deleteProduits, addMultipleProduits,
+    addCategorie, updateCategorie, deleteCategories,
+    addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted,
   }), [
     produits, categories, entrepots, ventes, factureModeles,
-    addProduit, updateProduit, deleteProduit, addMultipleProduits,
-    addCategorie, updateCategorie, deleteCategorie,
-    addEntrepot, updateEntrepot, deleteEntrepot,
+    addProduit, updateProduit, deleteProduits, addMultipleProduits,
+    addCategorie, updateCategorie, deleteCategories,
+    addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted,
