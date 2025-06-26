@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot } from '@/lib/types';
+import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,6 +15,7 @@ interface AppContextType {
   addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduits: (produitIds: number[]) => Promise<void>;
+  assignProduits: (data: AssignationPayload) => Promise<void>;
   addMultipleProduits: (newProducts: any[]) => Promise<void>;
   addCategorie: (categorie: Omit<Categorie, 'id' | 'nbProduits'>) => Promise<void>;
   updateCategorie: (id: number, categorie: Partial<Categorie>) => Promise<void>;
@@ -135,6 +136,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => { await api.createProduct(data); await fetchAppData(); }, [fetchAppData]);
   const updateProduit = useCallback(async (data: Produit) => { await api.updateProduct(data.id, data); await fetchAppData(); }, [fetchAppData]);
   const deleteProduits = useCallback(async (ids: number[]) => { await api.deleteProducts(ids); await fetchAppData(); }, [fetchAppData]);
+  const assignProduits = useCallback(async (data: AssignationPayload) => { await api.assignProducts(data); await fetchAppData(); }, [fetchAppData]);
   const addMultipleProduits = useCallback(async () => { await fetchAppData(); }, [fetchAppData]);
   
   const addVente = useCallback(async (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
@@ -170,7 +172,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({
     produits, categories, entrepots, ventes, factureModeles,
-    addProduit, updateProduit, deleteProduits, addMultipleProduits,
+    addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
@@ -178,7 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isMounted,
   }), [
     produits, categories, entrepots, ventes, factureModeles,
-    addProduit, updateProduit, deleteProduits, addMultipleProduits,
+    addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
