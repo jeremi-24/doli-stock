@@ -69,7 +69,7 @@ export default function InvoicingPage() {
       handleRemoveItem(produitId);
       return;
     }
-    setLignes(lignes.map(item => item.produit.id === produitId ? { ...item, quantite, prix_total: quantity * item.prix_unitaire } : item));
+    setLignes(lignes.map(item => item.produit.id === produitId ? { ...item, quantite: quantity, prix_total: quantity * item.prix_unitaire } : item));
   };
 
   const total = useMemo(() => lignes.reduce((acc, item) => acc + item.prix_total, 0), [lignes]);
