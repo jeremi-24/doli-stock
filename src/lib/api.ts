@@ -98,7 +98,7 @@ export async function assignProducts(data: AssignationPayload): Promise<null> {
         ...(data.categorieId && { categorieId: data.categorieId }),
         ...(data.entrepotId && { entrepotId: data.entrepotId }),
     };
-  return apiFetch(`/assignation`, { method: 'POST', body: JSON.stringify(payload) });
+  return apiFetch(`/produit/assignation`, { method: 'POST', body: JSON.stringify(payload) });
 };
 export async function importProducts(file: File): Promise<Produit[]> {
   const formData = new FormData();
