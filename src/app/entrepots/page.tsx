@@ -36,6 +36,10 @@ export default function EntrepotsPage() {
         defaultValues: { nom: "", ref: "" },
     });
 
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+    };
+
     useEffect(() => {
         if (editingEntrepot) {
             form.reset({ nom: editingEntrepot.nom, ref: editingEntrepot.ref });
@@ -74,7 +78,7 @@ export default function EntrepotsPage() {
 
     const handleDelete = async (entrepotId: number) => {
         const entrepotToDelete = entrepots.find(e => e.id === entrepotId);
-        const isUsed = entrepotToDelete && entrepotToDelete.nbProduits && entrepotToDelete.nbProduits > 0;
+        const isUsed = entrepotToDelete && entrepotToDelete.quantite && entrepotToDelete.quantite > 0;
 
         if (isUsed) {
             toast({ variant: 'destructive', title: 'Suppression impossible', description: 'Cet entrepôt est utilisé par au moins un produit.' });
@@ -115,7 +119,8 @@ export default function EntrepotsPage() {
                                 <TableRow>
                                     <TableHead>Nom de l'Entrepôt</TableHead>
                                     <TableHead>Référence</TableHead>
-                                    <TableHead className="text-right">Nombre de produits</TableHead>
+                                    <TableHead className="text-right">Quantité</TableHead>
+                                    <TableHead className="text-right">Valeur du Stock</TableHead>
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -126,6 +131,7 @@ export default function EntrepotsPage() {
                                             <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-1/4" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
                                             <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                                         </TableRow>
                                     ))
@@ -134,7 +140,8 @@ export default function EntrepotsPage() {
                                         <TableRow key={ent.id}>
                                             <TableCell className="font-medium">{ent.nom}</TableCell>
                                             <TableCell>{ent.ref}</TableCell>
-                                            <TableCell className="text-right">{ent.nbProduits ?? 0}</TableCell>
+                                            <TableCell className="text-right">{ent.quantite ?? 0}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(ent.valeurVente ?? 0)}</TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -174,7 +181,7 @@ export default function EntrepotsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">
+                                        <TableCell colSpan={5} className="h-24 text-center">
                                             Aucun entrepôt trouvé. Commencez par en ajouter un.
                                         </TableCell>
                                     </TableRow>

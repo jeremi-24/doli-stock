@@ -8,7 +8,8 @@ export type Entrepot = {
   id: number;
   nom: string;
   ref: string;
-  nbProduits?: number;
+  quantite?: number;
+  valeurVente?: number;
 };
 
 export type Produit = {

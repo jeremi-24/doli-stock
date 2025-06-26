@@ -63,7 +63,7 @@ export async function deleteCategory(id: number): Promise<null> {
 // ========== Entrepots API ==========
 export async function getEntrepots(): Promise<Entrepot[]> { return apiFetch('/entrepot'); };
 export async function createEntrepot(data: { nom: string, ref: string }): Promise<Entrepot> {
-  const body = { nom: data.nom, ref: data.ref, produits: [] };
+  const body = { nom: data.nom, ref: data.ref };
   return apiFetch('/entrepot', { method: 'POST', body: JSON.stringify(body) });
 };
 export async function updateEntrepot(id: number, data: Partial<Entrepot>): Promise<Entrepot> {

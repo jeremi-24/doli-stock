@@ -19,7 +19,7 @@ interface AppContextType {
   addCategorie: (categorie: Omit<Categorie, 'id' | 'nbProduits'>) => Promise<void>;
   updateCategorie: (id: number, categorie: Partial<Categorie>) => Promise<void>;
   deleteCategorie: (categorieId: number) => Promise<void>;
-  addEntrepot: (entrepot: Omit<Entrepot, 'id' | 'nbProduits'>) => Promise<void>;
+  addEntrepot: (entrepot: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => Promise<void>;
   updateEntrepot: (id: number, entrepot: Partial<Entrepot>) => Promise<void>;
   deleteEntrepot: (entrepotId: number) => Promise<void>;
   addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => Promise<void>;
@@ -112,7 +112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchAppData(); }, [fetchAppData]);
   const deleteCategorie = useCallback(async (id: number) => { await api.deleteCategory(id); await fetchAppData(); }, [fetchAppData]);
 
-  const addEntrepot = useCallback(async (data: Omit<Entrepot, 'id' | 'nbProduits'>) => { await api.createEntrepot(data); await fetchAppData(); }, [fetchAppData]);
+  const addEntrepot = useCallback(async (data: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => { await api.createEntrepot(data); await fetchAppData(); }, [fetchAppData]);
   const updateEntrepot = useCallback(async (id: number, data: Partial<Entrepot>) => { await api.updateEntrepot(id, data); await fetchAppData(); }, [fetchAppData]);
   const deleteEntrepot = useCallback(async (id: number) => { await api.deleteEntrepot(id); await fetchAppData(); }, [fetchAppData]);
 
