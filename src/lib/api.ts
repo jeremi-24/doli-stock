@@ -59,7 +59,8 @@ export async function createCategory(data: { nom: string }): Promise<Categorie> 
   return apiFetch('/categorie', { method: 'POST', body: JSON.stringify(body) });
 };
 export async function updateCategory(id: number, data: Partial<Categorie>): Promise<Categorie> {
-  return apiFetch(`/categorie/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  const body = { ...data, id };
+  return apiFetch(`/categorie/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 };
 export async function deleteCategory(id: number): Promise<null> {
   return apiFetch(`/categorie/${id}`, { method: 'DELETE' });
@@ -72,7 +73,8 @@ export async function createEntrepot(data: { nom: string, ref: string }): Promis
   return apiFetch('/entrepot', { method: 'POST', body: JSON.stringify(body) });
 };
 export async function updateEntrepot(id: number, data: Partial<Entrepot>): Promise<Entrepot> {
-  return apiFetch(`/entrepot/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  const body = { ...data, id };
+  return apiFetch(`/entrepot/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 };
 export async function deleteEntrepot(id: number): Promise<null> {
   return apiFetch(`/entrepot/${id}`, { method: 'DELETE' });
@@ -84,7 +86,8 @@ export async function createProduct(data: any): Promise<any> {
   return apiFetch('/produit', { method: 'POST', body: JSON.stringify(data) });
 }
 export async function updateProduct(id: number, data: Partial<any>): Promise<any> {
-  return apiFetch(`/produit/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  const body = { ...data, id };
+  return apiFetch(`/produit/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 }
 export async function deleteProduct(id: number): Promise<null> {
   return apiFetch(`/produit/${id}`, { method: 'DELETE' });
