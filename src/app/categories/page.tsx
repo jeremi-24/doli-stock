@@ -24,7 +24,7 @@ const categorieSchema = z.object({
 });
 
 export default function CategoriesPage() {
-    const { categories, produits, addCategorie, updateCategorie, deleteCategorie, fetchCategories, isMounted } = useApp();
+    const { categories, addCategorie, updateCategorie, deleteCategorie, isMounted } = useApp();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCategorie, setEditingCategorie] = useState<Categorie | null>(null);
@@ -72,11 +72,14 @@ export default function CategoriesPage() {
     };
 
     const handleDelete = async (categorieId: number) => {
-        const isUsed = produits.some(p => p.categorie_id === categorieId);
+        const categorieToDelete = categories.find(c => c.id === categorieId);
+        const isUsed = categorieToDelete && categorieToDelete.produits && categorieToDelete.produits.length > 0;
+
         if (isUsed) {
             toast({ variant: 'destructive', title: 'Suppression impossible', description: 'Cette catégorie est utilisée par au moins un produit.' });
             return;
         }
+
         setIsLoading(true);
         try {
             await deleteCategorie(categorieId);
@@ -88,8 +91,8 @@ export default function CategoriesPage() {
         }
     };
 
-    const getCategoryUsage = (categorieId: number) => {
-        return produits.filter(p => p.categorie_id === categorieId).length;
+    const getCategoryUsage = (categorie: Categorie) => {
+        return categorie.produits ? categorie.produits.length : 0;
     };
     
     return (
@@ -131,7 +134,7 @@ export default function CategoriesPage() {
                                     categories.map((cat) => (
                                         <TableRow key={cat.id}>
                                             <TableCell className="font-medium">{cat.nom}</TableCell>
-                                            <TableCell className="text-right">{getCategoryUsage(cat.id)}</TableCell>
+                                            <TableCell className="text-right">{getCategoryUsage(cat)}</TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
