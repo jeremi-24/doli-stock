@@ -62,7 +62,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const produitSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
-  code_barre: z.string().min(5, "Le code-barres doit contenir au moins 5 caractères."),
+  code_barre: z.string().optional(),
   categorieId: z.string().min(1, "Veuillez sélectionner une catégorie."),
   prix_vente: z.coerce.number().min(0, "Le prix de vente doit être un nombre positif."),
   quantite_stock: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
@@ -152,10 +152,12 @@ function BarcodePrintDialog({ open, onOpenChange, productsToPrint }: { open: boo
         <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
             <div ref={printRef} className="barcode-grid">
             {productsToPrint.map((produit) => (
-                <div key={produit.id} className="barcode-item">
-                <p className="product-name">{produit.nom}</p>
-                <Barcode value={produit.code_barre} height={40} width={1.5} fontSize={10} margin={5} />
-                </div>
+                produit.code_barre && (
+                  <div key={produit.id} className="barcode-item">
+                  <p className="product-name">{produit.nom}</p>
+                  <Barcode value={produit.code_barre} height={40} width={1.5} fontSize={10} margin={5} />
+                  </div>
+                )
             ))}
             </div>
         </div>
@@ -310,14 +312,12 @@ export default function StockPage() {
       </Card>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader><DialogTitle className="font-headline">{editingProduit ? "Modifier le Produit" : "Ajouter un Produit"}</DialogTitle></DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="nom" render={({ field }) => (<FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="T-Shirt" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="code_barre" render={({ field }) => (<FormItem><FormLabel>Code-barres</FormLabel><FormControl><Input placeholder="1234567890" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
+              <FormField control={form.control} name="nom" render={({ field }) => (<FormItem><FormLabel>Nom du produit</FormLabel><FormControl><Input placeholder="T-Shirt" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+              
               <FormField control={form.control} name="categorieId" render={({ field }) => (
                   <FormItem><FormLabel>Catégorie</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>

@@ -141,13 +141,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addProduit = async (produitData: Omit<Produit, 'id'>) => {
     const categoryIdToNameMap = new Map(categories.map(c => [c.id, c.nom]));
+    
+    // Auto-generate ref and code_barre if not provided
+    const ref = produitData.ref || `REF-${Date.now().toString().slice(-6)}`;
+    const codeBarre = produitData.code_barre || `MAN-${Date.now().toString().slice(-8)}`;
+
     const backendPayload = {
         nom: produitData.nom,
-        ref: produitData.ref,
+        ref: ref,
         qte: produitData.quantite_stock,
         qteMin: produitData.alerte_stock,
         prix: produitData.prix_vente,
-        codeBarre: produitData.code_barre,
+        codeBarre: codeBarre,
         categorie: categoryIdToNameMap.get(produitData.categorieId),
     };
     await api.createProduct(backendPayload);
