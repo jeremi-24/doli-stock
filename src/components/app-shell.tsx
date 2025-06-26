@@ -153,7 +153,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
             {navItems.map((item) => 
                 (item.module === 'all' || activeModules[item.module as keyof typeof activeModules]) && (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} legacyBehavior passHref>
+                  <Link href={item.href}>
                     <SidebarMenuButton isActive={item.active} size="lg" tooltip={item.label}>
                       {item.icon}
                       <span>{item.label}</span>
