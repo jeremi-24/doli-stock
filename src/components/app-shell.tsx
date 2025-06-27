@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -33,8 +33,9 @@ import { useApp } from '@/context/app-provider';
 import { cn } from '@/lib/utils';
 
 function AppShellContent({ children }: { children: React.ReactNode }) {
-  const { activeModules, isMounted, shopInfo } = useApp();
+  const { activeModules, isMounted, shopInfo, logout, isAuthenticated } = useApp();
   const pathname = usePathname();
+  const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   
   const [theme, setTheme] = React.useState('light');
@@ -53,9 +54,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
+  
+  const handleLogout = () => {
+    logout();
+  };
 
-  const isPosPage = pathname === '/pos';
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isPosPage = pathname === '/pos';
 
   React.useEffect(() => {
     if (isMobile) {
@@ -63,8 +68,15 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, isMobile, setOpenMobile]);
 
+  React.useEffect(() => {
+    if (!isMounted) return;
+    if (!isAuthenticated && !isAuthPage) {
+        router.push('/login');
+    }
+  }, [isMounted, isAuthenticated, isAuthPage, pathname, router]);
 
-  if (!isMounted) {
+
+  if (!isMounted || (!isAuthenticated && !isAuthPage)) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Logo className="h-10 w-10 animate-pulse" />
@@ -194,7 +206,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                         <span>Changer de Thème</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Se déconnecter</span>
                     </DropdownMenuItem>

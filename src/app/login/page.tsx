@@ -14,6 +14,7 @@ import { Logo } from "@/components/logo"
 import { useToast } from "@/hooks/use-toast"
 import * as api from "@/lib/api"
 import type { LoginPayload } from "@/lib/types"
+import { useApp } from "@/context/app-provider"
 
 const loginSchema = z.object({
   email: z.string().email("Veuillez entrer une adresse e-mail valide."),
@@ -23,6 +24,7 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { login } = useApp();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -37,12 +39,15 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await api.loginUser(values);
-      console.log("Login successful", response);
-      toast({
-        title: "Connexion réussie",
-        description: "Vous allez être redirigé vers le tableau de bord.",
-      });
-      router.push("/");
+      if (response && response.token) {
+        toast({
+            title: "Connexion réussie",
+            description: "Vous allez être redirigé vers le tableau de bord.",
+        });
+        login(response.token);
+      } else {
+        throw new Error("Réponse de connexion invalide, token manquant.");
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
       toast({
