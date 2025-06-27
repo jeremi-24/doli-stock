@@ -45,6 +45,7 @@ export default function LoginPage() {
             description: "Vous allez être redirigé vers le tableau de bord.",
         });
         login(response.token);
+        router.push('/');
       } else {
         throw new Error("Réponse de connexion invalide, token manquant.");
       }

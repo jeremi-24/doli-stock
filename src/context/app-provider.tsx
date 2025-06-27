@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
@@ -58,6 +58,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const pathname = usePathname();
 
   const logout = useCallback(() => {
     setToken(null);
@@ -111,10 +112,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isMounted && token) {
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+    if (isMounted && token && !isAuthPage) {
         fetchAllData();
     }
-  }, [isMounted, token, fetchAllData]);
+  }, [isMounted, token, fetchAllData, pathname]);
   
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_modules', JSON.stringify(activeModules)); }, [activeModules, isMounted]);
@@ -132,7 +134,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const login = (newToken: string) => {
     localStorage.setItem('stockhero_token', newToken);
     setToken(newToken);
-    router.push('/');
   };
 
   const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => { await api.createCategory(data); await fetchAllData(); }, [fetchAllData]);
