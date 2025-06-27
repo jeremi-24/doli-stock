@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -56,6 +55,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   };
 
   const isPosPage = pathname === '/pos';
+  const isLoginPage = pathname === '/login';
 
   React.useEffect(() => {
     if (isMobile) {
@@ -70,6 +70,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
             <Logo className="h-10 w-10 animate-pulse" />
         </div>
     );
+  }
+
+  if (isLoginPage) {
+    return <>{children}</>;
   }
   
   const navItems = [
