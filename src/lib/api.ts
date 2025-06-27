@@ -8,15 +8,14 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
 
+  const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
     ...options.headers,
+    ...authHeader,
   };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   try {
     const response = await fetch(url, {
@@ -169,15 +168,14 @@ export async function printBarcodes(data: { produitNom: string, quantite: number
   const url = `${API_BASE_URL}/produit/print`;
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
 
+  const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     'Accept': 'application/pdf',
+    ...authHeader
   };
   
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   try {
     const response = await fetch(url, {
       method: 'POST',
