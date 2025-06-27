@@ -3,7 +3,7 @@
 import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:8080'; 
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
