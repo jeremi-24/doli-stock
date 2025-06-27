@@ -14,11 +14,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode as BarcodeIcon, Warehouse, FileText, ShoppingCart, Import, Users, Store, Palette, Badge, FileUp, Printer } from 'lucide-react';
+import { Settings, Barcode as BarcodeIcon, Warehouse, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer } from 'lucide-react';
 import type { ShopInfo, ThemeColors, Produit } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import * as api from '@/lib/api';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 const shopInfoSchema = z.object({
   name: z.string().min(1, "Le nom de la boutique est requis."),
@@ -359,7 +360,7 @@ function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, o
 }
 
 export default function SettingsPage() {
-  const { activeModules, setActiveModules, produits, addMultipleProduits } = useApp();
+  const { activeModules, setActiveModules, produits, addMultipleProduits, currentUser } = useApp();
   const { toast } = useToast();
 
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
@@ -536,9 +537,9 @@ export default function SettingsPage() {
                     </TableHeader>
                     <TableBody>
                       <TableRow>
-                        <TableCell className="font-medium">Utilisateur de Démo</TableCell>
-                        <TableCell>admin@stockhero.dev</TableCell>
-                        <TableCell><Badge variant="secondary">Admin</Badge></TableCell>
+                        <TableCell className="font-medium">Utilisateur Actuel</TableCell>
+                        <TableCell>{currentUser?.email}</TableCell>
+                        <TableCell><Badge variant="secondary">{currentUser?.role}</Badge></TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
