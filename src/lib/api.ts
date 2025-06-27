@@ -1,4 +1,3 @@
-
 // This is now a client-side library. No 'use server' directive.
 import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele } from './types';
 
@@ -111,8 +110,6 @@ export async function importProducts(file: File): Promise<Produit[]> {
     const response = await fetch(`${API_BASE_URL}/produit/import`, {
       method: 'POST',
       body: formData,
-      // NOTE: Do not set 'Content-Type' header. The browser will set it
-      // to 'multipart/form-data' with the correct boundary.
     });
 
     if (!response.ok) {
@@ -144,6 +141,42 @@ export async function importProducts(file: File): Promise<Produit[]> {
     throw error;
   }
 };
+export async function printBarcodes(data: { produitNom: string, quantite: number }[]): Promise<Blob> {
+  const url = `${API_BASE_URL}/produit/print`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/pdf',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      const statusText = response.statusText || 'Erreur inconnue';
+      let userMessage = `La génération du PDF a échoué: ${statusText} (status: ${response.status})`;
+      if (response.status === 504) {
+          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout 504). Veuillez vérifier qu\'il est bien démarré et accessible.';
+      } else if (errorBody) {
+         try {
+            const errorJson = JSON.parse(errorBody);
+            userMessage = errorJson.error || errorJson.message || userMessage;
+         } catch(e) {
+            userMessage = `${userMessage}: ${errorBody}`;
+         }
+      }
+      throw new Error(userMessage);
+    }
+    
+    return response.blob();
+
+  } catch (error) {
+    console.error('Erreur de connexion API pour printBarcodes:', { url, error });
+    throw error;
+  }
+}
 
 // ========== FactureModeles API ==========
 export async function getFactureModeles(): Promise<FactureModele[]> { 
