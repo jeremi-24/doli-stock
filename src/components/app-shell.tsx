@@ -55,7 +55,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   };
 
   const isPosPage = pathname === '/pos';
-  const isLoginPage = pathname === '/login';
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   React.useEffect(() => {
     if (isMobile) {
@@ -72,7 +72,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isLoginPage) {
+  if (isAuthPage) {
     return <>{children}</>;
   }
   
