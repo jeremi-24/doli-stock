@@ -92,6 +92,11 @@ export type Utilisateur = {
   mot_de_passe_hash: string;
 };
 
+export type CurrentUser = {
+  email: string;
+  role: string;
+};
+
 export type LoginPayload = {
   email: string;
   password: string;

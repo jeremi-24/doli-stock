@@ -197,14 +197,14 @@ export async function printBarcodes(data: { produitNom: string, quantite: number
 
 // ========== FactureModeles API ==========
 export async function getFactureModeles(): Promise<FactureModele[]> { 
-    return apiFetch('/facture-modele'); 
+    return apiFetch('/facture'); 
 }
 export async function createFactureModele(data: Omit<FactureModele, 'id'>): Promise<FactureModele> {
-  return apiFetch('/facture-modele', { method: 'POST', body: JSON.stringify(data) });
+  return apiFetch('/facture', { method: 'POST', body: JSON.stringify(data) });
 }
 export async function updateFactureModele(id: string, data: Partial<FactureModele>): Promise<FactureModele> {
-  return apiFetch(`/facture-modele/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  return apiFetch(`/facture/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 }
 export async function deleteFactureModele(id: string): Promise<null> {
-  return apiFetch(`/facture-modele/${id}`, { method: 'DELETE' });
+  return apiFetch(`/facture/${id}`, { method: 'DELETE' });
 }

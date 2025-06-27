@@ -2,9 +2,10 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload } from '@/lib/types';
+import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { jwtDecode } from 'jwt-decode';
 
 interface AppContextType {
   produits: Produit[];
@@ -35,6 +36,7 @@ interface AppContextType {
   setThemeColors: React.Dispatch<React.SetStateAction<ThemeColors>>;
   isMounted: boolean;
   isAuthenticated: boolean;
+  currentUser: CurrentUser | null;
   login: (token: string) => void;
   logout: () => void;
 }
@@ -56,12 +58,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [shopInfo, setShopInfo] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
   const [token, setToken] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
 
   const logout = useCallback(() => {
     setToken(null);
+    setCurrentUser(null);
     localStorage.removeItem('stockhero_token');
     // Clear data to avoid flashing old content
     setProduits([]);
@@ -96,8 +100,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const storedToken = localStorage.getItem('stockhero_token');
     if (storedToken) {
-      setToken(storedToken);
+      try {
+        const decoded: { sub: string, roles: string[] } = jwtDecode(storedToken);
+        const user = { email: decoded.sub, role: decoded.roles?.[0] || 'USER' };
+        setToken(storedToken);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Invalid token in storage, logging out.', error);
+        logout();
+      }
     }
+
     const storedVentes = localStorage.getItem('stockhero_ventes');
     if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
     
@@ -109,7 +122,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
     
     setIsMounted(true);
-  }, []);
+  }, [logout]);
 
   useEffect(() => {
     const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -132,8 +145,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [themeColors, isMounted]);
 
   const login = (newToken: string) => {
-    localStorage.setItem('stockhero_token', newToken);
-    setToken(newToken);
+    try {
+      const decoded: { sub: string, roles: string[] } = jwtDecode(newToken);
+      const user = { email: decoded.sub, role: decoded.roles?.[0] || 'USER' };
+      localStorage.setItem('stockhero_token', newToken);
+      setToken(newToken);
+      setCurrentUser(user);
+    } catch (e) {
+      console.error("Failed to decode token", e);
+      toast({ variant: 'destructive', title: 'Erreur de connexion', description: 'Le token reçu est invalide.' });
+      logout();
+    }
   };
 
   const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => { await api.createCategory(data); await fetchAllData(); }, [fetchAllData]);
@@ -192,6 +214,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted,
     isAuthenticated: !!token,
+    currentUser,
     login,
     logout,
   }), [
@@ -201,7 +224,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     activeModules, shopInfo, themeColors,
-    isMounted, token, logout
+    isMounted, token, logout, currentUser
   ]);
 
   return (

@@ -33,7 +33,7 @@ import { useApp } from '@/context/app-provider';
 import { cn } from '@/lib/utils';
 
 function AppShellContent({ children }: { children: React.ReactNode }) {
-  const { activeModules, isMounted, shopInfo, logout, isAuthenticated } = useApp();
+  const { activeModules, isMounted, shopInfo, logout, isAuthenticated, currentUser } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -86,6 +86,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
   if (isAuthPage) {
     return <>{children}</>;
+  }
+
+  const getAvatarFallback = () => {
+    if (currentUser?.email) {
+      return currentUser.email.substring(0, 2).toUpperCase();
+    }
+    return "UD";
   }
   
   const navItems = [
@@ -186,11 +193,11 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                     <Button variant="ghost" className="flex items-center justify-start gap-2 w-full p-2 h-auto">
                         <Avatar className="h-8 w-8">
                             <AvatarImage src="https://placehold.co/100x100.png" alt="@user" data-ai-hint="user avatar"/>
-                            <AvatarFallback>UD</AvatarFallback>
+                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                         <div className="text-left group-data-[collapsible=icon]:hidden">
                             <p className="font-semibold text-sm">Utilisateur Démo</p>
-                            <p className="text-xs text-muted-foreground">admin@stockhero.dev</p>
+                            <p className="text-xs text-muted-foreground">{currentUser?.email || 'email@example.com'}</p>
                         </div>
                     </Button>
                 </DropdownMenuTrigger>
