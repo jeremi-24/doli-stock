@@ -118,14 +118,17 @@ export async function assignProducts(data: AssignationPayload): Promise<null> {
     };
   return apiFetch(`/produit/assignation`, { method: 'PUT', body: JSON.stringify(payload) });
 };
+
 export async function importProducts(file: File): Promise<Produit[]> {
   const formData = new FormData();
   formData.append('file', file);
   
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
-  const headers = new Headers();
+  
+  // Use a plain object for headers. Do not set Content-Type for FormData.
+  const headers: HeadersInit = {};
   if (token) {
-    headers.append('Authorization', `Bearer ${token}`);
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   try {
