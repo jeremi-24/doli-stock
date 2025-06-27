@@ -1,18 +1,60 @@
 "use client"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import * as React from "react"
+import * as z from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/logo"
+import { useToast } from "@/hooks/use-toast"
+import * as api from "@/lib/api"
+import type { LoginPayload } from "@/lib/types"
+
+const loginSchema = z.object({
+  email: z.string().email("Veuillez entrer une adresse e-mail valide."),
+  password: z.string().min(1, "Le mot de passe est requis."),
+});
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  async function onSubmit(values: LoginPayload) {
+    setIsLoading(true);
+    try {
+      const response = await api.loginUser(values);
+      console.log("Login successful", response);
+      toast({
+        title: "Connexion réussie",
+        description: "Vous allez être redirigé vers le tableau de bord.",
+      });
+      router.push("/");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
+      toast({
+        variant: "destructive",
+        title: "Échec de la connexion",
+        description: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="w-full h-screen flex lg:flex-row">
       
@@ -22,7 +64,6 @@ export default function LoginPage() {
        <p className="mt-2 text-lg">Votre gestion de stock, simplifiée.</p>
       </div>
       
-      {/* Right panel with login form */}
       <div className="items-center justify-center flex w-full p-6 bg-background">
         <Card className="mx-auto max-w-sm w-full">
           <CardHeader className="text-center">
@@ -33,29 +74,44 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="m@example.com" {...field} disabled={isLoading}/>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Link href="#" className="ml-auto inline-block text-sm underline">
-                    Mot de passe oublié?
-                  </Link>
-                </div>
-                <Input id="password" type="password" required />
-              </div>
-              <Button type="submit" className="w-full">
-                Se connecter
-              </Button>
-            </div>
+                 <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                       <div className="flex items-center">
+                          <FormLabel>Mot de passe</FormLabel>
+                          <Link href="#" className="ml-auto inline-block text-sm underline">
+                            Mot de passe oublié?
+                          </Link>
+                        </div>
+                      <FormControl>
+                        <Input type="password" {...field} disabled={isLoading}/>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Connexion..." : "Se connecter"}
+                </Button>
+              </form>
+            </Form>
             <div className="mt-4 text-center text-sm">
               Vous n'avez pas de compte?{" "}
               <Link href="/signup" className="underline">

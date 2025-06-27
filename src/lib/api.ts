@@ -1,8 +1,8 @@
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele } from './types';
+import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
-const API_BASE_URL = '8080-firebase-stcokback-1751036275628.cluster-l6vkdperq5ebaqo3qy4ksvoqom.cloudworkstations.dev'; 
+const API_BASE_URL = '/api'; 
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -50,6 +50,16 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     // Re-throw the error so it can be caught by the calling function
     throw error;
   }
+}
+
+// ========== Auth API ==========
+export async function loginUser(data: LoginPayload): Promise<any> {
+  return apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function signupUser(data: SignupPayload): Promise<any> {
+  const { confirmPassword, ...payload } = data; // Don't send confirmPassword to backend
+  return apiFetch('/auth/save', { method: 'POST', body: JSON.stringify(payload) });
 }
 
 // ========== Categories API ==========
