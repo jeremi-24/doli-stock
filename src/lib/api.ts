@@ -122,10 +122,17 @@ export async function assignProducts(data: AssignationPayload): Promise<null> {
 export async function importProducts(file: File): Promise<Produit[]> {
   const formData = new FormData();
   formData.append('file', file);
+  
+  const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
+  const headers = new Headers();
+  if (token) {
+    headers.append('Authorization', `Bearer ${token}`);
+  }
 
   try {
     const response = await fetch(`${API_BASE_URL}/produit/import`, {
       method: 'POST',
+      headers: headers,
       body: formData,
     });
 
@@ -160,13 +167,21 @@ export async function importProducts(file: File): Promise<Produit[]> {
 };
 export async function printBarcodes(data: { produitNom: string, quantite: number }[]): Promise<Blob> {
   const url = `${API_BASE_URL}/produit/print`;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/pdf',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/pdf',
-      },
+      headers: headers,
       body: JSON.stringify(data),
     });
 
