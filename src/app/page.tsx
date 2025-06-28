@@ -11,9 +11,9 @@ import { useApp } from "@/context/app-provider";
 import type { Produit } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
+import * as api from "@/lib/api";
 
 function BarcodeScannerCard() {
-    const { produits } = useApp();
     const [barcode, setBarcode] = useState("");
     const [scannedProduct, setScannedProduct] = useState<Produit | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -23,21 +23,26 @@ function BarcodeScannerCard() {
         return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
     };
 
-    const handleScan = () => {
+    const handleScan = async () => {
+        if (!barcode.trim()) return;
         setError(null);
         setScannedProduct(null);
         setIsScanning(true);
 
-        setTimeout(() => {
-        const product = produits.find((p) => p.codeBarre === barcode);
-        if (product) {
-            setScannedProduct(product);
-        } else {
-            setError("Produit non trouvé. Veuillez vérifier le code-barres ou ajouter le produit à votre stock.");
+        try {
+            const product = await api.getProductByBarcode(barcode);
+            if (product) {
+                setScannedProduct(product);
+            } else {
+                setError("Produit non trouvé. Veuillez vérifier le code-barres.");
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors de la recherche.";
+            setError(errorMessage);
+        } finally {
+            setIsScanning(false);
+            setBarcode("");
         }
-        setIsScanning(false);
-        setBarcode("");
-        }, 500);
     };
 
     return (

@@ -29,8 +29,8 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
       console.error(`API Error: ${response.status} ${statusText}`, { url, options, errorBody });
       
       let userMessage = `La requête API a échoué: ${statusText} (status: ${response.status})`;
-      if (response.status === 504) {
-          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout 504). Veuillez vérifier qu\'il est bien démarré et accessible.';
+      if (response.status === 503 || response.status === 504) {
+          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout). Veuillez vérifier qu\'il est bien démarré et accessible.';
       } else if (errorBody) {
          try {
             const errorJson = JSON.parse(errorBody);
@@ -100,6 +100,9 @@ export async function deleteEntrepots(ids: number[]): Promise<null> {
 export async function getProducts(): Promise<Produit[]> {
     return apiFetch(`/produit`);
 }
+export async function getProductByBarcode(codeBarre: string): Promise<Produit | null> {
+    return apiFetch(`/produit/code/${codeBarre}`);
+}
 export async function createProduct(data: any): Promise<any> {
   return apiFetch('/produit', { method: 'POST', body: JSON.stringify(data) });
 }
@@ -125,11 +128,7 @@ export async function importProducts(file: File): Promise<Produit[]> {
   
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
   
-  // Use a plain object for headers. Do not set Content-Type for FormData.
-  const headers: HeadersInit = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+  const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
 
   try {
     const response = await fetch(`${API_BASE_URL}/produit/import`, {
@@ -142,8 +141,8 @@ export async function importProducts(file: File): Promise<Produit[]> {
       const errorBody = await response.text();
       const statusText = response.statusText || 'Erreur inconnue';
       let userMessage = `La requête API a échoué: ${statusText} (status: ${response.status})`;
-       if (response.status === 504) {
-          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout 504). Veuillez vérifier qu\'il est bien démarré et accessible.';
+       if (response.status === 503 || response.status === 504) {
+          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout). Veuillez vérifier qu\'il est bien démarré et accessible.';
       } else if (errorBody) {
          try {
             const errorJson = JSON.parse(errorBody);
@@ -190,8 +189,8 @@ export async function printBarcodes(data: { produitNom: string, quantite: number
       const errorBody = await response.text();
       const statusText = response.statusText || 'Erreur inconnue';
       let userMessage = `La génération du PDF a échoué: ${statusText} (status: ${response.status})`;
-      if (response.status === 504) {
-          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout 504). Veuillez vérifier qu\'il est bien démarré et accessible.';
+      if (response.status === 503 || response.status === 504) {
+          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout). Veuillez vérifier qu\'il est bien démarré et accessible.';
       } else if (errorBody) {
          try {
             const errorJson = JSON.parse(errorBody);
