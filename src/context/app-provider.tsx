@@ -1,10 +1,11 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload } from '@/lib/types';
+import { useRouter, usePathname } from 'next/navigation';
+import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { jwtDecode } from 'jwt-decode';
 
 interface AppContextType {
   produits: Produit[];
@@ -34,6 +35,10 @@ interface AppContextType {
   themeColors: ThemeColors;
   setThemeColors: React.Dispatch<React.SetStateAction<ThemeColors>>;
   isMounted: boolean;
+  isAuthenticated: boolean;
+  currentUser: CurrentUser | null;
+  login: (token: string) => void;
+  logout: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -52,8 +57,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
   const [shopInfo, setShopInfo] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
+  const [token, setToken] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const { toast } = useToast();
-  
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const logout = useCallback(() => {
+    setToken(null);
+    setCurrentUser(null);
+    localStorage.removeItem('stockhero_token');
+    // Clear data to avoid flashing old content
+    setProduits([]);
+    setCategories([]);
+    setEntrepots([]);
+    setVentes([]);
+    setFactureModeles([]);
+    router.push('/login');
+  }, [router]);
+
   const fetchAllData = useCallback(async () => {
     try {
         const [produitsData, categoriesData, entrepotsData, factureModelesData] = await Promise.all([
@@ -69,28 +91,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
         const description = (error instanceof Error) ? error.message : 'Erreur inconnue';
         toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les données: ${description}` });
+        if (description.includes('401') || description.includes('403')) {
+          logout();
+        }
     }
-  }, [toast]);
-
+  }, [toast, logout]);
 
   useEffect(() => {
-    const loadInitialData = async () => {
-      await fetchAllData();
-      
-      const storedVentes = localStorage.getItem('stockhero_ventes');
-      if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
-      
-      const storedModules = localStorage.getItem('stockhero_modules');
-      if (storedModules) setActiveModules(JSON.parse(storedModules));
-      const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
-      if (storedShopInfo) setShopInfo(JSON.parse(storedShopInfo));
-      const storedThemeColors = localStorage.getItem('stockhero_themecolors');
-      if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
-      
-      setIsMounted(true);
-    };
-    loadInitialData();
-  }, [fetchAllData]);
+    const storedToken = localStorage.getItem('stockhero_token');
+    if (storedToken) {
+      try {
+        const decoded: { sub: string, roles: string[] } = jwtDecode(storedToken);
+        const user = { email: decoded.sub, role: decoded.roles?.[0] || 'USER' };
+        setToken(storedToken);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Invalid token in storage, logging out.', error);
+        logout();
+      }
+    }
+
+    const storedVentes = localStorage.getItem('stockhero_ventes');
+    if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
+    
+    const storedModules = localStorage.getItem('stockhero_modules');
+    if (storedModules) setActiveModules(JSON.parse(storedModules));
+    const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
+    if (storedShopInfo) setShopInfo(JSON.parse(storedShopInfo));
+    const storedThemeColors = localStorage.getItem('stockhero_themecolors');
+    if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
+    
+    setIsMounted(true);
+  }, [logout]);
+
+  useEffect(() => {
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+    if (isMounted && token && !isAuthPage) {
+        fetchAllData();
+    }
+  }, [isMounted, token, fetchAllData, pathname]);
   
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_modules', JSON.stringify(activeModules)); }, [activeModules, isMounted]);
@@ -104,7 +143,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (themeColors.accent) root.style.setProperty('--accent', themeColors.accent);
     }
   }, [themeColors, isMounted]);
-  
+
+  const login = (newToken: string) => {
+    try {
+      const decoded: { sub: string, roles: string[] } = jwtDecode(newToken);
+      const user = { email: decoded.sub, role: decoded.roles?.[0] || 'USER' };
+      localStorage.setItem('stockhero_token', newToken);
+      setToken(newToken);
+      setCurrentUser(user);
+    } catch (e) {
+      console.error("Failed to decode token", e);
+      toast({ variant: 'destructive', title: 'Erreur de connexion', description: 'Le token reçu est invalide.' });
+      logout();
+    }
+  };
 
   const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => { await api.createCategory(data); await fetchAllData(); }, [fetchAllData]);
   const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchAllData(); }, [fetchAllData]);
@@ -161,6 +213,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted,
+    isAuthenticated: !!token,
+    currentUser,
+    login,
+    logout,
   }), [
     produits, categories, entrepots, ventes, factureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
@@ -168,7 +224,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     activeModules, shopInfo, themeColors,
-    isMounted
+    isMounted, token, logout, currentUser
   ]);
 
   return (

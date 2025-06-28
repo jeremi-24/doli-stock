@@ -1,9 +1,8 @@
-
 "use client";
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -34,8 +33,9 @@ import { useApp } from '@/context/app-provider';
 import { cn } from '@/lib/utils';
 
 function AppShellContent({ children }: { children: React.ReactNode }) {
-  const { activeModules, isMounted, shopInfo } = useApp();
+  const { activeModules, isMounted, shopInfo, logout, isAuthenticated, currentUser } = useApp();
   const pathname = usePathname();
+  const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   
   const [theme, setTheme] = React.useState('light');
@@ -54,7 +54,12 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
+  
+  const handleLogout = () => {
+    logout();
+  };
 
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
   const isPosPage = pathname === '/pos';
 
   React.useEffect(() => {
@@ -63,13 +68,31 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, isMobile, setOpenMobile]);
 
+  React.useEffect(() => {
+    if (!isMounted) return;
+    if (!isAuthenticated && !isAuthPage) {
+        router.push('/login');
+    }
+  }, [isMounted, isAuthenticated, isAuthPage, pathname, router]);
 
-  if (!isMounted) {
+
+  if (!isMounted || (!isAuthenticated && !isAuthPage)) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Logo className="h-10 w-10 animate-pulse" />
         </div>
     );
+  }
+
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
+
+  const getAvatarFallback = () => {
+    if (currentUser?.email) {
+      return currentUser.email.substring(0, 2).toUpperCase();
+    }
+    return "UD";
   }
   
   const navItems = [
@@ -170,11 +193,11 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                     <Button variant="ghost" className="flex items-center justify-start gap-2 w-full p-2 h-auto">
                         <Avatar className="h-8 w-8">
                             <AvatarImage src="https://placehold.co/100x100.png" alt="@user" data-ai-hint="user avatar"/>
-                            <AvatarFallback>UD</AvatarFallback>
+                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                         <div className="text-left group-data-[collapsible=icon]:hidden">
                             <p className="font-semibold text-sm">Utilisateur Démo</p>
-                            <p className="text-xs text-muted-foreground">admin@stockhero.dev</p>
+                            <p className="text-xs text-muted-foreground">{currentUser?.email || 'email@example.com'}</p>
                         </div>
                     </Button>
                 </DropdownMenuTrigger>
@@ -190,7 +213,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                         <span>Changer de Thème</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Se déconnecter</span>
                     </DropdownMenuItem>

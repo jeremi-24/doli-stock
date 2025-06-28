@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import * as z from "zod";
-import Barcode from "react-barcode";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -15,10 +14,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode as BarcodeIcon, Warehouse, FileText, ShoppingCart, Import, Users, Store, Palette, Badge, FileUp, Printer } from 'lucide-react';
+import { Settings, Barcode as BarcodeIcon, Warehouse, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer } from 'lucide-react';
 import type { ShopInfo, ThemeColors, Produit } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import * as api from '@/lib/api';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 const shopInfoSchema = z.object({
   name: z.string().min(1, "Le nom de la boutique est requis."),
@@ -245,46 +246,113 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
   );
 }
 
-function BarcodePrintDialog({ open, onOpenChange, productsToPrint }: { open: boolean, onOpenChange: (open: boolean) => void, productsToPrint: Produit[] }) {
-  const printRef = React.useRef<HTMLDivElement>(null);
+function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, onOpenChange: (open: boolean) => void, products: Produit[] }) {
+  const { toast } = useToast();
+  const [quantities, setQuantities] = React.useState<{ [key: string]: number }>({});
+  const [isPrinting, setIsPrinting] = React.useState(false);
 
-  const handlePrint = () => {
-    const printContent = printRef.current;
-    if (printContent) {
-      const printWindow = window.open('', '', 'height=800,width=800');
-      printWindow?.document.write('<html><head><title>Imprimer les codes-barres</title>');
-      printWindow?.document.write(`<style>@media print { body { -webkit-print-color-adjust: exact; margin: 1cm; } @page { size: auto; margin: 1cm; } .no-print { display: none; } .barcode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 10px; } .barcode-item { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-inside: avoid; } .product-name { font-family: sans-serif; font-size: 10px; font-weight: bold; margin-bottom: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }</style>`);
-      printWindow?.document.write('</head><body>');
-      printWindow?.document.write(printContent.innerHTML);
-      printWindow?.document.write('</body></html>');
-      printWindow?.document.close();
-      printWindow?.focus();
-      setTimeout(() => { printWindow?.print(); printWindow?.close(); }, 500);
+  React.useEffect(() => {
+    if (open) {
+      const initialQuantities = products.reduce((acc, p) => {
+        acc[p.id] = p.qte > 0 ? 1 : 0;
+        return acc;
+      }, {} as { [key: string]: number });
+      setQuantities(initialQuantities);
+    }
+  }, [open, products]);
+
+  const handleQuantityChange = (productId: number, value: string) => {
+    const newQuantity = parseInt(value, 10);
+    if (!isNaN(newQuantity) && newQuantity >= 0) {
+      setQuantities(prev => ({ ...prev, [productId]: newQuantity }));
+    } else if (value === '') {
+      setQuantities(prev => ({ ...prev, [productId]: 0 }));
     }
   };
 
+  const handlePrintRequest = async () => {
+    const payload = products
+      .map(p => ({
+        produitNom: p.nom,
+        quantite: quantities[p.id] || 0,
+      }))
+      .filter(p => p.quantite > 0);
+
+    if (payload.length === 0) {
+      toast({ variant: "destructive", title: "Aucun code-barres à imprimer", description: "Veuillez spécifier une quantité pour au moins un produit." });
+      return;
+    }
+
+    setIsPrinting(true);
+    try {
+      const pdfBlob = await api.printBarcodes(payload);
+      const url = window.URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `codes-barres-${new Date().toISOString().slice(0,10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      onOpenChange(false);
+      toast({ title: "PDF généré avec succès", description: "Le téléchargement de votre fichier de codes-barres a commencé." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Échec de l'impression", description: error.message });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+  
+  const totalBarcodes = Object.values(quantities).reduce((sum, q) => sum + (q || 0), 0);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="font-headline">Imprimer les codes-barres</DialogTitle>
-          <DialogDescription>Ajustez la mise en page via la boîte de dialogue d'impression de votre navigateur.</DialogDescription>
+          <DialogTitle className="font-headline">Imprimer des codes-barres</DialogTitle>
+          <DialogDescription>
+            Spécifiez le nombre d'étiquettes à imprimer pour chaque produit. Les produits avec une quantité de 0 ne seront pas inclus.
+          </DialogDescription>
         </DialogHeader>
-        <div className="h-[60vh] overflow-y-auto p-4 border rounded-md">
-            <div ref={printRef} className="barcode-grid">
-            {productsToPrint.map((produit) => (
-                produit.codeBarre && (
-                  <div key={produit.id} className="barcode-item">
-                  <p className="product-name">{produit.nom}</p>
-                  <Barcode value={produit.codeBarre} height={40} width={1.5} fontSize={10} margin={5} />
-                  </div>
-                )
-            ))}
-            </div>
+        <div className="h-[60vh] flex flex-col">
+          <ScrollArea className="flex-1 pr-4 -mr-4">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead className="w-[120px] text-right">Quantité</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                {products.map((produit) => (
+                    <TableRow key={produit.id}>
+                        <TableCell className="font-medium">{produit.nom}</TableCell>
+                        <TableCell className="text-right">
+                            <Input
+                                type="number"
+                                value={quantities[produit.id] || 0}
+                                onChange={(e) => handleQuantityChange(produit.id, e.target.value)}
+                                className="h-8 w-20 ml-auto text-right"
+                                min="0"
+                                disabled={isPrinting}
+                            />
+                        </TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+          </ScrollArea>
         </div>
-        <DialogFooter>
-          <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-          <Button onClick={handlePrint} disabled={!productsToPrint || productsToPrint.length === 0}><Printer className="h-4 w-4 mr-2" />Imprimer</Button>
+        <DialogFooter className="sm:justify-between items-center border-t pt-4 mt-4">
+          <div className="text-sm text-muted-foreground">
+             Total: <span className="font-bold">{totalBarcodes}</span> étiquette(s)
+          </div>
+          <div className="flex gap-2">
+            <DialogClose asChild><Button variant="ghost" disabled={isPrinting}>Annuler</Button></DialogClose>
+            <Button onClick={handlePrintRequest} disabled={isPrinting || totalBarcodes === 0}>
+                {isPrinting ? "Génération..." : <><Printer className="h-4 w-4 mr-2" />Générer le PDF</>}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -292,12 +360,11 @@ function BarcodePrintDialog({ open, onOpenChange, productsToPrint }: { open: boo
 }
 
 export default function SettingsPage() {
-  const { activeModules, setActiveModules, produits, addMultipleProduits } = useApp();
+  const { activeModules, setActiveModules, produits, addMultipleProduits, currentUser } = useApp();
   const { toast } = useToast();
 
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
-  const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
-  const [productsToPrint, setProductsToPrint] = React.useState<Produit[]>([]);
+  const [isPrintRequestDialogOpen, setIsPrintRequestDialogOpen] = React.useState(false);
 
   const handleModuleToggle = (module: keyof typeof activeModules) => {
     setActiveModules(prev => {
@@ -315,8 +382,7 @@ export default function SettingsPage() {
   };
   
   const handlePrintAll = () => { 
-    setProductsToPrint(produits); 
-    setIsPrintDialogOpen(true); 
+    setIsPrintRequestDialogOpen(true); 
   };
   
   return (
@@ -439,11 +505,11 @@ export default function SettingsPage() {
                 <div className="space-y-2 pt-4 border-t">
                     <h3 className="font-medium">Imprimer les codes-barres</h3>
                     <p className="text-sm text-muted-foreground">
-                        Générez une planche d'étiquettes avec les codes-barres de tous vos produits.
+                        Générez un fichier PDF avec les étiquettes de codes-barres pour vos produits.
                     </p>
                     <Button variant="outline" onClick={handlePrintAll} disabled={produits.length === 0}>
                         <Printer className="mr-2 h-4 w-4"/>
-                        Imprimer tous les codes-barres
+                        Imprimer des codes-barres
                     </Button>
                 </div>
               </CardContent>
@@ -471,9 +537,9 @@ export default function SettingsPage() {
                     </TableHeader>
                     <TableBody>
                       <TableRow>
-                        <TableCell className="font-medium">Utilisateur de Démo</TableCell>
-                        <TableCell>admin@stockhero.dev</TableCell>
-                        <TableCell><Badge variant="secondary">Admin</Badge></TableCell>
+                        <TableCell className="font-medium">Utilisateur Actuel</TableCell>
+                        <TableCell>{currentUser?.email}</TableCell>
+                        <TableCell><Badge variant="secondary">{currentUser?.role}</Badge></TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -492,7 +558,7 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
       <ImportDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} onImportSuccess={handleImportSuccess} />
-      <BarcodePrintDialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen} productsToPrint={productsToPrint} />
+      <PrintRequestDialog open={isPrintRequestDialogOpen} onOpenChange={setIsPrintRequestDialogOpen} products={produits} />
     </div>
   );
 }

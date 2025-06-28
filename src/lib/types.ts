@@ -91,3 +91,20 @@ export type Utilisateur = {
   identifiant: string;
   mot_de_passe_hash: string;
 };
+
+export type CurrentUser = {
+  email: string;
+  role: string;
+};
+
+export type LoginPayload = {
+  email: string;
+  password: string;
+}
+
+export type SignupPayload = {
+  email: string;
+  password: string;
+  confirmPassword?: string;
+  role: 'ADMIN' | 'USER';
+}

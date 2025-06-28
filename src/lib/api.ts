@@ -1,21 +1,26 @@
-
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele } from './types';
+import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
-const API_BASE_URL = '/api';
+const API_BASE_URL = '/api'; 
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
+
+  const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...options.headers,
+    ...authHeader,
+  };
 
   try {
     const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...options.headers,
-      },
       ...options,
+      headers,
     });
 
     if (!response.ok) {
@@ -51,6 +56,16 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     // Re-throw the error so it can be caught by the calling function
     throw error;
   }
+}
+
+// ========== Auth API ==========
+export async function loginUser(data: LoginPayload): Promise<any> {
+  return apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function signupUser(data: SignupPayload): Promise<any> {
+  const { confirmPassword, ...payload } = data; // Don't send confirmPassword to backend
+  return apiFetch('/auth/save', { method: 'POST', body: JSON.stringify(payload) });
 }
 
 // ========== Categories API ==========
@@ -103,16 +118,24 @@ export async function assignProducts(data: AssignationPayload): Promise<null> {
     };
   return apiFetch(`/produit/assignation`, { method: 'PUT', body: JSON.stringify(payload) });
 };
+
 export async function importProducts(file: File): Promise<Produit[]> {
   const formData = new FormData();
   formData.append('file', file);
+  
+  const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
+  
+  // Use a plain object for headers. Do not set Content-Type for FormData.
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   try {
     const response = await fetch(`${API_BASE_URL}/produit/import`, {
       method: 'POST',
+      headers: headers,
       body: formData,
-      // NOTE: Do not set 'Content-Type' header. The browser will set it
-      // to 'multipart/form-data' with the correct boundary.
     });
 
     if (!response.ok) {
@@ -144,17 +167,60 @@ export async function importProducts(file: File): Promise<Produit[]> {
     throw error;
   }
 };
+export async function printBarcodes(data: { produitNom: string, quantite: number }[]): Promise<Blob> {
+  const url = `${API_BASE_URL}/produit/print`;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
+
+  const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/pdf',
+    ...authHeader
+  };
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      const statusText = response.statusText || 'Erreur inconnue';
+      let userMessage = `La génération du PDF a échoué: ${statusText} (status: ${response.status})`;
+      if (response.status === 504) {
+          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout 504). Veuillez vérifier qu\'il est bien démarré et accessible.';
+      } else if (errorBody) {
+         try {
+            const errorJson = JSON.parse(errorBody);
+            userMessage = errorJson.error || errorJson.message || userMessage;
+         } catch(e) {
+            userMessage = `${userMessage}: ${errorBody}`;
+         }
+      }
+      throw new Error(userMessage);
+    }
+    
+    return response.blob();
+
+  } catch (error) {
+    console.error('Erreur de connexion API pour printBarcodes:', { url, error });
+    throw error;
+  }
+}
 
 // ========== FactureModeles API ==========
 export async function getFactureModeles(): Promise<FactureModele[]> { 
-    return apiFetch('/facture-modele'); 
+    return apiFetch('/facture'); 
 }
 export async function createFactureModele(data: Omit<FactureModele, 'id'>): Promise<FactureModele> {
-  return apiFetch('/facture-modele', { method: 'POST', body: JSON.stringify(data) });
+  return apiFetch('/facture', { method: 'POST', body: JSON.stringify(data) });
 }
 export async function updateFactureModele(id: string, data: Partial<FactureModele>): Promise<FactureModele> {
-  return apiFetch(`/facture-modele/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  return apiFetch(`/facture/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 }
 export async function deleteFactureModele(id: string): Promise<null> {
-  return apiFetch(`/facture-modele/${id}`, { method: 'DELETE' });
+  return apiFetch(`/facture/${id}`, { method: 'DELETE' });
 }
