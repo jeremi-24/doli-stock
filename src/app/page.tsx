@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,24 +16,19 @@ import * as api from "@/lib/api";
 
 function BarcodeScannerCard() {
     const [barcode, setBarcode] = useState("");
-    const [scannedProduct, setScannedProduct] = useState<Produit | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
-    
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-    };
+    const router = useRouter();
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
         setError(null);
-        setScannedProduct(null);
         setIsScanning(true);
 
         try {
             const product = await api.getProductByBarcode(barcode);
             if (product) {
-                setScannedProduct(product);
+                router.push(`/products/${product.id}`);
             } else {
                 setError("Produit non trouvé. Veuillez vérifier le code-barres.");
             }
@@ -52,7 +48,7 @@ function BarcodeScannerCard() {
                     <ScanLine className="h-6 w-6" />
                     Scanner de Produit
                 </CardTitle>
-                <CardDescription>Entrez un code-barres pour trouver rapidement un produit.</CardDescription>
+                <CardDescription>Entrez un code-barres pour trouver et afficher les détails d'un produit.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="space-y-2">
@@ -80,35 +76,10 @@ function BarcodeScannerCard() {
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
                 )}
-                {scannedProduct ? (
-                <div className="space-y-4 pt-4 border-t">
-                    <div>
-                    <h3 className="text-xl font-bold font-headline text-primary">{scannedProduct.nom}</h3>
-                    <p className="text-sm text-muted-foreground">#{scannedProduct.codeBarre}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-2">
-                        <DollarSign className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                        <p className="text-sm text-muted-foreground">Prix de Vente</p>
-                        <p className="font-semibold">{formatCurrency(scannedProduct.prix)}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Package className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                        <p className="text-sm text-muted-foreground">En Stock</p>
-                        <p className="font-semibold">{scannedProduct.qte}</p>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-                ) : !isScanning && (
                 <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
                     <Package className="h-12 w-12 text-muted-foreground" />
-                    <p className="mt-4 text-sm text-muted-foreground">Les détails du produit scanné apparaîtront ici.</p>
+                    <p className="mt-4 text-sm text-muted-foreground">Scannez un code-barres pour être redirigé vers sa page de détails.</p>
                 </div>
-                )}
             </CardContent>
         </Card>
     );
