@@ -78,16 +78,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAllData = useCallback(async () => {
     try {
-        const [produitsData, categoriesData, entrepotsData, factureModelesData] = await Promise.all([
+        const [produitsData, categoriesData, entrepotsData] = await Promise.all([
             api.getProducts(),
             api.getCategories(),
             api.getEntrepots(),
-            api.getFactureModeles()
         ]);
         setProduits(produitsData || []);
         setCategories(categoriesData || []);
         setEntrepots(entrepotsData || []);
-        setFactureModeles(factureModelesData || []);
+        
+        // const factureModelesData = await api.getFactureModeles();
+        // setFactureModeles(factureModelesData || []);
     } catch (error) {
         const description = (error instanceof Error) ? error.message : 'Erreur inconnue';
         toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les données: ${description}` });
@@ -193,16 +194,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [produits, fetchAllData, toast]);
 
   const addFactureModele = useCallback(async (modeleData: Omit<FactureModele, 'id'>) => {
-    await api.createFactureModele(modeleData);
-    await fetchAllData();
+    // await api.createFactureModele(modeleData);
+    // await fetchAllData();
   }, [fetchAllData]);
   const updateFactureModele = useCallback(async (updatedModele: FactureModele) => {
-    await api.updateFactureModele(updatedModele.id, updatedModele);
-    await fetchAllData();
+    // await api.updateFactureModele(updatedModele.id, updatedModele);
+    // await fetchAllData();
   }, [fetchAllData]);
   const deleteFactureModele = useCallback(async (modeleId: string) => {
-    await api.deleteFactureModele(modeleId);
-    await fetchAllData();
+    // await api.deleteFactureModele(modeleId);
+    // await fetchAllData();
   }, [fetchAllData]);
 
   const value = useMemo(() => ({
