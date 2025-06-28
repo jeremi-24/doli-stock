@@ -8,27 +8,47 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Package, DollarSign, Tag, Barcode, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Package, DollarSign, Tag, Barcode, AlertTriangle, Warehouse } from 'lucide-react';
 import type { Produit as ProduitType } from '@/lib/types';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { produits, categories, isMounted } = useApp();
+  const { 
+    produits, 
+    categories, 
+    entrepots,
+    isMounted, 
+    scannedProductDetails, 
+    setScannedProductDetails 
+  } = useApp();
   
   const [produit, setProduit] = useState<ProduitType | null | undefined>(undefined);
   const [categoryName, setCategoryName] = useState<string>('');
+  const [entrepotName, setEntrepotName] = useState<string>('');
 
   useEffect(() => {
-    if (isMounted && id) {
+    // Use fresh data from scan if available
+    if (scannedProductDetails && scannedProductDetails.id === Number(id)) {
+      setProduit(scannedProductDetails);
+      setCategoryName(scannedProductDetails.categorieNom || 'N/A');
+      setEntrepotName(scannedProductDetails.entrepotNom || 'N/A');
+      setScannedProductDetails(null); // Clear after use
+    } 
+    // Fallback for direct navigation/refresh
+    else if (isMounted && id) {
       const foundProduit = produits.find(p => p.id === Number(id));
       setProduit(foundProduit);
       if (foundProduit) {
         const foundCategory = categories.find(c => c.id === foundProduit.categorieId);
         setCategoryName(foundCategory ? foundCategory.nom : 'N/A');
+        
+        const foundEntrepot = entrepots.find(e => e.id === foundProduit.entrepotId);
+        setEntrepotName(foundEntrepot ? foundEntrepot.nom : 'N/A');
       }
     }
-  }, [id, produits, categories, isMounted]);
+  }, [id, produits, categories, entrepots, isMounted, scannedProductDetails, setScannedProductDetails]);
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -110,6 +130,10 @@ export default function ProductDetailPage() {
             <div className="flex items-center justify-between border-b pb-2">
               <span className="text-muted-foreground flex items-center gap-2"><Tag className="h-5 w-5"/>Catégorie</span>
               <Badge variant="secondary">{categoryName}</Badge>
+            </div>
+            <div className="flex items-center justify-between border-b pb-2">
+               <span className="text-muted-foreground flex items-center gap-2"><Warehouse className="h-5 w-5"/>Entrepôt</span>
+              <Badge variant="secondary">{entrepotName}</Badge>
             </div>
             <div className="flex items-center justify-between border-b pb-2 col-span-full">
                <span className="text-muted-foreground flex items-center gap-2"><Barcode className="h-5 w-5"/>Code-barres</span>

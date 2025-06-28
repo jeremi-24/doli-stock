@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
@@ -39,6 +40,8 @@ interface AppContextType {
   currentUser: CurrentUser | null;
   login: (token: string) => void;
   logout: () => void;
+  scannedProductDetails: any | null;
+  setScannedProductDetails: (details: any | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -59,6 +62,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
   const [token, setToken] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [scannedProductDetails, setScannedProductDetails] = useState<any | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
@@ -218,6 +222,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currentUser,
     login,
     logout,
+    scannedProductDetails, 
+    setScannedProductDetails,
   }), [
     produits, categories, entrepots, ventes, factureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
@@ -225,7 +231,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     activeModules, shopInfo, themeColors,
-    isMounted, token, logout, currentUser
+    isMounted, token, logout, currentUser, scannedProductDetails
   ]);
 
   return (

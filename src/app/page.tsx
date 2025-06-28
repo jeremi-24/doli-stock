@@ -19,6 +19,7 @@ function BarcodeScannerCard() {
     const [error, setError] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
     const router = useRouter();
+    const { setScannedProductDetails } = useApp();
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
@@ -27,7 +28,8 @@ function BarcodeScannerCard() {
 
         try {
             const product = await api.getProductByBarcode(barcode);
-            if (product) {
+            if (product && product.id) {
+                setScannedProductDetails(product);
                 router.push(`/products/${product.id}`);
             } else {
                 setError("Produit non trouvé. Veuillez vérifier le code-barres.");
