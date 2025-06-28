@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import * as api from '@/lib/api';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const shopInfoSchema = z.object({
   name: z.string().min(1, "Le nom de la boutique est requis."),
@@ -248,40 +249,34 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
 
 function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, onOpenChange: (open: boolean) => void, products: Produit[] }) {
   const { toast } = useToast();
-  const [quantities, setQuantities] = React.useState<{ [key: string]: number }>({});
+  const [selectedProductId, setSelectedProductId] = React.useState<string | undefined>();
+  const [quantity, setQuantity] = React.useState<number>(1);
   const [isPrinting, setIsPrinting] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
-      const initialQuantities = products.reduce((acc, p) => {
-        acc[p.id] = p.qte > 0 ? 1 : 0;
-        return acc;
-      }, {} as { [key: string]: number });
-      setQuantities(initialQuantities);
+      setSelectedProductId(undefined);
+      setQuantity(1);
     }
-  }, [open, products]);
-
-  const handleQuantityChange = (productId: number, value: string) => {
-    const newQuantity = parseInt(value, 10);
-    if (!isNaN(newQuantity) && newQuantity >= 0) {
-      setQuantities(prev => ({ ...prev, [productId]: newQuantity }));
-    } else if (value === '') {
-      setQuantities(prev => ({ ...prev, [productId]: 0 }));
-    }
-  };
+  }, [open]);
 
   const handlePrintRequest = async () => {
-    const payload = products
-      .map(p => ({
-        produitNom: p.nom,
-        quantite: quantities[p.id] || 0,
-      }))
-      .filter(p => p.quantite > 0);
-
-    if (payload.length === 0) {
-      toast({ variant: "destructive", title: "Aucun code-barres à imprimer", description: "Veuillez spécifier une quantité pour au moins un produit." });
+    if (!selectedProductId || quantity <= 0) {
+      toast({ variant: "destructive", title: "Informations manquantes", description: "Veuillez sélectionner un produit et entrer une quantité valide." });
       return;
     }
+
+    const selectedProduct = products.find(p => p.id === parseInt(selectedProductId, 10));
+
+    if (!selectedProduct) {
+        toast({ variant: "destructive", title: "Produit non trouvé", description: "Le produit sélectionné n'existe pas." });
+        return;
+    }
+
+    const payload = [{
+        produitNom: selectedProduct.nom,
+        quantite: quantity,
+    }];
 
     setIsPrinting(true);
     try {
@@ -303,56 +298,46 @@ function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, o
     }
   };
   
-  const totalBarcodes = Object.values(quantities).reduce((sum, q) => sum + (q || 0), 0);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">Imprimer des codes-barres</DialogTitle>
           <DialogDescription>
-            Spécifiez le nombre d'étiquettes à imprimer pour chaque produit. Les produits avec une quantité de 0 ne seront pas inclus.
+            Choisissez un produit et spécifiez le nombre d'étiquettes à imprimer.
           </DialogDescription>
         </DialogHeader>
-        <div className="h-[60vh] flex flex-col">
-          <ScrollArea className="flex-1 pr-4 -mr-4">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Produit</TableHead>
-                        <TableHead className="w-[120px] text-right">Quantité</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                {products.map((produit) => (
-                    <TableRow key={produit.id}>
-                        <TableCell className="font-medium">{produit.nom}</TableCell>
-                        <TableCell className="text-right">
-                            <Input
-                                type="number"
-                                value={quantities[produit.id] || 0}
-                                onChange={(e) => handleQuantityChange(produit.id, e.target.value)}
-                                className="h-8 w-20 ml-auto text-right"
-                                min="0"
-                                disabled={isPrinting}
-                            />
-                        </TableCell>
-                    </TableRow>
-                ))}
-                </TableBody>
-            </Table>
-          </ScrollArea>
+        <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+                <Label htmlFor="product-select">Produit</Label>
+                <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={isPrinting}>
+                    <SelectTrigger id="product-select">
+                        <SelectValue placeholder="Sélectionner un produit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {products.map((produit) => (
+                             <SelectItem key={produit.id} value={String(produit.id)}>{produit.nom}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="grid gap-2">
+                <Label htmlFor="quantity-input">Quantité</Label>
+                <Input
+                    id="quantity-input"
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 1)}
+                    min="1"
+                    disabled={isPrinting}
+                />
+            </div>
         </div>
-        <DialogFooter className="sm:justify-between items-center border-t pt-4 mt-4">
-          <div className="text-sm text-muted-foreground">
-             Total: <span className="font-bold">{totalBarcodes}</span> étiquette(s)
-          </div>
-          <div className="flex gap-2">
+        <DialogFooter>
             <DialogClose asChild><Button variant="ghost" disabled={isPrinting}>Annuler</Button></DialogClose>
-            <Button onClick={handlePrintRequest} disabled={isPrinting || totalBarcodes === 0}>
+            <Button onClick={handlePrintRequest} disabled={isPrinting || !selectedProductId || quantity <= 0}>
                 {isPrinting ? "Génération..." : <><Printer className="h-4 w-4 mr-2" />Générer le PDF</>}
             </Button>
-          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
