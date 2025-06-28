@@ -70,6 +70,9 @@ function BarcodeScannerCard() {
                          {isScanning ? 'Scan...' : <Search className="h-4 w-4" />}
                         </Button>
                     </div>
+                    <p className="text-xs text-muted-foreground pt-1">
+                        Si les caractères scannés sont incorrects, vérifiez que la langue de votre lecteur (ex: AZERTY/QWERTY) correspond à celle de votre clavier.
+                    </p>
                 </div>
                 {error && (
                 <Alert variant="destructive">
