@@ -273,10 +273,10 @@ function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, o
         return;
     }
 
-    const payload = [{
+    const payload ={
         produitNom: selectedProduct.nom,
         quantite: quantity,
-    }];
+    };
 
     setIsPrinting(true);
     try {

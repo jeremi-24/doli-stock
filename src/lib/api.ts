@@ -166,8 +166,8 @@ export async function importProducts(file: File): Promise<Produit[]> {
     throw error;
   }
 };
-export async function printBarcodes(data: { produitNom: string, quantite: number }[]): Promise<Blob> {
-  const url = `${API_BASE_URL}/produit/print`;
+export async function printBarcodes(data: { produitNom: string, quantite: number }): Promise<Blob> {
+  const url = `${API_BASE_URL}/barcode/print`;
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
 
   const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
