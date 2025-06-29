@@ -253,7 +253,7 @@ const assignSchema = z.object({
         </div>
       </div>
       <Card>
-        <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Vos Produits</CardTitle><CardDescription>La liste de tous les produits de votre inventaire.</CardDescription></CardHeader>
+        <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Vos Produits ( {produits.length} )</CardTitle><CardDescription>La liste de tous les produits de votre inventaire.</CardDescription></CardHeader>
         <CardContent>
           <div className="rounded-lg border">
             <Table>
