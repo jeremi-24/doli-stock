@@ -12,7 +12,7 @@ import { useApp } from '@/context/app-provider';
 import type { ScannedProduit } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Search, Package, Trash2, Save, Loader2, Minus, Plus } from 'lucide-react';
+import { ScanLine, Search, Package, Save, Loader2, Minus, Plus } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 
