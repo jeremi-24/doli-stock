@@ -109,11 +109,15 @@ export default function NewReapproPage() {
         
         const newReappro = await addReapprovisionnement(payload);
         
-        if (newReappro && newReappro.id) {
-            router.push(`/reapprovisionnements/${newReappro.id}`);
-        } else if (newReappro) {
-            router.push('/reapprovisionnements');
+        if (newReappro) {
+            if (newReappro.id != null) {
+                router.push(`/reapprovisionnements/${newReappro.id}`);
+            } else {
+                // Fallback if ID is not returned, go to list.
+                router.push('/reapprovisionnements');
+            }
         } else {
+            // Error case, toast is handled by context. Just stop loading.
             setIsSaving(false);
         }
     };
@@ -230,3 +234,4 @@ export default function NewReapproPage() {
         </div>
     )
 }
+
