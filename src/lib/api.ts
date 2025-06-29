@@ -1,26 +1,30 @@
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload } from './types';
+import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload, InventairePayload, Inventaire } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api'; 
 
-async function apiFetch(endpoint: string, options: RequestInit = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
+const buildHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
-
-  const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
-
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    ...options.headers,
-    ...authHeader,
   };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  const headers = buildHeaders();
 
   try {
     const response = await fetch(url, {
       ...options,
-      headers,
+      headers: { ...headers, ...options.headers },
     });
 
     if (!response.ok) {
@@ -127,8 +131,10 @@ export async function importProducts(file: File): Promise<Produit[]> {
   formData.append('file', file);
   
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
-  
-  const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   try {
     const response = await fetch(`${API_BASE_URL}/produit/import`, {
@@ -208,6 +214,19 @@ export async function printBarcodes(data: { produitNom: string, quantite: number
     console.error('Erreur de connexion API pour printBarcodes:', { url, error });
     throw error;
   }
+}
+
+// ========== Inventaires API ==========
+export async function getInventaires(): Promise<Inventaire[]> {
+  return apiFetch('/inventaires');
+}
+
+export async function getInventaire(id: number): Promise<Inventaire> {
+  return apiFetch(`/inventaires/${id}`);
+}
+
+export async function createInventaire(data: InventairePayload): Promise<Inventaire> {
+  return apiFetch('/inventaires?premier=false', { method: 'POST', body: JSON.stringify(data) });
 }
 
 // ========== FactureModeles API ==========

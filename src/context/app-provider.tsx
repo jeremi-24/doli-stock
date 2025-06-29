@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser } from '@/lib/types';
+import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -29,6 +29,7 @@ interface AppContextType {
   addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
   updateFactureModele: (modele: FactureModele) => Promise<void>;
   deleteFactureModele: (modeleId: string) => Promise<void>;
+  createInventaire: (payload: InventairePayload) => Promise<Inventaire | null>;
   activeModules: ActiveModules;
   setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
   shopInfo: ShopInfo;
@@ -200,15 +201,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addFactureModele = useCallback(async (modeleData: Omit<FactureModele, 'id'>) => {
     // await api.createFactureModele(modeleData);
     // await fetchAllData();
-  }, [fetchAllData]);
+  }, []);
   const updateFactureModele = useCallback(async (updatedModele: FactureModele) => {
     // await api.updateFactureModele(updatedModele.id, updatedModele);
     // await fetchAllData();
-  }, [fetchAllData]);
+  }, []);
   const deleteFactureModele = useCallback(async (modeleId: string) => {
     // await api.deleteFactureModele(modeleId);
     // await fetchAllData();
-  }, [fetchAllData]);
+  }, []);
+
+  const createInventaire = async (payload: InventairePayload): Promise<Inventaire | null> => {
+    try {
+      const newInventaire = await api.createInventaire(payload);
+      // This will refresh product quantities after inventory adjustment
+      await fetchAllData();
+      toast({ title: "Inventaire enregistré avec succès" });
+      return newInventaire;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+      toast({ variant: 'destructive', title: 'Erreur d\'enregistrement', description: errorMessage });
+      return null;
+    }
+  };
 
   const value = useMemo(() => ({
     produits, categories, entrepots, ventes, factureModeles,
@@ -216,6 +231,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
+    createInventaire,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted,
     isAuthenticated: !!token,
@@ -231,7 +247,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     activeModules, shopInfo, themeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails
+    isMounted, token, logout, currentUser, scannedProductDetails, fetchAllData
   ]);
 
   return (

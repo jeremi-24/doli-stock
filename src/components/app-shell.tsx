@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -28,7 +29,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, FileSignature, Building2 } from 'lucide-react';
+import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, FileSignature, Building2, ClipboardList } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 import { cn } from '@/lib/utils';
 
@@ -125,6 +126,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       module: 'stock',
     },
     {
+      href: '/inventories',
+      icon: <ClipboardList />,
+      label: 'Inventaires',
+      active: pathname.startsWith('/inventories'),
+      module: 'stock',
+    },
+    {
       href: '/pos',
       icon: <ShoppingCart />,
       label: 'Point de Vente',
@@ -196,7 +204,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                         <div className="text-left group-data-[collapsible=icon]:hidden">
-                            <p className="font-semibold text-sm">Utilisateur Démo</p>
+                            <p className="font-semibold text-sm">{currentUser?.role || 'Utilisateur'}</p>
                             <p className="text-xs text-muted-foreground">{currentUser?.email || 'email@example.com'}</p>
                         </div>
                     </Button>
