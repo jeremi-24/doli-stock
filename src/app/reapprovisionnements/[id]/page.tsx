@@ -3,19 +3,16 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Calendar, ChevronsRight, Truck } from 'lucide-react';
+import { ArrowLeft, User, ChevronsRight, Truck } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import type { Reapprovisionnement } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
-export default function ReapproDetailPag() {
+export default function ReapprovisionnementDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -80,7 +77,6 @@ export default function ReapproDetailPag() {
           <CardTitle className="font-headline text-3xl flex items-center gap-2"><Truck /> Réapprovisionnement N°{String(reappro.id).padStart(5, '0')}</CardTitle>
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 text-sm">
             <div className="flex items-center gap-2"><User className="h-4 w-4"/> Agent: <span className="font-medium text-foreground">{reappro.agent}</span></div>
-            <div className="flex items-center gap-2"><Calendar className="h-4 w-4"/> Date: <span className="font-medium text-foreground">{reappro.date ? format(new Date(reappro.date), 'd MMMM yyyy à HH:mm', { locale: fr }) : 'N/A'}</span></div>
             <div className="flex items-center gap-2"><ChevronsRight className="h-4 w-4"/> Source: <span className="font-medium text-foreground">{reappro.source}</span></div>
           </div>
         </CardHeader>
@@ -95,8 +91,8 @@ export default function ReapproDetailPag() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {reappro.lignes.map((ligne, index) => (
-                             <TableRow key={`${ligne.produitId}-${index}`}>
+                        {reappro.lignes.map((ligne) => (
+                             <TableRow key={ligne.id}>
                                 <TableCell className="font-medium">{ligne.produitNom}</TableCell>
                                 <TableCell>{ligne.entrepotNom}</TableCell>
                                 <TableCell className="text-right font-semibold text-green-600">+{ligne.qteAjoutee}</TableCell>
