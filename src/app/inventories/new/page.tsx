@@ -14,6 +14,7 @@ import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { ScanLine, Search, Package, Save, Loader2, Minus, Plus } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 export default function NewInventoryPage() {
@@ -26,6 +27,7 @@ export default function NewInventoryPage() {
     const [isScanning, setIsScanning] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [productCache, setProductCache] = useState<Map<string, Produit>>(new Map());
+    const [isFirstInventory, setIsFirstInventory] = useState(false);
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
@@ -105,7 +107,7 @@ export default function NewInventoryPage() {
             produits: scannedItems.map(({ nomProduit, barcode, ...item}) => item)
         };
         
-        const newInventory = await createInventaire(payload);
+        const newInventory = await createInventaire(payload, isFirstInventory);
         
         if (newInventory) {
             router.push(`/inventories/${newInventory.inventaireId}`);
@@ -203,6 +205,15 @@ export default function NewInventoryPage() {
                                         Cette action soumettra l'inventaire et mettra à jour les quantités en stock de {scannedItems.length} produit(s). Cette opération est irréversible.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
+                                <div className="flex items-center space-x-2 py-2">
+                                    <Checkbox id="isFirstInventory" checked={isFirstInventory} onCheckedChange={(checked) => setIsFirstInventory(!!checked)} />
+                                    <label
+                                        htmlFor="isFirstInventory"
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                        Ceci est le premier inventaire (réinitialise le stock)
+                                    </label>
+                                </div>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Annuler</AlertDialogCancel>
                                     <AlertDialogAction onClick={handleSaveInventory}>Continuer</AlertDialogAction>

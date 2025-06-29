@@ -132,12 +132,15 @@ export async function importProducts(file: File): Promise<Produit[]> {
   formData.append('file', file);
   
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
-  const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   try {
     const response = await fetch(`${API_BASE_URL}/produit/import`, {
       method: 'POST',
-      headers: authHeader,
+      headers: headers,
       body: formData,
     });
 
@@ -222,8 +225,8 @@ export async function getInventaire(id: number): Promise<Inventaire> {
   return apiFetch(`/inventaire/${id}`);
 }
 
-export async function createInventaire(data: InventairePayload): Promise<Inventaire> {
-  return apiFetch('/inventaire', { method: 'POST', body: JSON.stringify(data) });
+export async function createInventaire(data: InventairePayload, isFirst: boolean): Promise<Inventaire> {
+  return apiFetch(`/inventaire?premier=${isFirst}`, { method: 'POST', body: JSON.stringify(data) });
 }
 
 // ========== FactureModeles API ==========

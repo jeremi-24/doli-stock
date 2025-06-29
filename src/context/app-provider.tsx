@@ -29,7 +29,7 @@ interface AppContextType {
   addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
   updateFactureModele: (modele: FactureModele) => Promise<void>;
   deleteFactureModele: (modeleId: string) => Promise<void>;
-  createInventaire: (payload: InventairePayload) => Promise<Inventaire | null>;
+  createInventaire: (payload: InventairePayload, isFirst: boolean) => Promise<Inventaire | null>;
   activeModules: ActiveModules;
   setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
   shopInfo: ShopInfo;
@@ -211,9 +211,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // await fetchAllData();
   }, []);
 
-  const createInventaire = useCallback(async (payload: InventairePayload): Promise<Inventaire | null> => {
+  const createInventaire = useCallback(async (payload: InventairePayload, isFirst: boolean): Promise<Inventaire | null> => {
     try {
-      const newInventaire = await api.createInventaire(payload);
+      const newInventaire = await api.createInventaire(payload, isFirst);
       // This will refresh product quantities after inventory adjustment
       await fetchAllData();
       toast({ title: "Inventaire enregistré avec succès" });
@@ -248,7 +248,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,
     activeModules, shopInfo, themeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails, fetchAllData
+    isMounted, token, logout, currentUser, scannedProductDetails
   ]);
 
   return (
