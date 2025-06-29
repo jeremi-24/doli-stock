@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       {
         source: '/api/:path*',
         // Le proxy pour les appels côté client
-        destination: 'http://192.168.1.71:8080/api/:path*',
+        destination: 'http://192.168.1.140:8080/api/:path*',
       },
     ]
   },
