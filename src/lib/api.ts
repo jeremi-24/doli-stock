@@ -215,15 +215,15 @@ export async function printBarcodes(data: { produitNom: string, quantite: number
 
 // ========== Inventaires API ==========
 export async function getInventaires(): Promise<Inventaire[]> {
-  return apiFetch('/inventaires');
+  return apiFetch('/inventaire');
 }
 
 export async function getInventaire(id: number): Promise<Inventaire> {
-  return apiFetch(`/inventaires/${id}`);
+  return apiFetch(`/inventaire/${id}`);
 }
 
 export async function createInventaire(data: InventairePayload): Promise<Inventaire> {
-  return apiFetch('/inventaires?premier=false', { method: 'POST', body: JSON.stringify(data) });
+  return apiFetch('/inventaire', { method: 'POST', body: JSON.stringify(data) });
 }
 
 // ========== FactureModeles API ==========
