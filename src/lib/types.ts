@@ -23,6 +23,9 @@ export type Produit = {
   codeBarre: string;
   categorieId: number;
   entrepotId: number;
+  // These can be returned from specific API calls
+  categorieNom?: string;
+  entrepotNom?: string;
 };
 
 export type VenteLigne = {
@@ -61,6 +64,40 @@ export type AssignationPayload = {
     categorieId?: number;
     entrepotId?: number;
 };
+
+// ----- Inventory Types -----
+export type InventaireLigne = {
+  produitId: number;
+  nomProduit: string;
+  qteScanne: number;
+  qteAvantScan: number;
+  ecart: number;
+  entrepotNom: string;
+};
+
+export type Inventaire = {
+  inventaireId: number;
+  charge: string;
+  date: string;
+  lignes: InventaireLigne[];
+};
+
+export type ScannedProduit = {
+  produitId: number;
+  nomProduit: string;
+  qteScanne: number;
+  entrepotNom: string;
+};
+
+export type InventairePayload = {
+  charge: string;
+  produits: {
+    produitId: number;
+    qteScanne: number;
+    entrepotNom: string;
+  }[];
+};
+
 
 // ----- App Settings Types (unchanged) -----
 
