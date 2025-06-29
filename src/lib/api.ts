@@ -1,3 +1,4 @@
+
 // This is now a client-side library. No 'use server' directive.
 import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload, InventairePayload, Inventaire } from './types';
 
@@ -131,15 +132,12 @@ export async function importProducts(file: File): Promise<Produit[]> {
   formData.append('file', file);
   
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
-  const headers: HeadersInit = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+  const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
 
   try {
     const response = await fetch(`${API_BASE_URL}/produit/import`, {
       method: 'POST',
-      headers: headers,
+      headers: authHeader,
       body: formData,
     });
 
@@ -175,7 +173,6 @@ export async function importProducts(file: File): Promise<Produit[]> {
 export async function printBarcodes(data: { produitNom: string, quantite: number }): Promise<Blob> {
   const url = `${API_BASE_URL}/barcode/print`;
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
-
   const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
 
   const headers: HeadersInit = {

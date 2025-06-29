@@ -1,4 +1,5 @@
 
+
 export type Categorie = {
   id: number;
   nom: string;
@@ -89,13 +90,15 @@ export type ScannedProduit = {
   entrepotNom: string;
 };
 
-export type InventairePayload = {
-  charge: string;
-  produits: {
+export type InventaireProduitPayload = {
     produitId: number;
     qteScanne: number;
     entrepotNom: string;
-  }[];
+};
+
+export type InventairePayload = {
+  charge: string;
+  produits: InventaireProduitPayload[];
 };
 
 

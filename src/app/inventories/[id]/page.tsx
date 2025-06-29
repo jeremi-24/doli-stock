@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Calendar, Hash, ArrowDownUp, Check, X } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Check, X } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import type { Inventaire } from '@/lib/types';
@@ -108,8 +108,8 @@ export default function InventoryDetailPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {inventory.lignes.map(ligne => (
-                             <TableRow key={ligne.produitId}>
+                        {inventory.lignes.map((ligne, index) => (
+                             <TableRow key={`${ligne.produitId}-${index}`}>
                                 <TableCell className="font-medium">{ligne.nomProduit}</TableCell>
                                 <TableCell>{ligne.entrepotNom}</TableCell>
                                 <TableCell className="text-center">{ligne.qteAvantScan}</TableCell>

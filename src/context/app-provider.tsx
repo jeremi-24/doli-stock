@@ -211,7 +211,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // await fetchAllData();
   }, []);
 
-  const createInventaire = async (payload: InventairePayload): Promise<Inventaire | null> => {
+  const createInventaire = useCallback(async (payload: InventairePayload): Promise<Inventaire | null> => {
     try {
       const newInventaire = await api.createInventaire(payload);
       // This will refresh product quantities after inventory adjustment
@@ -223,7 +223,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast({ variant: 'destructive', title: 'Erreur d\'enregistrement', description: errorMessage });
       return null;
     }
-  };
+  }, [fetchAllData, toast]);
 
   const value = useMemo(() => ({
     produits, categories, entrepots, ventes, factureModeles,
@@ -246,6 +246,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
+    createInventaire,
     activeModules, shopInfo, themeColors,
     isMounted, token, logout, currentUser, scannedProductDetails, fetchAllData
   ]);
