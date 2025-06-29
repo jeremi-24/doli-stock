@@ -109,7 +109,9 @@ export default function NewReapproPage() {
         
         const newReappro = await addReapprovisionnement(payload);
         
-        if (newReappro) {
+        if (newReappro && newReappro.id) {
+            router.push(`/reapprovisionnements/${newReappro.id}`);
+        } else if (newReappro) {
             router.push('/reapprovisionnements');
         } else {
             setIsSaving(false);

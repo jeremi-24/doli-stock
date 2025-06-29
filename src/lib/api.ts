@@ -234,6 +234,10 @@ export async function getReapprovisionnements(): Promise<Reapprovisionnement[]> 
   return apiFetch('/reappro');
 }
 
+export async function getReapprovisionnement(id: number): Promise<Reapprovisionnement> {
+  return apiFetch(`/reappro/${id}`);
+}
+
 export async function createReapprovisionnement(data: ReapproPayload): Promise<Reapprovisionnement> {
   return apiFetch('/reappro', { method: 'POST', body: JSON.stringify(data) });
 }

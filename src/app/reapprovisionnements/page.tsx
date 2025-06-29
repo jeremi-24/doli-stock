@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from "@/components/ui/badge";
 import type { Reapprovisionnement } from '@/lib/types';
 import * as api from '@/lib/api';
@@ -14,44 +13,6 @@ import { PlusCircle, PackagePlus, Eye, Loader2, User, ChevronsRight } from 'luci
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-
-function ReapproDetailsDialog({ reappro }: { reappro: Reapprovisionnement }) {
-    return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Voir les détails"><Eye className="h-4 w-4" /></Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle className="font-headline">Détails du Réapprovisionnement</DialogTitle>
-                    <DialogDescription>
-                        Réapprovisionnement de la source <span className="font-semibold">{reappro.source}</span> par <span className="font-semibold">{reappro.agent}</span>.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="border rounded-lg mt-4">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Produit</TableHead>
-                                <TableHead>Entrepôt</TableHead>
-                                <TableHead className="text-right">Quantité Ajoutée</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {reappro.lignes.map((ligne) => (
-                                 <TableRow key={ligne.id}>
-                                    <TableCell className="font-medium">{ligne.produitNom}</TableCell>
-                                    <TableCell>{ligne.entrepotNom}</TableCell>
-                                    <TableCell className="text-right font-semibold text-green-600">+{ligne.qteAjoutee}</TableCell>
-                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </DialogContent>
-        </Dialog>
-    )
-}
 
 export default function ReapprovisionnementsPage() {
   const router = useRouter();
@@ -64,14 +25,7 @@ export default function ReapprovisionnementsPage() {
       try {
         setIsLoading(true);
         const data = await api.getReapprovisionnements();
-        // Add a client-side date and ID for display purposes, as the API doesn't provide them
-        const processedData = data.map((item, index) => ({
-            ...item,
-            id: item.id ?? `reappro-${Date.now()}-${index}`,
-            date: item.date ?? new Date().toISOString(),
-        })).sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
-
-        setReapprovisionnements(processedData);
+        setReapprovisionnements(data.sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime()));
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
         toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
@@ -120,7 +74,9 @@ export default function ReapprovisionnementsPage() {
                     <TableCell><Badge variant="secondary" className="flex items-center gap-1.5"><ChevronsRight className="h-3 w-3" /> {reappro.source}</Badge></TableCell>
                     <TableCell>{reappro.lignes.length}</TableCell>
                     <TableCell className="text-right">
-                        <ReapproDetailsDialog reappro={reappro} />
+                       <Button variant="ghost" size="icon" onClick={() => router.push(`/reapprovisionnements/${reappro.id}`)} disabled={!reappro.id}>
+                            <Eye className="h-4 w-4" /><span className="sr-only">Voir les détails</span>
+                        </Button>
                     </TableCell>
                   </TableRow>
                 )) : (
