@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire } from '@/lib/types';
+import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -30,6 +30,7 @@ interface AppContextType {
   updateFactureModele: (modele: FactureModele) => Promise<void>;
   deleteFactureModele: (modeleId: string) => Promise<void>;
   createInventaire: (payload: InventairePayload, isFirst: boolean) => Promise<Inventaire | null>;
+  addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   activeModules: ActiveModules;
   setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
   shopInfo: ShopInfo;
@@ -225,6 +226,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast]);
 
+  const addReapprovisionnement = useCallback(async (payload: ReapproPayload): Promise<Reapprovisionnement | null> => {
+    try {
+      const newReappro = await api.createReapprovisionnement(payload);
+      // This will refresh product quantities after restocking
+      await fetchAllData();
+      toast({ title: "Réapprovisionnement enregistré avec succès" });
+      return newReappro;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+      toast({ variant: 'destructive', title: 'Erreur d\'enregistrement', description: errorMessage });
+      return null;
+    }
+  }, [fetchAllData, toast]);
+
   const value = useMemo(() => ({
     produits, categories, entrepots, ventes, factureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
@@ -232,6 +247,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,
+    addReapprovisionnement,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted,
     isAuthenticated: !!token,
@@ -247,6 +263,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addEntrepot, updateEntrepot, deleteEntrepots,
     addVente, addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,
+    addReapprovisionnement,
     activeModules, shopInfo, themeColors,
     isMounted, token, logout, currentUser, scannedProductDetails
   ]);

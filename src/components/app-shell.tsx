@@ -29,7 +29,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, FileSignature, Building2, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, FileSignature, Building2, ClipboardList, PackagePlus } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 import { cn } from '@/lib/utils';
 
@@ -130,6 +130,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <ClipboardList />,
       label: 'Inventaires',
       active: pathname.startsWith('/inventories'),
+      module: 'stock',
+    },
+    {
+      href: '/reapprovisionnements',
+      icon: <PackagePlus />,
+      label: 'Réapprovisionnement',
+      active: pathname.startsWith('/reapprovisionnements'),
       module: 'stock',
     },
     {

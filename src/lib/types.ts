@@ -102,6 +102,43 @@ export type InventairePayload = {
   produits: InventaireProduitPayload[];
 };
 
+// ----- Restocking Types -----
+export type ReapproLigne = {
+  id: number;
+  produitId: number;
+  produitNom: string;
+  qteAjoutee: number;
+  entrepotNom: string;
+};
+
+export type Reapprovisionnement = {
+  id?: string | number; // Optional ID for client-side keying
+  source: string;
+  agent: string;
+  date?: string; // Optional date for client-side
+  lignes: ReapproLigne[];
+};
+
+export type ScannedReapproProduit = {
+  produitId: number;
+  nomProduit: string;
+  qteAjoutee: number;
+  entrepotNom: string;
+  barcode: string;
+};
+
+export type ReapproPayloadLigne = {
+    produitId: number;
+    qteAjoutee: number;
+    entrepotNom: string;
+};
+
+export type ReapproPayload = {
+  source: string;
+  agent: string;
+  lignes: ReapproPayloadLigne[];
+};
+
 
 // ----- App Settings Types (unchanged) -----
 
