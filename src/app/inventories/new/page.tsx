@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '@/context/app-provider';
-import type { ScannedProduit } from '@/lib/types';
+import type { ScannedProduit, Produit } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { ScanLine, Search, Package, Save, Loader2, Minus, Plus } from 'lucide-react';
@@ -25,33 +25,50 @@ export default function NewInventoryPage() {
     const [barcode, setBarcode] = useState("");
     const [isScanning, setIsScanning] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [productCache, setProductCache] = useState<Map<string, Produit>>(new Map());
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
-        setIsScanning(true);
 
+        const addOrIncrementProduct = (product: Produit) => {
+            const existingItemIndex = scannedItems.findIndex(item => item.produitId === product.id);
+
+            if (existingItemIndex > -1) {
+                const newItems = [...scannedItems];
+                newItems[existingItemIndex].qteScanne += 1;
+                setScannedItems(newItems);
+                toast({ title: "Quantité incrémentée", description: product.nom });
+            } else {
+                setScannedItems(prevItems => [
+                    ...prevItems,
+                    {
+                        produitId: product.id,
+                        nomProduit: product.nom,
+                        entrepotNom: product.entrepotNom || 'N/A',
+                        qteScanne: 1,
+                        barcode: product.codeBarre,
+                    }
+                ]);
+                toast({ title: "Produit ajouté", description: product.nom });
+            }
+        };
+
+        // Check cache first
+        if (productCache.has(barcode)) {
+            const cachedProduct = productCache.get(barcode)!;
+            addOrIncrementProduct(cachedProduct);
+            setBarcode("");
+            return;
+        }
+
+        // If not in cache, make the API call
+        setIsScanning(true);
         try {
             const product = await api.getProductByBarcode(barcode);
             if (product && product.id) {
-                const existingItemIndex = scannedItems.findIndex(item => item.produitId === product.id);
-
-                if (existingItemIndex > -1) {
-                    const newItems = [...scannedItems];
-                    newItems[existingItemIndex].qteScanne += 1;
-                    setScannedItems(newItems);
-                } else {
-                    setScannedItems(prevItems => [
-                        ...prevItems,
-                        {
-                            produitId: product.id,
-                            nomProduit: product.nom,
-                            entrepotNom: product.entrepotNom || 'N/A',
-                            qteScanne: 1,
-                        }
-                    ]);
-                }
-                toast({ title: "Produit ajouté", description: product.nom });
-
+                // Add to cache for future scans
+                setProductCache(prevCache => new Map(prevCache).set(barcode, product));
+                addOrIncrementProduct(product);
             } else {
                 toast({ variant: 'destructive', title: 'Erreur', description: 'Produit non trouvé.' });
             }
@@ -85,7 +102,7 @@ export default function NewInventoryPage() {
         setIsSaving(true);
         const payload = {
             charge: currentUser?.email || "Utilisateur inconnu",
-            produits: scannedItems.map(({ nomProduit, ...item}) => item)
+            produits: scannedItems.map(({ nomProduit, barcode, ...item}) => item)
         };
         
         const newInventory = await createInventaire(payload);

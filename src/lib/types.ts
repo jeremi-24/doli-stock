@@ -88,6 +88,7 @@ export type ScannedProduit = {
   nomProduit: string;
   qteScanne: number;
   entrepotNom: string;
+  barcode: string;
 };
 
 export type InventaireProduitPayload = {
