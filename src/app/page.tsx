@@ -159,9 +159,9 @@ export default function DashboardPage() {
                      <div key={vente.id} className="flex items-center justify-between py-2 border-b last:border-none">
                          <div>
                              <p className="font-medium">{vente.client}</p>
-                             <p className="text-xs text-muted-foreground">{new Date(vente.date_vente).toLocaleDateString('fr-FR')}</p>
+                             <p className="text-xs text-muted-foreground">{new Date(vente.date).toLocaleDateString('fr-FR')}</p>
                          </div>
-                         <div className="font-semibold">{formatCurrency(vente.montant_total)}</div>
+                         <div className="font-semibold">{formatCurrency(vente.paiement)}</div>
                      </div>
                  ))}
                  {ventes.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucune activité récente.</p>}

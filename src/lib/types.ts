@@ -25,8 +25,8 @@ export type Produit = {
   categorieId: number;
   entrepotId: number;
   // These can be returned from specific API calls
-  categorieNom?: string;
-  entrepotNom?: string;
+  categorieNom?: string | null;
+  entrepotNom?: string | null;
 };
 
 // This type is used for the local cart state in the UI
