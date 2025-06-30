@@ -7,133 +7,113 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from '@/context/app-provider';
-import type { Vente, FactureModele } from '@/lib/types';
-import { PlusCircle, Printer, Eye, Search, History } from 'lucide-react';
+import type { Vente, VenteLigneApi } from '@/lib/types';
+import { PlusCircle, Eye, Search, History, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-function SaleDetailsDialog({ vente, factureModeles }: { vente: Vente, factureModeles: FactureModele[] }) {
-    const { shopInfo } = useApp();
+function SaleDetailsDialog({ vente }: { vente: Vente }) {
+    const { produits } = useApp();
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
     
-    const template = factureModeles.find(m => m.id === vente.facture_modele_id);
-
-    const handlePrint = () => { 
-        const printWindow = window.open('', '_blank');
-        const contentToPrint = document.getElementById(`invoice-print-${vente.id}`)?.innerHTML;
-        
-        if (printWindow && contentToPrint) {
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Facture ${String(vente.id).substring(String(vente.id).length-6)}</title>
-                        <style>
-                            body { font-family: sans-serif; margin: 0; padding: 20px; }
-                            .print-container { max-width: 800px; margin: auto; }
-                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                            th { background-color: #f2f2f2; }
-                            .text-right { text-align: right; }
-                            .font-bold { font-weight: bold; }
-                            .text-lg { font-size: 1.125rem; }
-                            .text-sm { font-size: 0.875rem; }
-                            .text-muted-foreground { color: #64748b; }
-                            .mt-8 { margin-top: 2rem; }
-                            .pt-8 { padding-top: 2rem; }
-                            .mb-8 { margin-bottom: 2rem; }
-                            .border-t { border-top: 1px solid #ddd; }
-                            .text-center { text-align: center; }
-                            .flex { display: flex; }
-                            .justify-between { justify-content: space-between; }
-                            .items-start { align-items: flex-start; }
-                            .mx-auto { margin-left: auto; margin-right: auto; }
-                        </style>
-                    </head>
-                    <body>
-                        ${contentToPrint}
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.focus();
-            printWindow.print();
-        }
-    };
-
-    const primaryColorStyle = template?.color ? { color: `hsl(${template.color})` } : {};
+    const enrichedLignes = useMemo(() => {
+        return vente.lignes.map(ligne => {
+            const produit = produits.find(p => p.id === ligne.produitId);
+            return {
+                ...ligne,
+                produitNom: produit?.nom || `ID: ${ligne.produitId}`,
+            };
+        });
+    }, [vente.lignes, produits]);
 
     return (
         <Dialog>
             <DialogTrigger asChild><Button variant="ghost" size="icon" aria-label="Voir les détails"><Eye className="h-4 w-4" /></Button></DialogTrigger>
-            <DialogContent className="sm:max-w-3xl">
-                 <div id={`invoice-print-${vente.id}`} className="print-container p-6">
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-8">
-                        <div>
-                            {template?.logoUrl ? (
-                                <img src={template.logoUrl} alt="Logo" className="h-16 w-auto object-contain" />
-                            ) : (
-                                <h2 className="text-2xl font-bold" style={primaryColorStyle}>{shopInfo.name}</h2>
-                            )}
-                            <p className="text-sm text-muted-foreground mt-2">{shopInfo.address}</p>
-                            <p className="text-sm text-muted-foreground">{shopInfo.phone}</p>
-                        </div>
-                        <div className="text-right">
-                            <h1 className="text-3xl font-bold" style={primaryColorStyle}>
-                                {template?.header || 'FACTURE'}
-                            </h1>
-                            <p className="text-muted-foreground">N° : {String(vente.id).substring(String(vente.id).length-6)}</p>
-                            <p className="text-muted-foreground">Date : {format(new Date(vente.date_vente), 'd MMMM yyyy', { locale: fr })}</p>
-                        </div>
-                    </div>
-                     {/* Client Info */}
-                    <div className="mb-8">
-                        <p className="text-muted-foreground">Facturé à :</p>
-                        <p className="font-semibold">{vente.client}</p>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle className="font-headline">Détails de la Vente #{vente.ref}</DialogTitle>
+                    <DialogDescription>
+                        Vente réalisée le {format(new Date(vente.date), 'd MMMM yyyy à HH:mm', { locale: fr })} par {vente.caissier}.
+                    </DialogDescription>
+                </DialogHeader>
+                 <div className="p-2 space-y-4">
+                    <div className="text-sm">
+                        <span className="text-muted-foreground">Client : </span>
+                        <span className="font-semibold">{vente.client}</span>
                     </div>
 
                     {/* Table */}
                     <div className="border rounded-lg">
                         <Table>
                             <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-[100px] text-center">Qté</TableHead><TableHead className="text-right">P.U.</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                            <TableBody>{vente.lignes.map(l => (<TableRow key={l.id}><TableCell className="font-medium">{l.produit.nom}</TableCell><TableCell className="text-center">{l.quantite}</TableCell><TableCell className="text-right">{formatCurrency(l.prix_unitaire)}</TableCell><TableCell className="text-right">{formatCurrency(l.prix_total)}</TableCell></TableRow>))}</TableBody>
+                            <TableBody>{enrichedLignes.map(l => (<TableRow key={l.id}><TableCell className="font-medium">{l.produitNom}</TableCell><TableCell className="text-center">{l.qteVendu}</TableCell><TableCell className="text-right">{formatCurrency(l.produitPrix)}</TableCell><TableCell className="text-right">{formatCurrency(l.total)}</TableCell></TableRow>))}</TableBody>
                             <TableFooter>
-                                <TableRow className="text-base font-bold"><TableCell colSpan={3} className="text-right">Montant Total</TableCell><TableCell className="text-right">{formatCurrency(vente.montant_total)}</TableCell></TableRow>
-                                <TableRow><TableCell colSpan={3} className="text-right font-semibold">Montant Payé ({vente.type_paiement})</TableCell><TableCell className="text-right font-semibold">{formatCurrency(vente.montant_paye)}</TableCell></TableRow>
-                                <TableRow><TableCell colSpan={3} className="text-right font-semibold">Reste / Monnaie</TableCell><TableCell className="text-right font-semibold">{formatCurrency(vente.montant_paye - vente.montant_total)}</TableCell></TableRow>
+                                <TableRow className="text-base font-bold"><TableCell colSpan={3} className="text-right">Montant Total</TableCell><TableCell className="text-right">{formatCurrency(vente.paiement)}</TableCell></TableRow>
                             </TableFooter>
                         </Table>
                     </div>
-
-                    {/* Footer */}
-                    <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-                       {template?.footer ? (
-                            <p>{template.footer}</p>
-                        ) : (
-                            <p>Merci pour votre confiance !</p>
-                        )}
-                    </div>
                 </div>
-                <DialogFooter className="no-print"><Button onClick={handlePrint} variant="outline"><Printer className="h-4 w-4 mr-2" /> Imprimer</Button></DialogFooter>
             </DialogContent>
         </Dialog>
     )
 }
 
+function DeleteSaleButton({ venteId, onDeleted }: { venteId: number, onDeleted: () => void }) {
+    const { deleteVente } = useApp();
+    const [isLoading, setIsLoading] = useState(false);
+    
+    const handleDelete = async () => {
+        setIsLoading(true);
+        await deleteVente(venteId);
+        onDeleted(); // Let parent know to potentially close a dialog
+        setIsLoading(false);
+    };
+
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Cette action est irréversible. Elle supprimera définitivement cette vente et les lignes associées. Le stock ne sera PAS restauré.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} disabled={isLoading}>
+                         {isLoading ? "Suppression..." : "Supprimer"}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
 export default function SalesPage() {
-  const { ventes, factureModeles } = useApp();
+  const { ventes, isMounted } = useApp();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
   const filteredSales = useMemo(() => {
-      return [...ventes]
-        .sort((a, b) => new Date(b.date_vente).getTime() - new Date(a.date_vente).getTime())
-        .filter(vente => vente.client.toLowerCase().includes(searchTerm.toLowerCase()) || String(vente.id).toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [ventes, searchTerm]);
+    if (!isMounted) return [];
+    return [...ventes]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .filter(vente => 
+          vente.client.toLowerCase().includes(searchTerm.toLowerCase()) || 
+          vente.ref.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          vente.caissier.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+  }, [ventes, searchTerm, isMounted]);
   
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -143,7 +123,7 @@ export default function SalesPage() {
            <div className="relative flex-1 md:grow-0">
              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
            </div>
-          <Button size="sm" onClick={() => router.push('/invoicing')}><PlusCircle className="h-4 w-4 mr-2" />Créer une Facture</Button>
+          <Button size="sm" onClick={() => router.push('/invoicing')}><PlusCircle className="h-4 w-4 mr-2" />Créer une Vente</Button>
         </div>
       </div>
 
@@ -155,19 +135,36 @@ export default function SalesPage() {
           <CardContent>
             <div className="border rounded-lg">
                 <Table>
-                    <TableHeader><TableRow><TableHead>N° Vente</TableHead><TableHead>Client</TableHead><TableHead>Date</TableHead><TableHead>Type</TableHead><TableHead>Paiement</TableHead><TableHead className="text-right">Total</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
-                    <TableBody>
-                    {filteredSales.length > 0 ? filteredSales.map(vente => (
-                        <TableRow key={vente.id}>
-                            <TableCell className="font-mono text-xs">{String(vente.id).substring(String(vente.id).length-6)}</TableCell>
-                            <TableCell className="font-medium">{vente.client}</TableCell>
-                            <TableCell>{format(new Date(vente.date_vente), 'd MMM yyyy', { locale: fr })}</TableCell>
-                            <TableCell><Badge variant={vente.type === 'pos' ? 'secondary' : 'default'}>{vente.type.toUpperCase()}</Badge></TableCell>
-                            <TableCell><Badge variant="outline">{vente.type_paiement}</Badge></TableCell>
-                            <TableCell className="text-right font-semibold">{formatCurrency(vente.montant_total)}</TableCell>
-                            <TableCell className="text-right"><SaleDetailsDialog vente={vente} factureModeles={factureModeles} /></TableCell>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Référence</TableHead>
+                            <TableHead>Client</TableHead>
+                            <TableHead>Caissier</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="text-center w-[100px]">Actions</TableHead>
                         </TableRow>
-                    )) : (<TableRow><TableCell colSpan={7} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
+                    </TableHeader>
+                    <TableBody>
+                    {!isMounted ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i}><TableCell colSpan={6} className="h-12"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground"/></TableCell></TableRow>
+                        ))
+                    ) : filteredSales.length > 0 ? filteredSales.map(vente => (
+                        <TableRow key={vente.id}>
+                            <TableCell className="font-mono text-xs">{vente.ref}</TableCell>
+                            <TableCell className="font-medium">{vente.client}</TableCell>
+                            <TableCell><Badge variant="outline">{vente.caissier}</Badge></TableCell>
+                            <TableCell>{format(new Date(vente.date), 'd MMM yyyy, HH:mm', { locale: fr })}</TableCell>
+                            <TableCell className="text-right font-semibold">{formatCurrency(vente.paiement)}</TableCell>
+                            <TableCell className="text-center">
+                                <div className="flex items-center justify-center">
+                                    <SaleDetailsDialog vente={vente} />
+                                    <DeleteSaleButton venteId={vente.id} onDeleted={() => {}}/>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    )) : (<TableRow><TableCell colSpan={6} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
                     </TableBody>
                 </Table>
             </div>
@@ -176,5 +173,3 @@ export default function SalesPage() {
     </div>
   );
 }
-
-    

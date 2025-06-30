@@ -9,23 +9,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useApp } from '@/context/app-provider';
-import type { VenteLigne, Produit } from '@/lib/types';
-import { PlusCircle, Trash2, FileText } from 'lucide-react';
+import type { VenteLigne, VentePayload } from '@/lib/types';
+import { PlusCircle, Trash2, FileText, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 export default function InvoicingPage() {
-  const { produits, addVente, factureModeles } = useApp();
+  const { produits, addVente, currentUser } = useApp();
   const { toast } = useToast();
   const router = useRouter();
 
   const [client, setClient] = useState('');
   const [lignes, setLignes] = useState<VenteLigne[]>([]);
-  const [montantPaye, setMontantPaye] = useState(0);
   const [typePaiement, setTypePaiement] = useState<'cash' | 'flooz' | 'tmoney' | 'carte'>('cash');
-  const [selectedModeleId, setSelectedModeleId] = useState<string | undefined>(factureModeles[0]?.id);
-  
   const [selectedProduit, setSelectedProduit] = useState<string | undefined>(undefined);
+  const [isSaving, setIsSaving] = useState(false);
   
   const availableProducts = useMemo(() => {
     return produits.filter(p => !lignes.some(ligne => ligne.produit.id === p.id));
@@ -74,64 +72,74 @@ export default function InvoicingPage() {
 
   const total = useMemo(() => lignes.reduce((acc, item) => acc + item.prix_total, 0), [lignes]);
 
-  const handleCreateSale = () => {
+  const handleCreateSale = async () => {
     if (!client.trim()) { toast({ title: "Nom du client requis", variant: "destructive" }); return; }
     if (lignes.length === 0) { toast({ title: "Aucun article dans la facture", variant: "destructive" }); return; }
 
-    addVente({
-        client,
-        lignes,
-        montant_total: total,
-        montant_paye: montantPaye,
-        type_paiement: typePaiement,
-        vendeur: "Utilisateur Démo",
-        type: 'manual',
-        facture_modele_id: selectedModeleId,
-    });
+    setIsSaving(true);
+    const payload: VentePayload = {
+      ref: `MAN-${Date.now().toString().slice(-8)}`,
+      caissier: currentUser?.email || 'Inconnu',
+      client: client,
+      paiement: typePaiement,
+      lignes: lignes.map(item => ({
+        produitId: item.produit.id,
+        produitNom: item.produit.nom,
+        qteVendu: item.quantite,
+        produitPrix: item.prix_unitaire,
+        total: item.prix_total,
+      })),
+    };
     
-    toast({ title: "Facture créée avec succès", description: "Le stock a été mis à jour." });
-    router.push('/sales');
+    try {
+        await addVente(payload);
+        toast({ title: "Vente créée avec succès", description: "Le stock a été mis à jour." });
+        router.push('/sales');
+    } catch (error) {
+        // error is handled by the context provider
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
-        <h1 className="font-headline text-3xl font-semibold">Créer une Facture</h1>
+        <h1 className="font-headline text-3xl font-semibold">Créer une Vente Manuelle</h1>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline flex items-center gap-2"><FileText /> Nouvelle Facture Manuelle</CardTitle>
-          <CardDescription>Remplissez les informations ci-dessous pour créer une nouvelle facture.</CardDescription>
+          <CardTitle className="font-headline flex items-center gap-2"><FileText /> Nouvelle Vente</CardTitle>
+          <CardDescription>Remplissez les informations ci-dessous pour créer une nouvelle vente.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="client">Nom du Client</Label>
-              <Input id="client" placeholder="Ex: John Doe" value={client} onChange={(e) => setClient(e.target.value)} />
+              <Input id="client" placeholder="Ex: John Doe" value={client} onChange={(e) => setClient(e.target.value)} disabled={isSaving} />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="factureModele">Modèle de Facture</Label>
-              <Select value={selectedModeleId} onValueChange={setSelectedModeleId}>
-                <SelectTrigger id="factureModele">
-                  <SelectValue placeholder="Choisir un modèle..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {factureModeles.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Label htmlFor="typePaiement">Moyen de Paiement</Label>
+                <Select value={typePaiement} onValueChange={(v) => setTypePaiement(v as any)} disabled={isSaving}>
+                    <SelectTrigger id="typePaiement"><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="tmoney">T-Money</SelectItem>
+                    <SelectItem value="flooz">Flooz</SelectItem>
+                    <SelectItem value="carte">Carte</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label>Ajouter des Produits à la Facture</Label>
+            <Label>Ajouter des Produits</Label>
             <div className="flex items-center gap-2">
-              <Select value={selectedProduit} onValueChange={setSelectedProduit}>
+              <Select value={selectedProduit} onValueChange={setSelectedProduit} disabled={isSaving}>
                 <SelectTrigger><SelectValue placeholder="Sélectionner un produit" /></SelectTrigger>
                 <SelectContent>{availableProducts.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.nom}</SelectItem>)}</SelectContent>
               </Select>
-              <Button onClick={handleAddItem} variant="outline" size="icon" aria-label="Ajouter le produit"><PlusCircle className="h-4 w-4" /></Button>
+              <Button onClick={handleAddItem} variant="outline" size="icon" aria-label="Ajouter le produit" disabled={isSaving}><PlusCircle className="h-4 w-4" /></Button>
             </div>
           </div>
           
@@ -150,10 +158,10 @@ export default function InvoicingPage() {
                 {lignes.length > 0 ? lignes.map(item => (
                   <TableRow key={item.produit.id}>
                     <TableCell className="font-medium">{item.produit.nom}</TableCell>
-                    <TableCell><Input type="number" value={item.quantite} onChange={(e) => handleQuantityChange(item.produit.id, parseInt(e.target.value))} min="1" max={produits.find(p => p.id === item.produit.id)?.qte} className="h-8 w-20"/></TableCell>
+                    <TableCell><Input type="number" value={item.quantite} onChange={(e) => handleQuantityChange(item.produit.id, parseInt(e.target.value))} min="1" max={produits.find(p => p.id === item.produit.id)?.qte} className="h-8 w-20" disabled={isSaving}/></TableCell>
                     <TableCell className="text-right">{formatCurrency(item.prix_unitaire)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(item.prix_total)}</TableCell>
-                    <TableCell><Button onClick={() => handleRemoveItem(item.produit.id)} variant="ghost" size="icon" aria-label="Supprimer"><Trash2 className="h-4 w-4 text-red-500" /></Button></TableCell>
+                    <TableCell><Button onClick={() => handleRemoveItem(item.produit.id)} variant="ghost" size="icon" aria-label="Supprimer" disabled={isSaving}><Trash2 className="h-4 w-4 text-red-500" /></Button></TableCell>
                   </TableRow>
                 )) : (
                   <TableRow><TableCell colSpan={5} className="h-24 text-center">Aucun produit ajouté.</TableCell></TableRow>
@@ -162,33 +170,19 @@ export default function InvoicingPage() {
             </Table>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t pt-6">
-            <div className="space-y-2">
-              <Label htmlFor="montantPaye">Montant Payé</Label>
-              <Input id="montantPaye" type="number" value={montantPaye} onChange={(e) => setMontantPaye(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="typePaiement">Moyen de Paiement</Label>
-              <Select value={typePaiement} onValueChange={(v) => setTypePaiement(v as any)}>
-                <SelectTrigger id="typePaiement"><SelectValue/></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="tmoney">T-Money</SelectItem>
-                  <SelectItem value="flooz">Flooz</SelectItem>
-                  <SelectItem value="carte">Carte</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="font-semibold text-lg flex flex-col justify-end items-end gap-1">
-              <div className="flex justify-between w-full max-w-xs"><span>Total:</span><span>{formatCurrency(total)}</span></div>
-              <div className="flex justify-between w-full max-w-xs"><span>Reste:</span><span>{formatCurrency(total - montantPaye)}</span></div>
+          <div className="flex justify-end border-t pt-4">
+            <div className="font-semibold text-lg flex flex-col items-end gap-1 w-full max-w-xs">
+              <div className="flex justify-between w-full"><span>Total:</span><span>{formatCurrency(total)}</span></div>
             </div>
           </div>
         </CardContent>
         <CardFooter className="border-t px-6 py-4">
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" onClick={() => router.push('/sales')}>Annuler</Button>
-            <Button onClick={handleCreateSale} disabled={lignes.length === 0 || !client.trim()}>Créer la Facture</Button>
+            <Button variant="ghost" onClick={() => router.push('/sales')} disabled={isSaving}>Annuler</Button>
+            <Button onClick={handleCreateSale} disabled={lignes.length === 0 || !client.trim() || isSaving}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSaving ? 'Enregistrement...' : 'Enregistrer la Vente'}
+            </Button>
           </div>
         </CardFooter>
       </Card>

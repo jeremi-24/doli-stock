@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VenteLigne, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement } from '@/lib/types';
+import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -25,7 +25,8 @@ interface AppContextType {
   addEntrepot: (entrepot: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => Promise<void>;
   updateEntrepot: (id: number, entrepot: Partial<Entrepot>) => Promise<void>;
   deleteEntrepots: (entrepotIds: number[]) => Promise<void>;
-  addVente: (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => Promise<void>;
+  addVente: (venteData: VentePayload) => Promise<void>;
+  deleteVente: (venteId: number) => Promise<void>;
   addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
   updateFactureModele: (modele: FactureModele) => Promise<void>;
   deleteFactureModele: (modeleId: string) => Promise<void>;
@@ -84,14 +85,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAllData = useCallback(async () => {
     try {
-        const [produitsData, categoriesData, entrepotsData] = await Promise.all([
+        const [produitsData, categoriesData, entrepotsData, ventesData] = await Promise.all([
             api.getProducts(),
             api.getCategories(),
             api.getEntrepots(),
+            api.getVentes()
         ]);
         setProduits(produitsData || []);
         setCategories(categoriesData || []);
         setEntrepots(entrepotsData || []);
+        setVentes(ventesData || []);
         
         // const factureModelesData = await api.getFactureModeles();
         // setFactureModeles(factureModelesData || []);
@@ -117,9 +120,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         logout();
       }
     }
-
-    const storedVentes = localStorage.getItem('stockhero_ventes');
-    if (storedVentes) setVentes(JSON.parse(storedVentes).map((v: Vente) => ({ ...v, date_vente: new Date(v.date_vente) })));
     
     const storedModules = localStorage.getItem('stockhero_modules');
     if (storedModules) setActiveModules(JSON.parse(storedModules));
@@ -138,7 +138,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isMounted, token, fetchAllData, pathname]);
   
-  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_ventes', JSON.stringify(ventes)); }, [ventes, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_modules', JSON.stringify(activeModules)); }, [activeModules, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_shopinfo', JSON.stringify(shopInfo)); }, [shopInfo, isMounted]);
   useEffect(() => {
@@ -179,25 +178,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const assignProduits = useCallback(async (data: AssignationPayload) => { await api.assignProducts(data); await fetchAllData(); }, [fetchAllData]);
   const addMultipleProduits = useCallback(async () => { await fetchAllData(); }, [fetchAllData]);
   
-  const addVente = useCallback(async (venteData: Omit<Vente, 'id' | 'date_vente' | 'reste'>) => {
+  const addVente = useCallback(async (venteData: VentePayload) => {
     try {
-      const updatePromises = venteData.lignes.map(ligne => {
-        const productToUpdate = produits.find(p => p.id === ligne.produit.id);
-        if (productToUpdate) {
-          const newQuantity = productToUpdate.qte - ligne.quantite;
-          return api.updateProduct(productToUpdate.id, { qte: newQuantity });
-        }
-        return Promise.resolve();
-      });
-      await Promise.all(updatePromises);
-      const newVente: Vente = { ...venteData, id: Date.now(), date_vente: new Date(), reste: venteData.montant_total - venteData.montant_paye };
-      setVentes(prev => [newVente, ...prev]);
-      await fetchAllData();
+      await api.createVente(venteData);
+      await fetchAllData(); // Refetch everything to update stock and sales list
     } catch (error) {
-       console.error("Failed to update stock during sale:", error);
-       toast({ variant: 'destructive', title: 'Erreur de Vente', description: "La mise à jour du stock a échoué."});
+       const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+       toast({ variant: 'destructive', title: 'Erreur de Vente', description: errorMessage});
+       throw error; // re-throw to allow caller to handle UI state
     }
-  }, [produits, fetchAllData, toast]);
+  }, [fetchAllData, toast]);
+
+  const deleteVente = useCallback(async (venteId: number) => {
+    try {
+        await api.deleteVente(venteId);
+        await fetchAllData();
+        toast({ title: "Vente supprimée avec succès" });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: 'Erreur de suppression', description: errorMessage });
+    }
+  }, [fetchAllData, toast]);
+
 
   const addFactureModele = useCallback(async (modeleData: Omit<FactureModele, 'id'>) => {
     // await api.createFactureModele(modeleData);
@@ -245,7 +247,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
-    addVente, addFactureModele, updateFactureModele, deleteFactureModele,
+    addVente, deleteVente, 
+    addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,
     addReapprovisionnement,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
@@ -261,7 +264,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
-    addVente, addFactureModele, updateFactureModele, deleteFactureModele,
+    addVente, deleteVente,
+    addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,
     addReapprovisionnement,
     activeModules, shopInfo, themeColors,
