@@ -50,8 +50,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const initialModules: ActiveModules = { stock: true, invoicing: true, barcode: true, pos: true };
-const initialShopInfo: ShopInfo = { name: 'Ma Boutique Togo', address: 'Boulevard du 13 Janvier, Lomé, Togo', phone: '+228 90 00 00 00', email: 'contact@boutique.tg' };
-const initialThemeColors: ThemeColors = { primary: '231 48% 48%', background: '220 13% 96%', accent: '262 52% 50%' };
+const initialShopInfo: ShopInfo = { name: 'STA', address: 'Société Togolaise d\'Automobile', phone: '+228 90 00 00 00', email: 'contact@sta.tg' };
+const initialThemeColors: ThemeColors = { primary: '43 98% 53%', background: '43 20% 98%', accent: '43 90% 60%' };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
