@@ -26,24 +26,22 @@ function CheckoutDialog({
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   total: number;
-  onCompleteSale: (details: { client: string; typePaiement: string }) => void;
+  onCompleteSale: (details: { client: string }) => void;
   isSaving: boolean;
 }) {
   const [client, setClient] = useState("Vente au comptoir");
-  const [typePaiement, setTypePaiement] = useState<'cash' | 'flooz' | 'tmoney' | 'carte'>('cash');
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
 
   const handleSubmit = () => {
-    onCompleteSale({ client, typePaiement });
+    onCompleteSale({ client });
   };
 
   useEffect(() => {
     if (isOpen) {
       setClient("Vente au comptoir");
-      setTypePaiement('cash');
     }
   }, [isOpen]);
 
@@ -62,18 +60,6 @@ function CheckoutDialog({
           <div className="space-y-2">
             <Label htmlFor="client">Nom du Client</Label>
             <Input id="client" value={client} onChange={(e) => setClient(e.target.value)} disabled={isSaving} />
-          </div>
-          <div className="space-y-2">
-              <Label htmlFor="typePaiement">Moyen de Paiement</Label>
-              <Select value={typePaiement} onValueChange={(v) => setTypePaiement(v as any)} disabled={isSaving}>
-                  <SelectTrigger><SelectValue/></SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="tmoney">T-Money</SelectItem>
-                      <SelectItem value="flooz">Flooz</SelectItem>
-                      <SelectItem value="carte">Carte</SelectItem>
-                  </SelectContent>
-              </Select>
           </div>
         </div>
         <DialogFooter>
@@ -166,13 +152,12 @@ export default function POSPage() {
   }, [cart]);
 
 
-  const handleCompleteSale = async (details: { client: string; typePaiement: string }) => {
+  const handleCompleteSale = async (details: { client: string }) => {
     setIsSaving(true);
     const payload: VentePayload = {
         ref: `POS-${Date.now().toString().slice(-8)}`,
         caissier: currentUser?.email || 'Inconnu',
         client: details.client,
-        paiement: details.typePaiement,
         lignes: cart.map(item => ({
             produitId: item.produit.id,
             produitNom: item.produit.nom,

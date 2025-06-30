@@ -79,7 +79,6 @@ export type VentePayload = {
     ref: string;
     caissier: string;
     client: string;
-    paiement: string; // This is the payment method string
     lignes: VentePayloadLigne[];
 };
 

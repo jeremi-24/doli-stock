@@ -21,7 +21,6 @@ export default function InvoicingPage() {
 
   const [client, setClient] = useState('');
   const [lignes, setLignes] = useState<VenteLigne[]>([]);
-  const [typePaiement, setTypePaiement] = useState<'cash' | 'flooz' | 'tmoney' | 'carte'>('cash');
   const [selectedProduit, setSelectedProduit] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -81,7 +80,6 @@ export default function InvoicingPage() {
       ref: `MAN-${Date.now().toString().slice(-8)}`,
       caissier: currentUser?.email || 'Inconnu',
       client: client,
-      paiement: typePaiement,
       lignes: lignes.map(item => ({
         produitId: item.produit.id,
         produitNom: item.produit.nom,
@@ -113,23 +111,9 @@ export default function InvoicingPage() {
           <CardDescription>Remplissez les informations ci-dessous pour créer une nouvelle vente.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="client">Nom du Client</Label>
-              <Input id="client" placeholder="Ex: John Doe" value={client} onChange={(e) => setClient(e.target.value)} disabled={isSaving} />
-            </div>
-             <div className="space-y-2">
-                <Label htmlFor="typePaiement">Moyen de Paiement</Label>
-                <Select value={typePaiement} onValueChange={(v) => setTypePaiement(v as any)} disabled={isSaving}>
-                    <SelectTrigger id="typePaiement"><SelectValue/></SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="tmoney">T-Money</SelectItem>
-                    <SelectItem value="flooz">Flooz</SelectItem>
-                    <SelectItem value="carte">Carte</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="client">Nom du Client</Label>
+            <Input id="client" placeholder="Ex: John Doe" value={client} onChange={(e) => setClient(e.target.value)} disabled={isSaving} />
           </div>
           
           <div className="space-y-2">
