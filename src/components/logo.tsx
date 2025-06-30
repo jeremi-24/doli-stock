@@ -15,7 +15,7 @@ export function Logo(props: React.SVGProps<SVGSVGElement>) {
         y="40"
         x="0"
       >
-        STA
+        SH
       </text>
     </svg>
   );
