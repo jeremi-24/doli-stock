@@ -29,6 +29,7 @@ export type Produit = {
   entrepotNom?: string;
 };
 
+// This type is used for the local cart state in the UI
 export type VenteLigne = {
   id: number;
   produit: Produit;
@@ -37,19 +38,51 @@ export type VenteLigne = {
   prix_total: number;
 };
 
-export type Vente = {
-  id: number;
-  client: string;
-  lignes: VenteLigne[];
-  montant_total: number;
-  montant_paye: number;
-  reste: number;
-  type_paiement: 'cash' | 'flooz' | 'tmoney' | 'carte';
-  vendeur: string;
-  date_vente: Date;
-  type: 'pos' | 'manual';
-  facture_modele_id?: string;
+// --- API Types for Sales ---
+
+// Represents a line item in a sale, as returned by the GET /api/ventes endpoint
+export type VenteLigneApi = {
+    id: number;
+    produitId: number;
+    qteVendu: number;
+    produitPrix: number;
+    total: number;
+    vente?: string;
+    // This property is added on the client-side for display purposes
+    produitNom?: string;
 };
+
+// Represents a sale, as returned by the GET /api/ventes endpoint
+export type Vente = {
+    id: number;
+    ref: string;
+    date: string; 
+    caissier: string;
+    client: string;
+    paiement: number; // This is the total amount
+    lignes: VenteLigneApi[];
+};
+
+// --- Payload Types for Creating a new Sale ---
+
+// Represents a line item in the payload for POST /api/ventes
+export type VentePayloadLigne = {
+    produitId: number;
+    produitNom: string;
+    qteVendu: number;
+    produitPrix: number;
+    total: number;
+};
+
+// Represents the payload for POST /api/ventes
+export type VentePayload = {
+    ref: string;
+    caissier: string;
+    client: string;
+    paiement: string; // This is the payment method string
+    lignes: VentePayloadLigne[];
+};
+
 
 export type FactureModele = {
   id: string;

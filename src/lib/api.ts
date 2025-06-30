@@ -1,6 +1,5 @@
-
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement } from './types';
+import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api'; 
@@ -240,6 +239,19 @@ export async function getReapprovisionnement(id: number): Promise<Reapprovisionn
 
 export async function createReapprovisionnement(data: ReapproPayload): Promise<Reapprovisionnement> {
   return apiFetch('/reappro', { method: 'POST', body: JSON.stringify(data) });
+}
+
+// ========== Sales API ==========
+export async function getVentes(): Promise<Vente[]> {
+  return apiFetch('/ventes');
+}
+
+export async function createVente(data: VentePayload): Promise<Vente> {
+  return apiFetch('/ventes', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function deleteVente(id: number): Promise<null> {
+  return apiFetch(`/ventes/${id}`, { method: 'DELETE' });
 }
 
 
