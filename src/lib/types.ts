@@ -1,5 +1,11 @@
 
 
+export type Client = {
+  id: number;
+  nom: string;
+  tel: string;
+};
+
 export type Categorie = {
   id: number;
   nom: string;
@@ -78,7 +84,7 @@ export type VentePayloadLigne = {
 export type VentePayload = {
     ref: string;
     caissier: string;
-    client: string;
+    clientId: number;
     lignes: VentePayloadLigne[];
 };
 
@@ -144,7 +150,7 @@ export type ReapproLigne = {
 };
 
 export type Reapprovisionnement = {
-  id: string | number;
+  id: number;
   source: string;
   agent: string;
   date: string;

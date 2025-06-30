@@ -1,5 +1,5 @@
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload } from './types';
+import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload, Client } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api'; 
@@ -70,6 +70,18 @@ export async function loginUser(data: LoginPayload): Promise<any> {
 export async function signupUser(data: SignupPayload): Promise<any> {
   const { confirmPassword, ...payload } = data; // Don't send confirmPassword to backend
   return apiFetch('/auth/save', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+// ========== Clients API ==========
+export async function getClients(): Promise<Client[]> { return apiFetch('/client'); }
+export async function createClient(data: Omit<Client, 'id'>): Promise<Client> {
+  return apiFetch('/client', { method: 'POST', body: JSON.stringify(data) });
+}
+export async function updateClient(id: number, data: Partial<Client>): Promise<Client> {
+  return apiFetch(`/client/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export async function deleteClient(id: number): Promise<null> {
+  return apiFetch(`/client/${id}`, { method: 'DELETE' });
 }
 
 // ========== Categories API ==========
@@ -243,15 +255,15 @@ export async function createReapprovisionnement(data: ReapproPayload): Promise<R
 
 // ========== Sales API ==========
 export async function getVentes(): Promise<Vente[]> {
-  return apiFetch('/vente');
+  return apiFetch('/ventes');
 }
 
 export async function createVente(data: VentePayload): Promise<Vente> {
-  return apiFetch('/vente', { method: 'POST', body: JSON.stringify(data) });
+  return apiFetch('/ventes', { method: 'POST', body: JSON.stringify(data) });
 }
 
 export async function deleteVente(id: number): Promise<null> {
-  return apiFetch(`/vente/${id}`, { method: 'DELETE' });
+  return apiFetch(`/ventes/${id}`, { method: 'DELETE' });
 }
 
 

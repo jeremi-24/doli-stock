@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement } from '@/lib/types';
+import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -12,6 +12,7 @@ interface AppContextType {
   produits: Produit[];
   categories: Categorie[];
   entrepots: Entrepot[];
+  clients: Client[];
   ventes: Vente[];
   factureModeles: FactureModele[];
   addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
@@ -25,6 +26,9 @@ interface AppContextType {
   addEntrepot: (entrepot: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => Promise<void>;
   updateEntrepot: (id: number, entrepot: Partial<Entrepot>) => Promise<void>;
   deleteEntrepots: (entrepotIds: number[]) => Promise<void>;
+  addClient: (client: Omit<Client, 'id'>) => Promise<void>;
+  updateClient: (id: number, client: Partial<Client>) => Promise<void>;
+  deleteClient: (id: number) => Promise<void>;
   addVente: (venteData: VentePayload) => Promise<void>;
   deleteVente: (venteId: number) => Promise<void>;
   addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
@@ -58,6 +62,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [produits, setProduits] = useState<Produit[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [entrepots, setEntrepots] = useState<Entrepot[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [ventes, setVentes] = useState<Vente[]>([]);
   const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
@@ -78,6 +83,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setProduits([]);
     setCategories([]);
     setEntrepots([]);
+    setClients([]);
     setVentes([]);
     setFactureModeles([]);
     router.push('/login');
@@ -109,6 +115,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setEntrepots(entrepotsData || []);
     } catch (error) {
         handleFetchError(error, 'Entrepôts');
+    }
+    try {
+        const clientsData = await api.getClients();
+        setClients(clientsData || []);
+    } catch (error) {
+        handleFetchError(error, 'Clients');
     }
     try {
         const ventesData = await api.getVentes();
@@ -189,6 +201,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const assignProduits = useCallback(async (data: AssignationPayload) => { await api.assignProducts(data); await fetchAllData(); }, [fetchAllData]);
   const addMultipleProduits = useCallback(async () => { await fetchAllData(); }, [fetchAllData]);
   
+  const addClient = useCallback(async (data: Omit<Client, 'id'>) => { await api.createClient(data); await fetchAllData(); }, [fetchAllData]);
+  const updateClient = useCallback(async (id: number, data: Partial<Client>) => { await api.updateClient(id, data); await fetchAllData(); }, [fetchAllData]);
+  const deleteClient = useCallback(async (id: number) => {
+    try {
+        await api.deleteClient(id);
+        await fetchAllData();
+        toast({ title: "Client supprimé" });
+    } catch(error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: 'Erreur de suppression', description: errorMessage});
+    }
+  }, [fetchAllData, toast]);
+
   const addVente = useCallback(async (venteData: VentePayload) => {
     try {
       await api.createVente(venteData);
@@ -254,10 +279,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [fetchAllData, toast]);
 
   const value = useMemo(() => ({
-    produits, categories, entrepots, ventes, factureModeles,
+    produits, categories, entrepots, clients, ventes, factureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
+    addClient, updateClient, deleteClient,
     addVente, deleteVente, 
     addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,
@@ -271,10 +297,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     scannedProductDetails, 
     setScannedProductDetails,
   }), [
-    produits, categories, entrepots, ventes, factureModeles,
+    produits, categories, entrepots, clients, ventes, factureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
+    addClient, updateClient, deleteClient,
     addVente, deleteVente,
     addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,

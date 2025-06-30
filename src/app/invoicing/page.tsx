@@ -15,11 +15,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 export default function InvoicingPage() {
-  const { produits, addVente, currentUser } = useApp();
+  const { produits, clients, addVente, currentUser } = useApp();
   const { toast } = useToast();
   const router = useRouter();
 
-  const [client, setClient] = useState('');
+  const [clientId, setClientId] = useState<string | undefined>(undefined);
   const [lignes, setLignes] = useState<VenteLigne[]>([]);
   const [selectedProduit, setSelectedProduit] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
@@ -72,14 +72,14 @@ export default function InvoicingPage() {
   const total = useMemo(() => lignes.reduce((acc, item) => acc + item.prix_total, 0), [lignes]);
 
   const handleCreateSale = async () => {
-    if (!client.trim()) { toast({ title: "Nom du client requis", variant: "destructive" }); return; }
+    if (!clientId) { toast({ title: "Veuillez sélectionner un client", variant: "destructive" }); return; }
     if (lignes.length === 0) { toast({ title: "Aucun article dans la facture", variant: "destructive" }); return; }
 
     setIsSaving(true);
     const payload: VentePayload = {
       ref: `MAN-${Date.now().toString().slice(-8)}`,
       caissier: currentUser?.email || 'Inconnu',
-      client: client,
+      clientId: parseInt(clientId, 10),
       lignes: lignes.map(item => ({
         produitId: item.produit.id,
         produitNom: item.produit.nom,
@@ -112,8 +112,15 @@ export default function InvoicingPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="client">Nom du Client</Label>
-            <Input id="client" placeholder="Ex: John Doe" value={client} onChange={(e) => setClient(e.target.value)} disabled={isSaving} />
+            <Label htmlFor="client-select">Client</Label>
+            <Select value={clientId} onValueChange={setClientId} disabled={isSaving}>
+              <SelectTrigger id="client-select">
+                <SelectValue placeholder="Sélectionner un client" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
@@ -163,7 +170,7 @@ export default function InvoicingPage() {
         <CardFooter className="border-t px-6 py-4">
           <div className="ml-auto flex items-center gap-2">
             <Button variant="ghost" onClick={() => router.push('/sales')} disabled={isSaving}>Annuler</Button>
-            <Button onClick={handleCreateSale} disabled={lignes.length === 0 || !client.trim() || isSaving}>
+            <Button onClick={handleCreateSale} disabled={lignes.length === 0 || !clientId || isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSaving ? 'Enregistrement...' : 'Enregistrer la Vente'}
             </Button>

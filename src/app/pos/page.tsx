@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
-import type { Produit, VenteLigne, Categorie, VentePayload } from '@/lib/types';
+import type { Produit, VenteLigne, Categorie, VentePayload, Client } from '@/lib/types';
 import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -22,28 +22,34 @@ function CheckoutDialog({
   total,
   onCompleteSale,
   isSaving,
+  clients,
+  defaultClientId,
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   total: number;
-  onCompleteSale: (details: { client: string }) => void;
+  onCompleteSale: (details: { clientId: number }) => void;
   isSaving: boolean;
+  clients: Client[];
+  defaultClientId?: number;
 }) {
-  const [client, setClient] = useState("Vente au comptoir");
+  const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
 
   const handleSubmit = () => {
-    onCompleteSale({ client });
+    if (selectedClientId) {
+      onCompleteSale({ clientId: parseInt(selectedClientId, 10) });
+    }
   };
 
   useEffect(() => {
     if (isOpen) {
-      setClient("Vente au comptoir");
+      setSelectedClientId(defaultClientId ? String(defaultClientId) : undefined);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultClientId]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -58,13 +64,22 @@ function CheckoutDialog({
             <p className="text-4xl font-bold">{formatCurrency(total)}</p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="client">Nom du Client</Label>
-            <Input id="client" value={client} onChange={(e) => setClient(e.target.value)} disabled={isSaving} />
+            <Label htmlFor="client-select">Client</Label>
+            <Select value={selectedClientId} onValueChange={setSelectedClientId} disabled={isSaving}>
+              <SelectTrigger id="client-select">
+                <SelectValue placeholder="Sélectionner un client" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map(client => (
+                  <SelectItem key={client.id} value={String(client.id)}>{client.nom}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>
           <DialogClose asChild><Button variant="ghost" disabled={isSaving}>Annuler</Button></DialogClose>
-          <Button onClick={handleSubmit} disabled={isSaving}>
+          <Button onClick={handleSubmit} disabled={isSaving || !selectedClientId}>
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSaving ? "Sauvegarde..." : "Valider la Vente"}
           </Button>
@@ -76,7 +91,7 @@ function CheckoutDialog({
 
 
 export default function POSPage() {
-  const { produits, categories, addVente, currentUser } = useApp();
+  const { produits, categories, clients, addVente, currentUser } = useApp();
   const { toast } = useToast();
   const [cart, setCart] = useState<VenteLigne[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,6 +102,8 @@ export default function POSPage() {
   const displayCategories = useMemo(() => ['Tout', ...categories.map(c => c.nom)], [categories]);
   const categoryNameToId = useMemo(() => new Map(categories.map(c => [c.nom, c.id])), [categories]);
   
+  const defaultClient = useMemo(() => clients.find(c => c.nom.toUpperCase() === 'CLIENT GENERIQUE'), [clients]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
@@ -152,12 +169,12 @@ export default function POSPage() {
   }, [cart]);
 
 
-  const handleCompleteSale = async (details: { client: string }) => {
+  const handleCompleteSale = async (details: { clientId: number }) => {
     setIsSaving(true);
     const payload: VentePayload = {
         ref: `POS-${Date.now().toString().slice(-8)}`,
         caissier: currentUser?.email || 'Inconnu',
-        client: details.client,
+        clientId: details.clientId,
         lignes: cart.map(item => ({
             produitId: item.produit.id,
             produitNom: item.produit.nom,
@@ -260,7 +277,15 @@ export default function POSPage() {
             </div>
         )}
       </div>
-      <CheckoutDialog isOpen={isCheckoutOpen} onOpenChange={setIsCheckoutOpen} total={total} onCompleteSale={handleCompleteSale} isSaving={isSaving} />
+      <CheckoutDialog 
+        isOpen={isCheckoutOpen} 
+        onOpenChange={setIsCheckoutOpen} 
+        total={total} 
+        onCompleteSale={handleCompleteSale} 
+        isSaving={isSaving} 
+        clients={clients}
+        defaultClientId={defaultClient?.id}
+      />
     </div>
   );
 }

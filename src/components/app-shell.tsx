@@ -29,7 +29,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, FileSignature, Building2, ClipboardList, PackagePlus } from 'lucide-react';
+import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, FileSignature, Building2, ClipboardList, PackagePlus, Users } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 import { cn } from '@/lib/utils';
 
@@ -158,6 +158,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <FileSignature />,
       label: 'Modèles Facture',
       active: pathname === '/invoice-templates',
+      module: 'invoicing',
+    },
+    {
+      href: '/clients',
+      icon: <Users />,
+      label: 'Clients',
+      active: pathname === '/clients',
       module: 'invoicing',
     },
     {
