@@ -183,7 +183,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Logo className="w-8 h-8" />
-            <span className="font-headline text-lg font-semibold text-primary">{shopInfo.name}</span>
+            <span className="font-headline text-lg font-semibold text-primary">{shopInfo.name.split(' ')[0]}</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -207,7 +207,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center justify-start gap-2 w-full p-2 h-auto">
                         <Avatar className="h-8 w-8">
-                            <AvatarImage src="https://placehold.co/100x100.png" alt="@user" data-ai-hint="user icon"/>
+                            <AvatarImage src="https://placehold.co/100x100.png" alt="@user" data-ai-hint="user avatar"/>
                             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                         <div className="text-left group-data-[collapsible=icon]:hidden">
