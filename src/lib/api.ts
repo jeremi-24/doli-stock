@@ -255,15 +255,15 @@ export async function createReapprovisionnement(data: ReapproPayload): Promise<R
 
 // ========== Sales API ==========
 export async function getVentes(): Promise<Vente[]> {
-  return apiFetch('/ventes');
+  return apiFetch('/vente');
 }
 
 export async function createVente(data: VentePayload): Promise<Vente> {
-  return apiFetch('/ventes', { method: 'POST', body: JSON.stringify(data) });
+  return apiFetch('/vente', { method: 'POST', body: JSON.stringify(data) });
 }
 
 export async function deleteVente(id: number): Promise<null> {
-  return apiFetch(`/ventes/${id}`, { method: 'DELETE' });
+  return apiFetch(`/vente/${id}`, { method: 'DELETE' });
 }
 
 
