@@ -50,8 +50,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const initialModules: ActiveModules = { stock: true, invoicing: true, barcode: true, pos: true };
-const initialShopInfo: ShopInfo = { name: 'Ma Boutique Togo', address: 'Boulevard du 13 Janvier, Lomé, Togo', phone: '+228 90 00 00 00', email: 'contact@boutique.tg' };
-const initialThemeColors: ThemeColors = { primary: '231 48% 48%', background: '220 13% 96%', accent: '262 52% 50%' };
+const initialShopInfo: ShopInfo = { name: 'StockHero', address: 'Boulevard du 13 Janvier, Lomé, Togo', phone: '+228 90 00 00 00', email: 'contact@stockhero.tg' };
+const initialThemeColors: ThemeColors = { primary: '221 48% 48%', background: '220 13% 96%', accent: '262 52% 50%' };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
@@ -84,26 +84,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const fetchAllData = useCallback(async () => {
-    try {
-        const [produitsData, categoriesData, entrepotsData, ventesData] = await Promise.all([
-            api.getProducts(),
-            api.getCategories(),
-            api.getEntrepots(),
-            api.getVentes()
-        ]);
-        setProduits(produitsData || []);
-        setCategories(categoriesData || []);
-        setEntrepots(entrepotsData || []);
-        setVentes(ventesData || []);
-        
-        // const factureModelesData = await api.getFactureModeles();
-        // setFactureModeles(factureModelesData || []);
-    } catch (error) {
-        const description = (error instanceof Error) ? error.message : 'Erreur inconnue';
-        toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger les données: ${description}` });
+    const handleFetchError = (error: unknown, resourceName: string) => {
+        const description = (error instanceof Error) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
+        toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger: ${resourceName}. ${description}` });
         if (description.includes('401') || description.includes('403')) {
           logout();
         }
+    };
+
+    try {
+        const produitsData = await api.getProducts();
+        setProduits(produitsData || []);
+    } catch (error) {
+        handleFetchError(error, 'Produits');
+    }
+    try {
+        const categoriesData = await api.getCategories();
+        setCategories(categoriesData || []);
+    } catch (error) {
+        handleFetchError(error, 'Catégories');
+    }
+    try {
+        const entrepotsData = await api.getEntrepots();
+        setEntrepots(entrepotsData || []);
+    } catch (error) {
+        handleFetchError(error, 'Entrepôts');
+    }
+    try {
+        const ventesData = await api.getVentes();
+        setVentes(ventesData || []);
+    } catch (error) {
+        handleFetchError(error, 'Ventes');
     }
   }, [toast, logout]);
 
@@ -268,8 +279,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,
     addReapprovisionnement,
-    activeModules, shopInfo, themeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails
+    activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
+    isMounted, token, logout, currentUser, scannedProductDetails,
+    login
   ]);
 
   return (
