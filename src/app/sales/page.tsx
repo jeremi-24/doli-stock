@@ -37,7 +37,7 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
                 <DialogHeader>
                     <DialogTitle className="font-headline">Détails de la Vente #{vente.ref}</DialogTitle>
                     <DialogDescription>
-                        Vente réalisée le {format(new Date(vente.date), 'd MMMM yyyy à HH:mm', { locale: fr })} par {vente.caissier}.
+                        Vente réalisée le {vente.date ? format(new Date(vente.date), 'd MMMM yyyy à HH:mm', { locale: fr }) : 'Date inconnue'} par {vente.caissier}.
                     </DialogDescription>
                 </DialogHeader>
                  <div className="p-2 space-y-4">
@@ -107,7 +107,12 @@ export default function SalesPage() {
   const filteredSales = useMemo(() => {
     if (!isMounted) return [];
     return [...ventes]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort((a, b) => {
+        // Handle cases where date might be null
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      })
       .filter(vente => 
           (vente.client || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
           (vente.ref || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -155,7 +160,7 @@ export default function SalesPage() {
                             <TableCell className="font-mono text-xs">{vente.ref}</TableCell>
                             <TableCell className="font-medium">{vente.client}</TableCell>
                             <TableCell><Badge variant="outline">{vente.caissier}</Badge></TableCell>
-                            <TableCell>{format(new Date(vente.date), 'd MMM yyyy, HH:mm', { locale: fr })}</TableCell>
+                            <TableCell>{vente.date ? format(new Date(vente.date), 'd MMM yyyy, HH:mm', { locale: fr }) : "N/A"}</TableCell>
                             <TableCell className="text-right font-semibold">{formatCurrency(vente.paiement)}</TableCell>
                             <TableCell className="text-center">
                                 <div className="flex items-center justify-center">
