@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -46,14 +46,13 @@ function CheckoutDialog({
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
 
-  // Reset state when dialog opens
-  useState(() => {
+  useEffect(() => {
     if (isOpen) {
       setClient("Vente au comptoir");
       setMontantPaye(total);
       setTypePaiement('cash');
     }
-  });
+  }, [isOpen, total]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -232,36 +231,38 @@ export default function POSPage() {
           <CardTitle className="font-headline flex items-center gap-2"><ShoppingCart className="w-6 h-6" />Panier</CardTitle>
           <CardDescription>{cart.length} article(s)</CardDescription>
         </CardHeader>
-        <ScrollArea className="flex-1 min-h-0">
-            <CardContent>
-                {cart.length > 0 ? (
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-24 text-center">Qté</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            {cart.map(item => (
-                                <TableRow key={item.produit.id}>
-                                    <TableCell className="font-medium py-2"><p className="truncate">{item.produit.nom}</p><p className="text-xs text-muted-foreground">{formatCurrency(item.prix_unitaire)}</p></TableCell>
-                                    <TableCell className="py-2">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite - 1)}><Minus className="h-3 w-3"/></Button>
-                                            <Input readOnly value={item.quantite} className="h-6 w-8 text-center p-0 border-0 bg-transparent focus-visible:ring-0" />
-                                            <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite + 1)}><Plus className="h-3 w-3"/></Button>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right py-2">{formatCurrency(item.prix_total)}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                ) : (
-                    <div className="flex flex-col items-center justify-center text-center p-10 h-full text-muted-foreground">
-                        <ShoppingCart className="w-12 h-12" /><p className="mt-4 text-sm">Votre panier est vide.</p><p className="text-xs">Cliquez sur un produit pour l'ajouter.</p>
-                    </div>
-                )}
-            </CardContent>
-        </ScrollArea>
+        <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+                <CardContent>
+                    {cart.length > 0 ? (
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-24 text-center">Qté</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {cart.map(item => (
+                                    <TableRow key={item.produit.id}>
+                                        <TableCell className="font-medium py-2"><p className="truncate">{item.produit.nom}</p><p className="text-xs text-muted-foreground">{formatCurrency(item.prix_unitaire)}</p></TableCell>
+                                        <TableCell className="py-2">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite - 1)}><Minus className="h-3 w-3"/></Button>
+                                                <Input readOnly value={item.quantite} className="h-6 w-8 text-center p-0 border-0 bg-transparent focus-visible:ring-0" />
+                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite + 1)}><Plus className="h-3 w-3"/></Button>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right py-2">{formatCurrency(item.prix_total)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-10 h-full text-muted-foreground">
+                            <ShoppingCart className="w-12 h-12" /><p className="mt-4 text-sm">Votre panier est vide.</p><p className="text-xs">Cliquez sur un produit pour l'ajouter.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </ScrollArea>
+        </div>
         {cart.length > 0 && (
-            <div className="p-4 border-t mt-auto shrink-0">
+            <div className="p-4 border-t shrink-0">
                 <div className="flex justify-between items-center font-bold text-lg mb-4">
                     <span>Total</span>
                     <span>{formatCurrency(total)}</span>
