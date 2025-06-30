@@ -109,9 +109,9 @@ export default function SalesPage() {
     return [...ventes]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .filter(vente => 
-          vente.client.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          vente.ref.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vente.caissier.toLowerCase().includes(searchTerm.toLowerCase())
+          (vente.client || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+          (vente.ref || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (vente.caissier || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
   }, [ventes, searchTerm, isMounted]);
   
