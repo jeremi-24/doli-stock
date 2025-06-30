@@ -25,7 +25,7 @@ export default function ReapprovisionnementsPage() {
       try {
         setIsLoading(true);
         const data = await api.getReapprovisionnements();
-        setReapprovisionnements(data.sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime()));
+        setReapprovisionnements(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
         toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
@@ -69,12 +69,12 @@ export default function ReapprovisionnementsPage() {
                   <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                 ) : reapprovisionnements.length > 0 ? reapprovisionnements.map(reappro => (
                   <TableRow key={reappro.id}>
-                    <TableCell>{reappro.date ? format(new Date(reappro.date), 'd MMMM yyyy à HH:mm', { locale: fr }) : 'N/A'}</TableCell>
+                    <TableCell>{format(new Date(reappro.date), 'd MMMM yyyy à HH:mm', { locale: fr })}</TableCell>
                     <TableCell><Badge variant="outline" className="flex items-center gap-1.5"><User className="h-3 w-3" /> {reappro.agent}</Badge></TableCell>
                     <TableCell><Badge variant="secondary" className="flex items-center gap-1.5"><ChevronsRight className="h-3 w-3" /> {reappro.source}</Badge></TableCell>
                     <TableCell>{reappro.lignes.length}</TableCell>
                     <TableCell className="text-right">
-                       <Button variant="ghost" size="icon" onClick={() => router.push(`/reapprovisionnements/${reappro.id}`)} disabled={!reappro.id}>
+                       <Button variant="ghost" size="icon" onClick={() => router.push(`/reapprovisionnements/${reappro.id}`)}>
                             <Eye className="h-4 w-4" /><span className="sr-only">Voir les détails</span>
                         </Button>
                     </TableCell>

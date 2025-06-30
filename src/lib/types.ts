@@ -112,10 +112,10 @@ export type ReapproLigne = {
 };
 
 export type Reapprovisionnement = {
-  id?: string | number; // Optional ID for client-side keying
+  id: string | number;
   source: string;
   agent: string;
-  date?: string; // Optional date for client-side
+  date: string;
   lignes: ReapproLigne[];
 };
 
