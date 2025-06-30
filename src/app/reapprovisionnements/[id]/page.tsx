@@ -6,11 +6,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, ChevronsRight, Truck } from 'lucide-react';
+import { ArrowLeft, User, ChevronsRight, Truck, Calendar } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Reapprovisionnement } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function ReapprovisionnementDetailPage() {
   const { id } = useParams();
@@ -78,6 +80,7 @@ export default function ReapprovisionnementDetailPage() {
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 text-sm">
             <div className="flex items-center gap-2"><User className="h-4 w-4"/> Agent: <span className="font-medium text-foreground">{reappro.agent}</span></div>
             <div className="flex items-center gap-2"><ChevronsRight className="h-4 w-4"/> Source: <span className="font-medium text-foreground">{reappro.source}</span></div>
+            <div className="flex items-center gap-2"><Calendar className="h-4 w-4"/> Date: <span className="font-medium text-foreground">{format(new Date(reappro.date), 'd MMMM yyyy à HH:mm', { locale: fr })}</span></div>
           </div>
         </CardHeader>
         <CardContent>
