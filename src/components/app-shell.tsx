@@ -190,7 +190,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Logo className="w-8 h-8" />
-            <span className="font-headline text-lg font-semibold text-primary">{shopInfo.name.split(' ')[0]}</span>
+            <span className="font-headline text-lg font-semibold text-primary">{shopInfo.nom.split(' ')[0]}</span>
           </div>
         </SidebarHeader>
         <SidebarContent>

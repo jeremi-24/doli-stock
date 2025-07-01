@@ -1,5 +1,5 @@
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload, Client } from './types';
+import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload, Client, ShopInfo } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api'; 
@@ -70,6 +70,14 @@ export async function loginUser(data: LoginPayload): Promise<any> {
 export async function signupUser(data: SignupPayload): Promise<any> {
   const { confirmPassword, ...payload } = data; // Don't send confirmPassword to backend
   return apiFetch('/auth/save', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+// ========== Organisation API ==========
+export async function getOrganisations(): Promise<ShopInfo[]> {
+    return apiFetch('/organisations');
+}
+export async function saveOrganisation(data: Partial<ShopInfo>): Promise<ShopInfo> {
+    return apiFetch('/organisations', { method: 'POST', body: JSON.stringify(data) });
 }
 
 // ========== Clients API ==========

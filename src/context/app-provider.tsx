@@ -39,7 +39,7 @@ interface AppContextType {
   activeModules: ActiveModules;
   setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
   shopInfo: ShopInfo;
-  setShopInfo: React.Dispatch<React.SetStateAction<ShopInfo>>;
+  setShopInfo: (org: ShopInfo) => Promise<void>;
   themeColors: ThemeColors;
   setThemeColors: React.Dispatch<React.SetStateAction<ThemeColors>>;
   isMounted: boolean;
@@ -54,7 +54,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const initialModules: ActiveModules = { stock: true, invoicing: true, barcode: true, pos: true };
-const initialShopInfo: ShopInfo = { name: 'StockHero', address: 'Boulevard du 13 Janvier, Lomé, Togo', phone: '+228 90 00 00 00', email: 'contact@stockhero.tg' };
+const initialShopInfo: ShopInfo = { nom: 'StockHero', adresse: 'Boulevard du 13 Janvier', ville: 'Lomé', telephone: '+228 90 00 00 00', email: 'contact@stockhero.tg' };
 const initialThemeColors: ThemeColors = { primary: '221 48% 48%', background: '220 13% 96%', accent: '262 52% 50%' };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -66,7 +66,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ventes, setVentes] = useState<Vente[]>([]);
   const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
-  const [shopInfo, setShopInfo] = useState<ShopInfo>(initialShopInfo);
+  const [shopInfo, setShopInfoState] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
   const [token, setToken] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -97,7 +97,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           logout();
         }
     };
-
+    try {
+        const orgs = await api.getOrganisations();
+        if (orgs && orgs.length > 0) {
+            setShopInfoState(orgs[0]);
+        }
+    } catch (error) {
+        handleFetchError(error, 'Organisation');
+    }
     try {
         const produitsData = await api.getProducts();
         setProduits(produitsData || []);
@@ -146,8 +153,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     
     const storedModules = localStorage.getItem('stockhero_modules');
     if (storedModules) setActiveModules(JSON.parse(storedModules));
-    const storedShopInfo = localStorage.getItem('stockhero_shopinfo');
-    if (storedShopInfo) setShopInfo(JSON.parse(storedShopInfo));
+
     const storedThemeColors = localStorage.getItem('stockhero_themecolors');
     if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
     
@@ -162,7 +168,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [isMounted, token, fetchAllData, pathname]);
   
   useEffect(() => { if (isMounted) localStorage.setItem('stockhero_modules', JSON.stringify(activeModules)); }, [activeModules, isMounted]);
-  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_shopinfo', JSON.stringify(shopInfo)); }, [shopInfo, isMounted]);
+
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('stockhero_themecolors', JSON.stringify(themeColors));
@@ -186,6 +192,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       logout();
     }
   };
+  
+  const setShopInfo = useCallback(async (orgData: ShopInfo) => {
+    try {
+        await api.saveOrganisation(orgData);
+        await fetchAllData();
+        toast({ title: "Informations de l'organisation mises à jour" });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: "Erreur de sauvegarde", description: errorMessage });
+        throw error;
+    }
+  }, [fetchAllData, toast]);
 
   const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => { await api.createCategory(data); await fetchAllData(); }, [fetchAllData]);
   const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchAllData(); }, [fetchAllData]);
@@ -308,7 +326,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addReapprovisionnement,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, token, logout, currentUser, scannedProductDetails,
-    login
+    login, fetchAllData
   ]);
 
   return (

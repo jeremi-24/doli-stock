@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -21,13 +22,19 @@ import * as api from '@/lib/api';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 
-const shopInfoSchema = z.object({
-  name: z.string().min(1, "Le nom de la boutique est requis."),
-  address: z.string().optional(),
-  phone: z.string().optional(),
+
+const organisationSchema = z.object({
+  nom: z.string().min(1, "Le nom de l'organisation est requis."),
+  logoUrl: z.string().url("Veuillez entrer une URL valide.").optional().or(z.literal('')),
+  adresse: z.string().optional(),
+  ville: z.string().optional(),
+  numero: z.string().optional(), // NIF, SIRET...
+  telephone: z.string().optional(),
   email: z.string().email("Adresse e-mail invalide.").or(z.literal('')).optional(),
 });
+
 
 const themeColorsSchema = z.object({
   primary: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Utilisez le format 'H S% L%' (ex: 231 48% 48%)").trim(),
@@ -36,12 +43,13 @@ const themeColorsSchema = z.object({
 });
 
 
-function ShopInfoForm() {
+function OrganisationForm() {
   const { shopInfo, setShopInfo } = useApp();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = React.useState(false);
   
-  const form = useForm<z.infer<typeof shopInfoSchema>>({
-    resolver: zodResolver(shopInfoSchema),
+  const form = useForm<z.infer<typeof organisationSchema>>({
+    resolver: zodResolver(organisationSchema),
     defaultValues: shopInfo,
   });
 
@@ -49,70 +57,57 @@ function ShopInfoForm() {
     form.reset(shopInfo);
   }, [shopInfo, form]);
 
-  function onSubmit(values: z.infer<typeof shopInfoSchema>) {
-    setShopInfo(values as ShopInfo);
-    toast({
-      title: "Informations de la boutique mises à jour",
-      description: "Les détails de votre boutique ont été enregistrés.",
-    });
+  async function onSubmit(values: z.infer<typeof organisationSchema>) {
+    setIsLoading(true);
+    try {
+        await setShopInfo({ ...shopInfo, ...values });
+    } catch (error) {
+        // Error is handled in the context
+    } finally {
+        setIsLoading(false);
+    }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Boutique</CardTitle>
-        <CardDescription>Configurez les informations de votre boutique.</CardDescription>
+        <CardTitle className="font-headline">Organisation</CardTitle>
+        <CardDescription>Configurez les informations de votre organisation.</CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nom de la boutique</FormLabel>
-                  <FormControl><Input placeholder="Le nom de votre boutique" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Adresse</FormLabel>
-                  <FormControl><Input placeholder="123 Rue Principale, Lomé" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Numéro de téléphone</FormLabel>
-                  <FormControl><Input placeholder="+228 90 00 00 00" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email de contact</FormLabel>
-                  <FormControl><Input placeholder="contact@maboutique.tg" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="nom" render={({ field }) => (
+                <FormItem><FormLabel>Nom de l'organisation</FormLabel><FormControl><Input placeholder="Le nom de votre organisation" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+            <FormField control={form.control} name="logoUrl" render={({ field }) => (
+                <FormItem><FormLabel>URL du logo</FormLabel><FormControl><Input placeholder="https://votresite.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="adresse" render={({ field }) => (
+                    <FormItem><FormLabel>Adresse</FormLabel><FormControl><Input placeholder="123 Rue Principale" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="ville" render={({ field }) => (
+                    <FormItem><FormLabel>Ville</FormLabel><FormControl><Input placeholder="Lomé" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+            </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="telephone" render={({ field }) => (
+                    <FormItem><FormLabel>Numéro de téléphone</FormLabel><FormControl><Input placeholder="+228 90 00 00 00" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                 <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem><FormLabel>Email de contact</FormLabel><FormControl><Input placeholder="contact@maboutique.tg" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+            </div>
+             <FormField control={form.control} name="numero" render={({ field }) => (
+                <FormItem><FormLabel>N° d'identification (NIF, SIRET...)</FormLabel><FormControl><Input placeholder="Entrez votre numéro d'identification fiscale ou d'entreprise" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
-            <Button type="submit">Sauvegarder</Button>
+            <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sauvegarder les changements
+            </Button>
           </CardFooter>
         </form>
       </Form>
@@ -381,7 +376,7 @@ export default function SettingsPage() {
           <TabsTrigger value="modules"><Settings className="mr-2 h-4 w-4"/>Modules</TabsTrigger>
           <TabsTrigger value="import"><Import className="mr-2 h-4 w-4"/>Import/Export</TabsTrigger>
           <TabsTrigger value="users"><Users className="mr-2 h-4 w-4"/>Utilisateurs</TabsTrigger>
-          <TabsTrigger value="shop"><Store className="mr-2 h-4 w-4"/>Boutique</TabsTrigger>
+          <TabsTrigger value="organisation"><Store className="mr-2 h-4 w-4"/>Organisation</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4"/>Apparence</TabsTrigger>
         </TabsList>
 
@@ -534,8 +529,8 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
           
-        <TabsContent value="shop" className="mt-6">
-          <ShopInfoForm />
+        <TabsContent value="organisation" className="mt-6">
+          <OrganisationForm />
         </TabsContent>
           
         <TabsContent value="appearance" className="mt-6">

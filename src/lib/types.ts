@@ -188,10 +188,14 @@ export type ActiveModules = {
 };
 
 export type ShopInfo = {
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
+  id?: number;
+  nom: string;
+  logoUrl?: string;
+  adresse?: string;
+  ville?: string;
+  numero?: string;
+  telephone?: string;
+  email?: string;
 };
 
 export type ThemeColors = {
