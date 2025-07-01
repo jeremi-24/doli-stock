@@ -40,6 +40,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const { isMobile, setOpenMobile } = useSidebar();
   
   const [theme, setTheme] = React.useState('light');
+  const [logoError, setLogoError] = React.useState(false);
 
   React.useEffect(() => {
     const localTheme = localStorage.getItem('theme');
@@ -48,6 +49,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.toggle('dark', localTheme === 'dark');
     }
   }, []);
+
+  React.useEffect(() => {
+    setLogoError(false);
+  }, [shopInfo.logoUrl]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -189,8 +194,19 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         <SidebarRail />
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <Logo className="w-8 h-8" />
-            <span className="font-headline text-lg font-semibold text-primary">{shopInfo.nom.split(' ')[0]}</span>
+            <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center">
+              {shopInfo.logoUrl && !logoError ? (
+                <img 
+                  src={shopInfo.logoUrl} 
+                  alt={`${shopInfo.nom} Logo`} 
+                  className="h-full w-auto object-contain"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <Logo className="w-8 h-8" />
+              )}
+            </div>
+            <span className="font-headline text-lg font-semibold text-primary group-data-[collapsible=icon]:hidden">{shopInfo.nom.split(' ')[0]}</span>
           </div>
         </SidebarHeader>
         <SidebarContent>

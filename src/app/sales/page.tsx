@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,10 +11,14 @@ import { Dialog, DialogContent, DialogTrigger, DialogFooter, DialogHeader, Dialo
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from '@/context/app-provider';
-import type { Vente, VenteLigneApi } from '@/lib/types';
-import { PlusCircle, Eye, Search, History, Trash2, Loader2 } from 'lucide-react';
+import type { Vente, VenteLigneApi, ShopInfo, Produit } from '@/lib/types';
+import { PlusCircle, Eye, Search, History, Trash2, Loader2, FileText, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { InvoiceTemplate } from '@/components/invoice-template';
+import { useToast } from '@/hooks/use-toast';
 
 function SaleDetailsDialog({ vente }: { vente: Vente }) {
     const { produits } = useApp();
@@ -45,8 +49,6 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
                         <span className="text-muted-foreground">Client : </span>
                         <span className="font-semibold">{vente.client}</span>
                     </div>
-
-                    {/* Table */}
                     <div className="border rounded-lg">
                         <Table>
                             <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-[100px] text-center">Qté</TableHead><TableHead className="text-right">P.U.</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
@@ -62,6 +64,82 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
     )
 }
 
+function InvoicePreviewDialog({ vente, shopInfo, produits, isOpen, onOpenChange }: { vente: Vente | null, shopInfo: ShopInfo, produits: Produit[], isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+    const invoiceRef = React.useRef<HTMLDivElement>(null);
+    const [isGenerating, setIsGenerating] = React.useState(false);
+    const { toast } = useToast();
+
+    const enrichedVente = useMemo(() => {
+        if (!vente) return null;
+        const enrichedLignes = vente.lignes.map(ligne => {
+            const produit = produits.find(p => p.id === ligne.produitId);
+            return { ...ligne, produitNom: produit?.nom || `ID: ${ligne.produitId}` };
+        });
+        return { ...vente, lignes: enrichedLignes };
+    }, [vente, produits]);
+
+    const handleGeneratePdf = async () => {
+        const input = invoiceRef.current;
+        if (!input) {
+            toast({ variant: 'destructive', title: 'Erreur', description: "L'élément de facture est introuvable." });
+            return;
+        }
+
+        setIsGenerating(true);
+        try {
+            const canvas = await html2canvas(input, {
+                scale: 2,
+                useCORS: true, 
+            });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const ratio = canvasWidth / canvasHeight;
+            const imgHeight = pdfWidth / ratio;
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
+            pdf.save(`facture-${enrichedVente?.ref || 'vente'}.pdf`);
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Erreur de génération', description: "Impossible de générer le PDF." });
+        } finally {
+            setIsGenerating(false);
+            onOpenChange(false);
+        }
+    };
+
+    if (!enrichedVente) return null;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-4xl h-[90vh]">
+                <DialogHeader>
+                    <DialogTitle className="font-headline">Aperçu de la Facture</DialogTitle>
+                    <DialogDescription>
+                        Aperçu de la facture pour la vente #{enrichedVente.ref}. Cliquez sur "Télécharger" pour obtenir le PDF.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="overflow-auto bg-gray-200 p-4 rounded-md">
+                     <div ref={invoiceRef}>
+                         <InvoiceTemplate vente={enrichedVente} shopInfo={shopInfo} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isGenerating}>Fermer</Button>
+                    <Button onClick={handleGeneratePdf} disabled={isGenerating}>
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}
+                        {isGenerating ? "Génération..." : "Télécharger le PDF"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function DeleteSaleButton({ venteId, onDeleted }: { venteId: number, onDeleted: () => void }) {
     const { deleteVente } = useApp();
     const [isLoading, setIsLoading] = useState(false);
@@ -69,14 +147,14 @@ function DeleteSaleButton({ venteId, onDeleted }: { venteId: number, onDeleted: 
     const handleDelete = async () => {
         setIsLoading(true);
         await deleteVente(venteId);
-        onDeleted(); // Let parent know to potentially close a dialog
+        onDeleted(); 
         setIsLoading(false);
     };
 
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Supprimer la vente">
                     <Trash2 className="h-4 w-4" />
                 </Button>
             </AlertDialogTrigger>
@@ -99,16 +177,17 @@ function DeleteSaleButton({ venteId, onDeleted }: { venteId: number, onDeleted: 
 }
 
 export default function SalesPage() {
-  const { ventes, isMounted } = useApp();
+  const { ventes, shopInfo, produits, isMounted } = useApp();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedVenteForInvoice, setSelectedVenteForInvoice] = useState<Vente | null>(null);
+
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
   const filteredSales = useMemo(() => {
     if (!isMounted) return [];
     return [...ventes]
       .sort((a, b) => {
-        // Handle cases where date might be null
         if (!a.date) return 1;
         if (!b.date) return -1;
         return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -119,6 +198,10 @@ export default function SalesPage() {
           (vente.caissier || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
   }, [ventes, searchTerm, isMounted]);
+  
+  const handleOpenInvoiceDialog = (vente: Vente) => {
+    setSelectedVenteForInvoice(vente);
+  };
   
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -147,7 +230,7 @@ export default function SalesPage() {
                             <TableHead>Caissier</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead className="text-right">Total</TableHead>
-                            <TableHead className="text-center w-[100px]">Actions</TableHead>
+                            <TableHead className="text-center w-[120px]">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -165,6 +248,9 @@ export default function SalesPage() {
                             <TableCell className="text-center">
                                 <div className="flex items-center justify-center">
                                     <SaleDetailsDialog vente={vente} />
+                                    <Button variant="ghost" size="icon" aria-label="Générer la facture" onClick={() => handleOpenInvoiceDialog(vente)}>
+                                        <FileText className="h-4 w-4" />
+                                    </Button>
                                     <DeleteSaleButton venteId={vente.id} onDeleted={() => {}}/>
                                 </div>
                             </TableCell>
@@ -175,6 +261,17 @@ export default function SalesPage() {
             </div>
         </CardContent>
       </Card>
+        <InvoicePreviewDialog
+            vente={selectedVenteForInvoice}
+            shopInfo={shopInfo}
+            produits={produits}
+            isOpen={!!selectedVenteForInvoice}
+            onOpenChange={(open) => {
+                if (!open) {
+                    setSelectedVenteForInvoice(null);
+                }
+            }}
+        />
     </div>
   );
 }
