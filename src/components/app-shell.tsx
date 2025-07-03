@@ -76,13 +76,17 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!isMounted) return;
+
     if (!isAuthenticated && !isAuthPage) {
-        router.push('/login');
+      router.push('/login');
+    } else if (isAuthenticated && isAuthPage) {
+      router.push('/');
     }
-  }, [isMounted, isAuthenticated, isAuthPage, pathname, router]);
+  }, [isMounted, isAuthenticated, isAuthPage, router, pathname]);
 
 
-  if (!isMounted || (!isAuthenticated && !isAuthPage)) {
+  // Show a loading screen while we check auth status and redirect if necessary
+  if (!isMounted || (!isAuthenticated && !isAuthPage) || (isAuthenticated && isAuthPage)) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Logo className="h-10 w-10 animate-pulse" />
@@ -90,6 +94,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // If it's an auth page, render it without the main app shell
   if (isAuthPage) {
     return <>{children}</>;
   }
