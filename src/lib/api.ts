@@ -46,6 +46,15 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
       throw new Error(userMessage);
     }
+    
+    // Check for a new token in the response headers and update it.
+    const newTokenHeader = response.headers.get('Authorization');
+    if (newTokenHeader && newTokenHeader.startsWith('Bearer ')) {
+      const newToken = newTokenHeader.substring(7); // "Bearer ".length
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('stockhero_token', newToken);
+      }
+    }
 
     const text = await response.text();
     try {
