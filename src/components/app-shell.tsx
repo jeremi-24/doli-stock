@@ -163,13 +163,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       active: pathname === '/invoicing',
       module: 'invoicing',
     },
-     {
-      href: '/invoice-templates',
-      icon: <FileSignature />,
-      label: 'Modèles Facture',
-      active: pathname === '/invoice-templates',
-      module: 'invoicing',
-    },
     {
       href: '/clients',
       icon: <Users />,

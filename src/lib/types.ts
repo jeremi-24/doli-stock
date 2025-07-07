@@ -89,15 +89,6 @@ export type VentePayload = {
 };
 
 
-export type FactureModele = {
-  id: string;
-  nom: string;
-  logoUrl?: string;
-  header?: string;
-  footer?: string;
-  color?: string;
-};
-
 export type AssignationPayload = {
     produitIds: number[];
     categorieId?: number;

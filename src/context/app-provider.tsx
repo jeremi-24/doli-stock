@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, FactureModele, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client } from '@/lib/types';
+import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -14,7 +14,6 @@ interface AppContextType {
   entrepots: Entrepot[];
   clients: Client[];
   ventes: Vente[];
-  factureModeles: FactureModele[];
   addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduits: (produitIds: number[]) => Promise<void>;
@@ -31,9 +30,6 @@ interface AppContextType {
   deleteClient: (id: number) => Promise<void>;
   addVente: (venteData: VentePayload) => Promise<void>;
   deleteVente: (venteId: number) => Promise<void>;
-  addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
-  updateFactureModele: (modele: FactureModele) => Promise<void>;
-  deleteFactureModele: (modeleId: string) => Promise<void>;
   createInventaire: (payload: InventairePayload, isFirst: boolean) => Promise<Inventaire | null>;
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   activeModules: ActiveModules;
@@ -64,7 +60,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [entrepots, setEntrepots] = useState<Entrepot[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [ventes, setVentes] = useState<Vente[]>([]);
-  const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
   const [shopInfo, setShopInfoState] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
@@ -85,7 +80,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setEntrepots([]);
     setClients([]);
     setVentes([]);
-    setFactureModeles([]);
     router.push('/login');
   }, [router]);
 
@@ -254,20 +248,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast]);
 
-
-  const addFactureModele = useCallback(async (modeleData: Omit<FactureModele, 'id'>) => {
-    // await api.createFactureModele(modeleData);
-    // await fetchAllData();
-  }, []);
-  const updateFactureModele = useCallback(async (updatedModele: FactureModele) => {
-    // await api.updateFactureModele(updatedModele.id, updatedModele);
-    // await fetchAllData();
-  }, []);
-  const deleteFactureModele = useCallback(async (modeleId: string) => {
-    // await api.deleteFactureModele(modeleId);
-    // await fetchAllData();
-  }, []);
-
   const createInventaire = useCallback(async (payload: InventairePayload, isFirst: boolean): Promise<Inventaire | null> => {
     try {
       const newInventaire = await api.createInventaire(payload, isFirst);
@@ -297,13 +277,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [fetchAllData, toast]);
 
   const value = useMemo(() => ({
-    produits, categories, entrepots, clients, ventes, factureModeles,
+    produits, categories, entrepots, clients, ventes,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addClient, updateClient, deleteClient,
     addVente, deleteVente, 
-    addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,
     addReapprovisionnement,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
@@ -315,13 +294,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     scannedProductDetails, 
     setScannedProductDetails,
   }), [
-    produits, categories, entrepots, clients, ventes, factureModeles,
+    produits, categories, entrepots, clients, ventes,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addClient, updateClient, deleteClient,
     addVente, deleteVente,
-    addFactureModele, updateFactureModele, deleteFactureModele,
     createInventaire,
     addReapprovisionnement,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,

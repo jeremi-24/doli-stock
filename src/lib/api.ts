@@ -1,5 +1,5 @@
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot, AssignationPayload, FactureModele, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload, Client, ShopInfo } from './types';
+import type { Categorie, Produit, Entrepot, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload, Client, ShopInfo } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api'; 
@@ -281,19 +281,4 @@ export async function createVente(data: VentePayload): Promise<Vente> {
 
 export async function deleteVente(id: number): Promise<null> {
   return apiFetch(`/vente/${id}`, { method: 'DELETE' });
-}
-
-
-// ========== FactureModeles API ==========
-export async function getFactureModeles(): Promise<FactureModele[]> { 
-    return apiFetch('/facture'); 
-}
-export async function createFactureModele(data: Omit<FactureModele, 'id'>): Promise<FactureModele> {
-  return apiFetch('/facture', { method: 'POST', body: JSON.stringify(data) });
-}
-export async function updateFactureModele(id: string, data: Partial<FactureModele>): Promise<FactureModele> {
-  return apiFetch(`/facture/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-}
-export async function deleteFactureModele(id: string): Promise<null> {
-  return apiFetch(`/facture/${id}`, { method: 'DELETE' });
 }
