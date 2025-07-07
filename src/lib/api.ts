@@ -4,6 +4,16 @@ import type { Categorie, Produit, Entrepot, AssignationPayload, LoginPayload, Si
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api'; 
 
+// Custom Error class to include status code
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 const buildHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
   const headers: HeadersInit = {
@@ -28,23 +38,33 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     });
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      const statusText = response.statusText || 'Erreur inconnue';
-      console.error(`API Error: ${response.status} ${statusText}`, { url, options, errorBody });
-      
-      let userMessage = `La requête API a échoué: ${statusText} (status: ${response.status})`;
-      if (response.status === 503 || response.status === 504) {
-          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout). Veuillez vérifier qu\'il est bien démarré et accessible.';
-      } else if (errorBody) {
-         try {
-            const errorJson = JSON.parse(errorBody);
-            userMessage = errorJson.error || errorJson.message || userMessage;
-         } catch(e) {
-            userMessage = `${userMessage}: ${errorBody}`;
-         }
-      }
+        const errorBody = await response.text();
+        let serverMessage = '';
 
-      throw new Error(userMessage);
+        try {
+            const errorJson = JSON.parse(errorBody);
+            serverMessage = errorJson.error || errorJson.message || errorBody;
+        } catch (e) {
+            serverMessage = errorBody;
+        }
+        
+        console.error(`API Error: ${response.status}`, { url, options, errorBody: serverMessage });
+        
+        let userMessage = serverMessage;
+        // Don't show generic HTML error pages or meaningless messages to the user
+        if (!userMessage || typeof userMessage !== 'string' || userMessage.trim().startsWith('<') || userMessage.trim() === 'OK') {
+            switch (response.status) {
+                case 400: userMessage = 'La requête est incorrecte. Veuillez vérifier les informations soumises.'; break;
+                case 401: userMessage = 'Session expirée. Veuillez vous reconnecter.'; break;
+                case 403: userMessage = 'Accès refusé. Vous n\'avez pas les droits nécessaires pour effectuer cette action.'; break;
+                case 404: userMessage = 'La ressource demandée n\'a pas été trouvée sur le serveur.'; break;
+                case 500: userMessage = 'Une erreur interne est survenue sur le serveur. Veuillez réessayer plus tard.'; break;
+                case 503: case 504: userMessage = 'Le service est temporairement indisponible. Veuillez réessayer dans quelques instants.'; break;
+                default: userMessage = `Une erreur inattendue est survenue (Code: ${response.status}).`;
+            }
+        }
+      
+      throw new ApiError(userMessage, response.status);
     }
     
     // Check for a new token in the response headers and update it.
@@ -65,8 +85,20 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     }
 
   } catch (error) {
-    console.error('Erreur de connexion API:', { url, error });
-    // Re-throw the error so it can be caught by the calling function
+    if (error instanceof ApiError) {
+        // Re-throw custom API errors that we've already formatted
+        throw error;
+    }
+    
+    if (error instanceof TypeError) {
+      // Handle network errors (e.g., "Failed to fetch")
+      const networkErrorMessage = 'Impossible de contacter le serveur. Veuillez vérifier votre connexion Internet et que le service est bien en ligne.';
+      console.error('Erreur de connexion API:', { url, error });
+      throw new ApiError(networkErrorMessage, 0); // Use status 0 for network errors
+    }
+
+    // Re-throw any other unexpected errors
+    console.error('Erreur inattendue dans apiFetch:', { url, error });
     throw error;
   }
 }

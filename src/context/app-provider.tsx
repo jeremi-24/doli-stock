@@ -86,9 +86,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const fetchAllData = useCallback(async () => {
     const handleFetchError = (error: unknown, resourceName: string) => {
         const description = (error instanceof Error) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
-        toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger: ${resourceName}. ${description}` });
-        if (description.includes('401') || description.includes('403')) {
-          logout();
+        toast({ variant: 'destructive', title: 'Erreur de chargement', description });
+        if (error instanceof api.ApiError && (error.status === 401 || error.status === 403)) {
+          setTimeout(() => logout(), 1500); // Give user time to read toast
         }
     };
     try {
