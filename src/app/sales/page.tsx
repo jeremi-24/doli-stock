@@ -34,6 +34,10 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
         });
     }, [vente.lignes, produits]);
 
+    const totalVente = useMemo(() => {
+        return enrichedLignes.reduce((sum, ligne) => sum + ligne.total, 0);
+    }, [enrichedLignes]);
+
     return (
         <Dialog>
             <DialogTrigger asChild><Button variant="ghost" size="icon" aria-label="Voir les détails"><Eye className="h-4 w-4" /></Button></DialogTrigger>
@@ -54,7 +58,7 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
                             <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-[100px] text-center">Qté</TableHead><TableHead className="text-right">P.U.</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
                             <TableBody>{enrichedLignes.map(l => (<TableRow key={l.id}><TableCell className="font-medium">{l.produitNom}</TableCell><TableCell className="text-center">{l.qteVendu}</TableCell><TableCell className="text-right">{formatCurrency(l.produitPrix)}</TableCell><TableCell className="text-right">{formatCurrency(l.total)}</TableCell></TableRow>))}</TableBody>
                             <TableFooter>
-                                <TableRow className="text-base font-bold"><TableCell colSpan={3} className="text-right">Montant Total</TableCell><TableCell className="text-right">{formatCurrency(vente.paiement)}</TableCell></TableRow>
+                                <TableRow className="text-base font-bold"><TableCell colSpan={3} className="text-right">Montant Total</TableCell><TableCell className="text-right">{formatCurrency(totalVente)}</TableCell></TableRow>
                             </TableFooter>
                         </Table>
                     </div>
@@ -75,7 +79,8 @@ function InvoicePreviewDialog({ vente, shopInfo, produits, isOpen, onOpenChange 
             const produit = produits.find(p => p.id === ligne.produitId);
             return { ...ligne, produitNom: produit?.nom || `ID: ${ligne.produitId}` };
         });
-        return { ...vente, lignes: enrichedLignes };
+        const total = enrichedLignes.reduce((sum, ligne) => sum + ligne.total, 0);
+        return { ...vente, lignes: enrichedLignes, paiement: total };
     }, [vente, produits]);
 
     const handleGeneratePdf = async () => {
@@ -238,13 +243,15 @@ export default function SalesPage() {
                         Array.from({ length: 5 }).map((_, i) => (
                             <TableRow key={i}><TableCell colSpan={6} className="h-12"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground"/></TableCell></TableRow>
                         ))
-                    ) : filteredSales.length > 0 ? filteredSales.map(vente => (
+                    ) : filteredSales.length > 0 ? filteredSales.map(vente => {
+                        const totalVente = vente.lignes.reduce((sum, l) => sum + l.total, 0);
+                        return (
                         <TableRow key={vente.id}>
-                            <TableCell className="font-mono text-xs">{vente.ref}</TableCell>
-                            <TableCell className="font-medium">{vente.client}</TableCell>
-                            <TableCell><Badge variant="outline">{vente.caissier}</Badge></TableCell>
+                            <TableCell className="font-mono text-xs">{vente.ref || 'N/A'}</TableCell>
+                            <TableCell className="font-medium">{vente.client || 'N/A'}</TableCell>
+                            <TableCell><Badge variant="outline">{vente.caissier || 'N/A'}</Badge></TableCell>
                             <TableCell>{vente.date ? format(new Date(vente.date), 'd MMM yyyy, HH:mm', { locale: fr }) : "N/A"}</TableCell>
-                            <TableCell className="text-right font-semibold">{formatCurrency(vente.paiement)}</TableCell>
+                            <TableCell className="text-right font-semibold">{formatCurrency(totalVente)}</TableCell>
                             <TableCell className="text-center">
                                 <div className="flex items-center justify-center">
                                     <SaleDetailsDialog vente={vente} />
@@ -255,7 +262,7 @@ export default function SalesPage() {
                                 </div>
                             </TableCell>
                         </TableRow>
-                    )) : (<TableRow><TableCell colSpan={6} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
+                    )}) : (<TableRow><TableCell colSpan={6} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
                     </TableBody>
                 </Table>
             </div>
