@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Logo } from "@/components/logo"
 import { useToast } from "@/hooks/use-toast"
 import * as api from "@/lib/api"
-import type { LoginPayload } from "@/lib/types"
+import type { LoginPayload, CurrentUser } from "@/lib/types"
 import { useApp } from "@/context/app-provider"
 
 const loginSchema = z.object({
@@ -39,15 +39,16 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await api.loginUser(values);
-      if (response && response.token) {
+      if (response && response.token && response.role) {
         toast({
             title: "Connexion réussie",
-            description: "Vous allez être redirigé vers le tableau de bord.",
+            description: response.message || "Vous allez être redirigé vers le tableau de bord.",
         });
-        login(response.token);
+        const user: CurrentUser = { email: values.email, role: response.role };
+        login(response.token, user);
         router.push('/');
       } else {
-        throw new Error("Réponse de connexion invalide, token manquant.");
+        throw new Error("Réponse de connexion invalide, token ou rôle manquant.");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
