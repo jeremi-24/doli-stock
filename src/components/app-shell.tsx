@@ -29,7 +29,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, FileSignature, Building2, ClipboardList, PackagePlus, Users } from 'lucide-react';
+import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, Building2, ClipboardList, PackagePlus, Users } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 import { cn } from '@/lib/utils';
 
@@ -240,7 +240,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                         <div className="text-left group-data-[collapsible=icon]:hidden">
-                            <p className="font-semibold text-sm">{currentUser?.role || 'Utilisateur'}</p>
+                            <p className="font-semibold text-sm">{currentUser?.role === 'ADMIN' ? 'Administrateur' : 'Utilisateur'}</p>
                             <p className="text-xs text-muted-foreground">{currentUser?.email || 'email@example.com'}</p>
                         </div>
                     </Button>
@@ -248,7 +248,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                 <DropdownMenuContent side="right" align="start" className="w-56">
                     <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
+                    <DropdownMenuItem disabled>
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Profil</span>
                     </DropdownMenuItem>
