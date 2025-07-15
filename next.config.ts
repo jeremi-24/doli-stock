@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       {
         source: '/api/:path*',
         // Le proxy pour les appels côté client
-        destination: 'https://8080-firebase-stcokback-1751563234648.cluster-6vyo4gb53jczovun3dxslzjahs.cloudworkstations.dev/api/:path*',
+          destination: 'http://localhost:8080/api/:path*'
       },
     ]
   },
