@@ -191,7 +191,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
   const visibleNavItems = navItems.filter(item => {
     const isModuleActive = item.module === 'all' || activeModules[item.module as keyof typeof activeModules];
+    
+    // An item is visible if it has no specific roles OR if the user's role is in the item's roles array.
     const hasRequiredRole = !item.roles || (currentUser && item.roles.includes(currentUser.role));
+    
     return isModuleActive && hasRequiredRole;
   });
 
