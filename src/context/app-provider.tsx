@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client } from '@/lib/types';
+import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, FactureModele } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -14,6 +14,7 @@ interface AppContextType {
   entrepots: Entrepot[];
   clients: Client[];
   ventes: Vente[];
+  factureModeles: FactureModele[];
   addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduits: (produitIds: number[]) => Promise<void>;
@@ -28,6 +29,9 @@ interface AppContextType {
   addClient: (client: Omit<Client, 'id'>) => Promise<void>;
   updateClient: (id: number, client: Partial<Client>) => Promise<void>;
   deleteClient: (id: number) => Promise<void>;
+  addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
+  updateFactureModele: (modele: FactureModele) => Promise<void>;
+  deleteFactureModele: (id: string) => Promise<void>;
   addVente: (venteData: VentePayload) => Promise<void>;
   deleteVente: (venteId: number) => Promise<void>;
   createInventaire: (payload: InventairePayload, isFirst: boolean) => Promise<Inventaire | null>;
@@ -52,6 +56,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const initialModules: ActiveModules = { stock: true, invoicing: true, barcode: true, pos: true };
 const initialShopInfo: ShopInfo = { nom: 'StockHero', adresse: 'Boulevard du 13 Janvier', ville: 'Lomé', telephone: '+228 90 00 00 00', email: 'contact@stockhero.tg' };
 const initialThemeColors: ThemeColors = { primary: '221 48% 48%', background: '220 13% 96%', accent: '262 52% 50%' };
+const ALLOWED_ROLES = ['ADMIN', 'USER'];
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
@@ -60,6 +65,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [entrepots, setEntrepots] = useState<Entrepot[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [ventes, setVentes] = useState<Vente[]>([]);
+  const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
   const [shopInfo, setShopInfoState] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
@@ -83,14 +89,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   }, [router]);
 
+  const handleFetchError = useCallback((error: unknown, resourceName: string) => {
+      const description = (error instanceof api.ApiError) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
+      toast({ variant: 'destructive', title: 'Erreur de chargement', description });
+      if (error instanceof api.ApiError && (error.status === 401 || error.status === 403)) {
+        setTimeout(() => logout(), 1500); // Give user time to read toast
+      }
+  }, [toast, logout]);
+
   const fetchAllData = useCallback(async () => {
-    const handleFetchError = (error: unknown, resourceName: string) => {
-        const description = (error instanceof Error) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
-        toast({ variant: 'destructive', title: 'Erreur de chargement', description });
-        if (error instanceof api.ApiError && (error.status === 401 || error.status === 403)) {
-          setTimeout(() => logout(), 1500); // Give user time to read toast
-        }
-    };
     try {
         const orgs = await api.getOrganisations();
         if (orgs && orgs.length > 0) {
@@ -129,20 +136,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
         handleFetchError(error, 'Ventes');
     }
-  }, [toast, logout]);
+  }, [handleFetchError]);
+
+  const processToken = useCallback((tokenToProcess: string) => {
+    try {
+      const decoded: { sub: string, roles: string[] } = jwtDecode(tokenToProcess);
+      const userRole = decoded.roles?.[0];
+      
+      if (!userRole || !ALLOWED_ROLES.includes(userRole)) {
+        console.error('Invalid or unallowed role received in token:', userRole);
+        toast({ variant: 'destructive', title: 'Rôle non autorisé', description: 'Votre rôle ne vous permet pas d\'accéder à cette application.' });
+        logout();
+        return;
+      }
+      
+      const user: CurrentUser = { email: decoded.sub, role: userRole };
+      setToken(tokenToProcess);
+      setCurrentUser(user);
+    } catch (error) {
+      console.error('Invalid token, logging out.', error);
+      toast({ variant: 'destructive', title: 'Session invalide', description: 'Votre session est invalide ou a expiré. Veuillez vous reconnecter.' });
+      logout();
+    }
+  }, [logout, toast]);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('stockhero_token');
     if (storedToken) {
-      try {
-        const decoded: { sub: string, roles: string[] } = jwtDecode(storedToken);
-        const user = { email: decoded.sub, role: decoded.roles?.[0] || 'USER' };
-        setToken(storedToken);
-        setCurrentUser(user);
-      } catch (error) {
-        console.error('Invalid token in storage, logging out.', error);
-        logout();
-      }
+      processToken(storedToken);
     }
     
     const storedModules = localStorage.getItem('stockhero_modules');
@@ -152,7 +173,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
     
     setIsMounted(true);
-  }, [logout]);
+  }, [processToken]);
 
   useEffect(() => {
     const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -174,17 +195,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [themeColors, isMounted]);
 
   const login = (newToken: string) => {
-    try {
-      const decoded: { sub: string, roles: string[] } = jwtDecode(newToken);
-      const user = { email: decoded.sub, role: decoded.roles?.[0] || 'USER' };
-      localStorage.setItem('stockhero_token', newToken);
-      setToken(newToken);
-      setCurrentUser(user);
-    } catch (e) {
-      console.error("Failed to decode token", e);
-      toast({ variant: 'destructive', title: 'Erreur de connexion', description: 'Le token reçu est invalide.' });
-      logout();
-    }
+    localStorage.setItem('stockhero_token', newToken);
+    processToken(newToken);
   };
   
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
@@ -225,6 +237,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toast({ variant: 'destructive', title: 'Erreur de suppression', description: errorMessage});
     }
   }, [fetchAllData, toast]);
+  
+  const addFactureModele = useCallback(async (data: Omit<FactureModele, 'id'>) => {
+    // This function can be kept for now or removed if truly no longer needed
+  }, []);
+  const updateFactureModele = useCallback(async (data: FactureModele) => {
+    // This function can be kept for now or removed if truly no longer needed
+  }, []);
+  const deleteFactureModele = useCallback(async (id: string) => {
+    // This function can be kept for now or removed if truly no longer needed
+  }, []);
 
   const addVente = useCallback(async (venteData: VentePayload) => {
     try {
@@ -277,11 +299,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [fetchAllData, toast]);
 
   const value = useMemo(() => ({
-    produits, categories, entrepots, clients, ventes,
+    produits, categories, entrepots, clients, ventes, factureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addClient, updateClient, deleteClient,
+    addFactureModele, updateFactureModele, deleteFactureModele,
     addVente, deleteVente, 
     createInventaire,
     addReapprovisionnement,
@@ -294,17 +317,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     scannedProductDetails, 
     setScannedProductDetails,
   }), [
-    produits, categories, entrepots, clients, ventes,
+    produits, categories, entrepots, clients, ventes, factureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addClient, updateClient, deleteClient,
+    addFactureModele, updateFactureModele, deleteFactureModele,
     addVente, deleteVente,
     createInventaire,
     addReapprovisionnement,
     activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails,
-    login, fetchAllData
+    isMounted, token, logout, currentUser, scannedProductDetails, login, fetchAllData
   ]);
 
   return (
