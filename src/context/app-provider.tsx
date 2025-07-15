@@ -49,7 +49,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const initialModules: ActiveModules = { stock: true, invoicing: true, barcode: true, pos: true };
-const initialShopInfo: ShopInfo = { nom: 'StockHero', adresse: 'Boulevard du 13 Janvier', ville: 'Lomé', telephone: '+228 90 00 00 00', email: 'contact@stockhero.tg' };
+const initialShopInfo: ShopInfo = { nom: 'STA', adresse: 'Lomé, Qt Kégué en face de Ecole Américaine', ville: 'Lomé', telephone: '+228 93 75 02 02', email: 'service.sta2022@gmail com' };
 const initialThemeColors: ThemeColors = { primary: '221 48% 48%', background: '220 13% 96%', accent: '262 52% 50%' };
 const ALLOWED_ROLES = ['ADMIN', 'USER'];
 
