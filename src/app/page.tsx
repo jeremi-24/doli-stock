@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,33 +12,35 @@ import { useApp } from "@/context/app-provider";
 import type { Produit } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
+import * as api from "@/lib/api";
 
 function BarcodeScannerCard() {
-    const { produits } = useApp();
     const [barcode, setBarcode] = useState("");
-    const [scannedProduct, setScannedProduct] = useState<Produit | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
-    
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-    };
+    const router = useRouter();
+    const { setScannedProductDetails } = useApp();
 
-    const handleScan = () => {
+    const handleScan = async () => {
+        if (!barcode.trim()) return;
         setError(null);
-        setScannedProduct(null);
         setIsScanning(true);
 
-        setTimeout(() => {
-        const product = produits.find((p) => p.codeBarre === barcode);
-        if (product) {
-            setScannedProduct(product);
-        } else {
-            setError("Produit non trouvé. Veuillez vérifier le code-barres ou ajouter le produit à votre stock.");
+        try {
+            const product = await api.getProductByBarcode(barcode);
+            if (product && product.id) {
+                setScannedProductDetails(product);
+                router.push(`/products/${product.id}`);
+            } else {
+                setError("Produit non trouvé. Veuillez vérifier le code-barres.");
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors de la recherche.";
+            setError(errorMessage);
+        } finally {
+            setIsScanning(false);
+            setBarcode("");
         }
-        setIsScanning(false);
-        setBarcode("");
-        }, 500);
     };
 
     return (
@@ -47,7 +50,7 @@ function BarcodeScannerCard() {
                     <ScanLine className="h-6 w-6" />
                     Scanner de Produit
                 </CardTitle>
-                <CardDescription>Entrez un code-barres pour trouver rapidement un produit.</CardDescription>
+                <CardDescription>Entrez un code-barres pour trouver et afficher les détails d'un produit.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="space-y-2">
@@ -65,6 +68,9 @@ function BarcodeScannerCard() {
                          {isScanning ? 'Scan...' : <Search className="h-4 w-4" />}
                         </Button>
                     </div>
+                    <p className="text-xs text-muted-foreground pt-1">
+                        Si les caractères scannés sont incorrects, vérifiez que la langue de votre lecteur (ex: AZERTY/QWERTY) correspond à celle de votre clavier.
+                    </p>
                 </div>
                 {error && (
                 <Alert variant="destructive">
@@ -72,35 +78,10 @@ function BarcodeScannerCard() {
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
                 )}
-                {scannedProduct ? (
-                <div className="space-y-4 pt-4 border-t">
-                    <div>
-                    <h3 className="text-xl font-bold font-headline text-primary">{scannedProduct.nom}</h3>
-                    <p className="text-sm text-muted-foreground">#{scannedProduct.codeBarre}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-2">
-                        <DollarSign className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                        <p className="text-sm text-muted-foreground">Prix de Vente</p>
-                        <p className="font-semibold">{formatCurrency(scannedProduct.prix)}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Package className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                        <p className="text-sm text-muted-foreground">En Stock</p>
-                        <p className="font-semibold">{scannedProduct.qte}</p>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-                ) : !isScanning && (
                 <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-full">
                     <Package className="h-12 w-12 text-muted-foreground" />
-                    <p className="mt-4 text-sm text-muted-foreground">Les détails du produit scanné apparaîtront ici.</p>
+                    <p className="mt-4 text-sm text-muted-foreground">Scannez un code-barres pour être redirigé vers sa page de détails.</p>
                 </div>
-                )}
             </CardContent>
         </Card>
     );
@@ -178,9 +159,9 @@ export default function DashboardPage() {
                      <div key={vente.id} className="flex items-center justify-between py-2 border-b last:border-none">
                          <div>
                              <p className="font-medium">{vente.client}</p>
-                             <p className="text-xs text-muted-foreground">{new Date(vente.date_vente).toLocaleDateString('fr-FR')}</p>
+                             <p className="text-xs text-muted-foreground">{new Date(vente.date).toLocaleDateString('fr-FR')}</p>
                          </div>
-                         <div className="font-semibold">{formatCurrency(vente.montant_total)}</div>
+                         <div className="font-semibold">{formatCurrency(vente.paiement)}</div>
                      </div>
                  ))}
                  {ventes.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucune activité récente.</p>}

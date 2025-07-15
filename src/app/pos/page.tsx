@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,8 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
-import type { Produit, VenteLigne, Categorie, Vente } from '@/lib/types';
-import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus } from 'lucide-react';
+import type { Produit, VenteLigne, Categorie, VentePayload, Client } from '@/lib/types';
+import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
@@ -19,48 +19,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 function CheckoutDialog({
   isOpen,
   onOpenChange,
-  cart,
   total,
   onCompleteSale,
+  isSaving,
+  clients,
+  defaultClientId,
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  cart: VenteLigne[];
   total: number;
-  onCompleteSale: (details: Pick<Vente, 'client' | 'montant_paye' | 'type_paiement'>) => void;
+  onCompleteSale: (details: { clientId: number }) => void;
+  isSaving: boolean;
+  clients: Client[];
+  defaultClientId?: number;
 }) {
-  const [client, setClient] = useState("Vente au comptoir");
-  const [montantPaye, setMontantPaye] = useState(total);
-  const [typePaiement, setTypePaiement] = useState<'cash' | 'flooz' | 'tmoney' | 'carte'>('cash');
-  const reste = montantPaye - total;
-
-  const handleSubmit = () => {
-    if (montantPaye < total) {
-      // Allow partial payment
-    }
-    onCompleteSale({ client, montant_paye: montantPaye, type_paiement: typePaiement });
-    onOpenChange(false);
-  };
+  const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
 
-  // Reset state when dialog opens
-  useState(() => {
-    if (isOpen) {
-      setClient("Vente au comptoir");
-      setMontantPaye(total);
-      setTypePaiement('cash');
+  const handleSubmit = () => {
+    if (selectedClientId) {
+      onCompleteSale({ clientId: parseInt(selectedClientId, 10) });
     }
-  });
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedClientId(defaultClientId ? String(defaultClientId) : undefined);
+    }
+  }, [isOpen, defaultClientId]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="font-headline">Finaliser la Vente</DialogTitle>
-          <DialogDescription>Confirmez les détails du paiement pour terminer la transaction.</DialogDescription>
+          <DialogDescription>Confirmez les détails pour terminer la transaction.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="text-center">
@@ -68,34 +64,25 @@ function CheckoutDialog({
             <p className="text-4xl font-bold">{formatCurrency(total)}</p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="client">Nom du Client</Label>
-            <Input id="client" value={client} onChange={(e) => setClient(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="montantPaye">Montant Payé</Label>
-              <Input id="montantPaye" type="number" value={montantPaye} onChange={(e) => setMontantPaye(parseFloat(e.target.value) || 0)} />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="typePaiement">Moyen de Paiement</Label>
-                <Select value={typePaiement} onValueChange={(v) => setTypePaiement(v as any)}>
-                    <SelectTrigger><SelectValue/></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="tmoney">T-Money</SelectItem>
-                        <SelectItem value="flooz">Flooz</SelectItem>
-                        <SelectItem value="carte">Carte</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-          </div>
-          <div className="text-center font-semibold">
-            <p>Reste à payer / Monnaie : <span className={reste < 0 ? 'text-destructive' : 'text-primary'}>{formatCurrency(reste)}</span></p>
+            <Label htmlFor="client-select">Client</Label>
+            <Select value={selectedClientId} onValueChange={setSelectedClientId} disabled={isSaving}>
+              <SelectTrigger id="client-select">
+                <SelectValue placeholder="Sélectionner un client" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map(client => (
+                  <SelectItem key={client.id} value={String(client.id)}>{client.nom}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>
-          <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-          <Button onClick={handleSubmit}>Valider la Vente</Button>
+          <DialogClose asChild><Button variant="ghost" disabled={isSaving}>Annuler</Button></DialogClose>
+          <Button onClick={handleSubmit} disabled={isSaving || !selectedClientId}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSaving ? "Sauvegarde..." : "Valider la Vente"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -104,16 +91,19 @@ function CheckoutDialog({
 
 
 export default function POSPage() {
-  const { produits, categories, addVente } = useApp();
+  const { produits, categories, clients, addVente, currentUser } = useApp();
   const { toast } = useToast();
   const [cart, setCart] = useState<VenteLigne[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("Tout");
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const displayCategories = useMemo(() => ['Tout', ...categories.map(c => c.nom)], [categories]);
   const categoryNameToId = useMemo(() => new Map(categories.map(c => [c.nom, c.id])), [categories]);
   
+  const defaultClient = useMemo(() => clients.find(c => c.nom.toUpperCase() === 'CLIENT GENERIQUE'), [clients]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
@@ -179,16 +169,31 @@ export default function POSPage() {
   }, [cart]);
 
 
-  const handleCompleteSale = (details: Pick<Vente, 'client' | 'montant_paye' | 'type_paiement'>) => {
-    addVente({
-        ...details,
-        lignes: cart,
-        montant_total: total,
-        vendeur: "Utilisateur Démo",
-        type: 'pos',
-    });
-    toast({ title: "Vente finalisée !", description: `Total : ${formatCurrency(total)}. Le stock a été mis à jour.`});
-    setCart([]);
+  const handleCompleteSale = async (details: { clientId: number }) => {
+    setIsSaving(true);
+    const payload: VentePayload = {
+        ref: `POS-${Date.now().toString().slice(-8)}`,
+        caissier: currentUser?.email || 'Inconnu',
+        clientId: details.clientId,
+        lignes: cart.map(item => ({
+            produitId: item.produit.id,
+            produitNom: item.produit.nom,
+            qteVendu: item.quantite,
+            produitPrix: item.prix_unitaire,
+            total: item.prix_total,
+        })),
+    };
+
+    try {
+        await addVente(payload);
+        toast({ title: "Vente finalisée !", description: `Le stock a été mis à jour.`});
+        setCart([]);
+        setIsCheckoutOpen(false);
+    } catch (error) {
+        // Error toast is handled by the context provider
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   return (
@@ -232,45 +237,55 @@ export default function POSPage() {
           <CardTitle className="font-headline flex items-center gap-2"><ShoppingCart className="w-6 h-6" />Panier</CardTitle>
           <CardDescription>{cart.length} article(s)</CardDescription>
         </CardHeader>
-        <ScrollArea className="flex-1 min-h-0">
-            <CardContent>
-                {cart.length > 0 ? (
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-24 text-center">Qté</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            {cart.map(item => (
-                                <TableRow key={item.produit.id}>
-                                    <TableCell className="font-medium py-2"><p className="truncate">{item.produit.nom}</p><p className="text-xs text-muted-foreground">{formatCurrency(item.prix_unitaire)}</p></TableCell>
-                                    <TableCell className="py-2">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite - 1)}><Minus className="h-3 w-3"/></Button>
-                                            <Input readOnly value={item.quantite} className="h-6 w-8 text-center p-0 border-0 bg-transparent focus-visible:ring-0" />
-                                            <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite + 1)}><Plus className="h-3 w-3"/></Button>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right py-2">{formatCurrency(item.prix_total)}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                ) : (
-                    <div className="flex flex-col items-center justify-center text-center p-10 h-full text-muted-foreground">
-                        <ShoppingCart className="w-12 h-12" /><p className="mt-4 text-sm">Votre panier est vide.</p><p className="text-xs">Cliquez sur un produit pour l'ajouter.</p>
-                    </div>
-                )}
-            </CardContent>
-        </ScrollArea>
+        <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+                <CardContent>
+                    {cart.length > 0 ? (
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-24 text-center">Qté</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {cart.map(item => (
+                                    <TableRow key={item.produit.id}>
+                                        <TableCell className="font-medium py-2"><p className="truncate">{item.produit.nom}</p><p className="text-xs text-muted-foreground">{formatCurrency(item.prix_unitaire)}</p></TableCell>
+                                        <TableCell className="py-2">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite - 1)}><Minus className="h-3 w-3"/></Button>
+                                                <Input readOnly value={item.quantite} className="h-6 w-8 text-center p-0 border-0 bg-transparent focus-visible:ring-0" />
+                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite + 1)}><Plus className="h-3 w-3"/></Button>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right py-2">{formatCurrency(item.prix_total)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-10 h-full text-muted-foreground">
+                            <ShoppingCart className="w-12 h-12" /><p className="mt-4 text-sm">Votre panier est vide.</p><p className="text-xs">Cliquez sur un produit pour l'ajouter.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </ScrollArea>
+        </div>
         {cart.length > 0 && (
-            <div className="p-4 border-t mt-auto shrink-0">
+            <div className="p-4 border-t shrink-0">
                 <div className="flex justify-between items-center font-bold text-lg mb-4">
                     <span>Total</span>
                     <span>{formatCurrency(total)}</span>
                 </div>
-                <Button size="lg" className="w-full" onClick={() => setIsCheckoutOpen(true)}><DollarSign className="mr-2" /> Finaliser la Vente</Button>
+                <Button size="lg" className="w-full" onClick={() => setIsCheckoutOpen(true)} disabled={isSaving}><DollarSign className="mr-2" /> Finaliser la Vente</Button>
             </div>
         )}
       </div>
-      <CheckoutDialog isOpen={isCheckoutOpen} onOpenChange={setIsCheckoutOpen} cart={cart} total={total} onCompleteSale={handleCompleteSale} />
+      <CheckoutDialog 
+        isOpen={isCheckoutOpen} 
+        onOpenChange={setIsCheckoutOpen} 
+        total={total} 
+        onCompleteSale={handleCompleteSale} 
+        isSaving={isSaving} 
+        clients={clients}
+        defaultClientId={defaultClient?.id}
+      />
     </div>
   );
 }

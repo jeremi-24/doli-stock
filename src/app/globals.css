@@ -14,7 +14,7 @@ body {
     --card-foreground: 224 71% 4%;
     --popover: 220 13% 100%;
     --popover-foreground: 224 71% 4%;
-    --primary: 231 48% 48%;
+    --primary: 221 48% 48%;
     --primary-foreground: 0 0% 98%;
     --secondary: 220 13% 91%;
     --secondary-foreground: 224 71% 4%;
@@ -42,6 +42,7 @@ body {
     --sidebar-border: 220 13% 89%;
     --sidebar-ring: 231 48% 48%;
   }
+
   .dark {
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;

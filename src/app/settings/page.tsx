@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -20,13 +21,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import * as api from '@/lib/api';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 
-const shopInfoSchema = z.object({
-  name: z.string().min(1, "Le nom de la boutique est requis."),
-  address: z.string().optional(),
-  phone: z.string().optional(),
+
+const organisationSchema = z.object({
+  nom: z.string().min(1, "Le nom de l'organisation est requis."),
+  logoUrl: z.string().url("Veuillez entrer une URL valide.").optional().or(z.literal('')),
+  adresse: z.string().optional(),
+  ville: z.string().optional(),
+  numero: z.string().optional(), // NIF, SIRET...
+  telephone: z.string().optional(),
   email: z.string().email("Adresse e-mail invalide.").or(z.literal('')).optional(),
 });
+
 
 const themeColorsSchema = z.object({
   primary: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Utilisez le format 'H S% L%' (ex: 231 48% 48%)").trim(),
@@ -35,12 +43,13 @@ const themeColorsSchema = z.object({
 });
 
 
-function ShopInfoForm() {
+function OrganisationForm() {
   const { shopInfo, setShopInfo } = useApp();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = React.useState(false);
   
-  const form = useForm<z.infer<typeof shopInfoSchema>>({
-    resolver: zodResolver(shopInfoSchema),
+  const form = useForm<z.infer<typeof organisationSchema>>({
+    resolver: zodResolver(organisationSchema),
     defaultValues: shopInfo,
   });
 
@@ -48,70 +57,57 @@ function ShopInfoForm() {
     form.reset(shopInfo);
   }, [shopInfo, form]);
 
-  function onSubmit(values: z.infer<typeof shopInfoSchema>) {
-    setShopInfo(values as ShopInfo);
-    toast({
-      title: "Informations de la boutique mises à jour",
-      description: "Les détails de votre boutique ont été enregistrés.",
-    });
+  async function onSubmit(values: z.infer<typeof organisationSchema>) {
+    setIsLoading(true);
+    try {
+        await setShopInfo({ ...shopInfo, ...values });
+    } catch (error) {
+        // Error is handled in the context
+    } finally {
+        setIsLoading(false);
+    }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Boutique</CardTitle>
-        <CardDescription>Configurez les informations de votre boutique.</CardDescription>
+        <CardTitle className="font-headline">Organisation</CardTitle>
+        <CardDescription>Configurez les informations de votre organisation.</CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nom de la boutique</FormLabel>
-                  <FormControl><Input placeholder="Le nom de votre boutique" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Adresse</FormLabel>
-                  <FormControl><Input placeholder="123 Rue Principale, Lomé" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Numéro de téléphone</FormLabel>
-                  <FormControl><Input placeholder="+228 90 00 00 00" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email de contact</FormLabel>
-                  <FormControl><Input placeholder="contact@maboutique.tg" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="nom" render={({ field }) => (
+                <FormItem><FormLabel>Nom de l'organisation</FormLabel><FormControl><Input placeholder="Le nom de votre organisation" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+            <FormField control={form.control} name="logoUrl" render={({ field }) => (
+                <FormItem><FormLabel>URL du logo</FormLabel><FormControl><Input placeholder="https://votresite.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="adresse" render={({ field }) => (
+                    <FormItem><FormLabel>Adresse</FormLabel><FormControl><Input placeholder="123 Rue Principale" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="ville" render={({ field }) => (
+                    <FormItem><FormLabel>Ville</FormLabel><FormControl><Input placeholder="Lomé" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+            </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="telephone" render={({ field }) => (
+                    <FormItem><FormLabel>Numéro de téléphone</FormLabel><FormControl><Input placeholder="+228 90 00 00 00" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                 <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem><FormLabel>Email de contact</FormLabel><FormControl><Input placeholder="contact@maboutique.tg" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+            </div>
+             <FormField control={form.control} name="numero" render={({ field }) => (
+                <FormItem><FormLabel>N° d'identification (NIF, SIRET...)</FormLabel><FormControl><Input placeholder="Entrez votre numéro d'identification fiscale ou d'entreprise" {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
-            <Button type="submit">Sauvegarder</Button>
+            <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sauvegarder les changements
+            </Button>
           </CardFooter>
         </form>
       </Form>
@@ -248,40 +244,34 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
 
 function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, onOpenChange: (open: boolean) => void, products: Produit[] }) {
   const { toast } = useToast();
-  const [quantities, setQuantities] = React.useState<{ [key: string]: number }>({});
+  const [selectedProductId, setSelectedProductId] = React.useState<string | undefined>();
+  const [quantity, setQuantity] = React.useState<number>(1);
   const [isPrinting, setIsPrinting] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
-      const initialQuantities = products.reduce((acc, p) => {
-        acc[p.id] = p.qte > 0 ? 1 : 0;
-        return acc;
-      }, {} as { [key: string]: number });
-      setQuantities(initialQuantities);
+      setSelectedProductId(undefined);
+      setQuantity(1);
     }
-  }, [open, products]);
-
-  const handleQuantityChange = (productId: number, value: string) => {
-    const newQuantity = parseInt(value, 10);
-    if (!isNaN(newQuantity) && newQuantity >= 0) {
-      setQuantities(prev => ({ ...prev, [productId]: newQuantity }));
-    } else if (value === '') {
-      setQuantities(prev => ({ ...prev, [productId]: 0 }));
-    }
-  };
+  }, [open]);
 
   const handlePrintRequest = async () => {
-    const payload = products
-      .map(p => ({
-        produitNom: p.nom,
-        quantite: quantities[p.id] || 0,
-      }))
-      .filter(p => p.quantite > 0);
-
-    if (payload.length === 0) {
-      toast({ variant: "destructive", title: "Aucun code-barres à imprimer", description: "Veuillez spécifier une quantité pour au moins un produit." });
+    if (!selectedProductId || quantity <= 0) {
+      toast({ variant: "destructive", title: "Informations manquantes", description: "Veuillez sélectionner un produit et entrer une quantité valide." });
       return;
     }
+
+    const selectedProduct = products.find(p => p.id === parseInt(selectedProductId, 10));
+
+    if (!selectedProduct) {
+        toast({ variant: "destructive", title: "Produit non trouvé", description: "Le produit sélectionné n'existe pas." });
+        return;
+    }
+
+    const payload ={
+        produitNom: selectedProduct.nom,
+        quantite: quantity,
+    };
 
     setIsPrinting(true);
     try {
@@ -303,56 +293,46 @@ function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, o
     }
   };
   
-  const totalBarcodes = Object.values(quantities).reduce((sum, q) => sum + (q || 0), 0);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">Imprimer des codes-barres</DialogTitle>
           <DialogDescription>
-            Spécifiez le nombre d'étiquettes à imprimer pour chaque produit. Les produits avec une quantité de 0 ne seront pas inclus.
+            Choisissez un produit et spécifiez le nombre d'étiquettes à imprimer.
           </DialogDescription>
         </DialogHeader>
-        <div className="h-[60vh] flex flex-col">
-          <ScrollArea className="flex-1 pr-4 -mr-4">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Produit</TableHead>
-                        <TableHead className="w-[120px] text-right">Quantité</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                {products.map((produit) => (
-                    <TableRow key={produit.id}>
-                        <TableCell className="font-medium">{produit.nom}</TableCell>
-                        <TableCell className="text-right">
-                            <Input
-                                type="number"
-                                value={quantities[produit.id] || 0}
-                                onChange={(e) => handleQuantityChange(produit.id, e.target.value)}
-                                className="h-8 w-20 ml-auto text-right"
-                                min="0"
-                                disabled={isPrinting}
-                            />
-                        </TableCell>
-                    </TableRow>
-                ))}
-                </TableBody>
-            </Table>
-          </ScrollArea>
+        <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+                <Label htmlFor="product-select">Produit</Label>
+                <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={isPrinting}>
+                    <SelectTrigger id="product-select">
+                        <SelectValue placeholder="Sélectionner un produit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {products.map((produit) => (
+                             <SelectItem key={produit.id} value={String(produit.id)}>{produit.nom}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="grid gap-2">
+                <Label htmlFor="quantity-input">Quantité</Label>
+                <Input
+                    id="quantity-input"
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 1)}
+                    min="1"
+                    disabled={isPrinting}
+                />
+            </div>
         </div>
-        <DialogFooter className="sm:justify-between items-center border-t pt-4 mt-4">
-          <div className="text-sm text-muted-foreground">
-             Total: <span className="font-bold">{totalBarcodes}</span> étiquette(s)
-          </div>
-          <div className="flex gap-2">
+        <DialogFooter>
             <DialogClose asChild><Button variant="ghost" disabled={isPrinting}>Annuler</Button></DialogClose>
-            <Button onClick={handlePrintRequest} disabled={isPrinting || totalBarcodes === 0}>
+            <Button onClick={handlePrintRequest} disabled={isPrinting || !selectedProductId || quantity <= 0}>
                 {isPrinting ? "Génération..." : <><Printer className="h-4 w-4 mr-2" />Générer le PDF</>}
             </Button>
-          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -396,7 +376,7 @@ export default function SettingsPage() {
           <TabsTrigger value="modules"><Settings className="mr-2 h-4 w-4"/>Modules</TabsTrigger>
           <TabsTrigger value="import"><Import className="mr-2 h-4 w-4"/>Import/Export</TabsTrigger>
           <TabsTrigger value="users"><Users className="mr-2 h-4 w-4"/>Utilisateurs</TabsTrigger>
-          <TabsTrigger value="shop"><Store className="mr-2 h-4 w-4"/>Boutique</TabsTrigger>
+          <TabsTrigger value="organisation"><Store className="mr-2 h-4 w-4"/>Organisation</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4"/>Apparence</TabsTrigger>
         </TabsList>
 
@@ -549,8 +529,8 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
           
-        <TabsContent value="shop" className="mt-6">
-          <ShopInfoForm />
+        <TabsContent value="organisation" className="mt-6">
+          <OrganisationForm />
         </TabsContent>
           
         <TabsContent value="appearance" className="mt-6">

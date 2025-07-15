@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -28,7 +29,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, FileSignature, Building2 } from 'lucide-react';
+import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, FileSignature, Building2, ClipboardList, PackagePlus, Users } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 import { cn } from '@/lib/utils';
 
@@ -39,6 +40,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const { isMobile, setOpenMobile } = useSidebar();
   
   const [theme, setTheme] = React.useState('light');
+  const [logoError, setLogoError] = React.useState(false);
 
   React.useEffect(() => {
     const localTheme = localStorage.getItem('theme');
@@ -47,6 +49,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.toggle('dark', localTheme === 'dark');
     }
   }, []);
+
+  React.useEffect(() => {
+    setLogoError(false);
+  }, [shopInfo.logoUrl]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -70,13 +76,17 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!isMounted) return;
+
     if (!isAuthenticated && !isAuthPage) {
-        router.push('/login');
+      router.push('/login');
+    } else if (isAuthenticated && isAuthPage) {
+      router.push('/');
     }
-  }, [isMounted, isAuthenticated, isAuthPage, pathname, router]);
+  }, [isMounted, isAuthenticated, isAuthPage, router, pathname]);
 
 
-  if (!isMounted || (!isAuthenticated && !isAuthPage)) {
+  // Show a loading screen while we check auth status and redirect if necessary
+  if (!isMounted || (!isAuthenticated && !isAuthPage) || (isAuthenticated && isAuthPage)) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Logo className="h-10 w-10 animate-pulse" />
@@ -84,6 +94,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // If it's an auth page, render it without the main app shell
   if (isAuthPage) {
     return <>{children}</>;
   }
@@ -125,6 +136,20 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       module: 'stock',
     },
     {
+      href: '/inventories',
+      icon: <ClipboardList />,
+      label: 'Inventaires',
+      active: pathname.startsWith('/inventories'),
+      module: 'stock',
+    },
+    {
+      href: '/reapprovisionnements',
+      icon: <PackagePlus />,
+      label: 'Réapprovisionnement',
+      active: pathname.startsWith('/reapprovisionnements'),
+      module: 'stock',
+    },
+    {
       href: '/pos',
       icon: <ShoppingCart />,
       label: 'Point de Vente',
@@ -138,11 +163,11 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       active: pathname === '/invoicing',
       module: 'invoicing',
     },
-     {
-      href: '/invoice-templates',
-      icon: <FileSignature />,
-      label: 'Modèles Facture',
-      active: pathname === '/invoice-templates',
+    {
+      href: '/clients',
+      icon: <Users />,
+      label: 'Clients',
+      active: pathname === '/clients',
       module: 'invoicing',
     },
     {
@@ -167,8 +192,19 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         <SidebarRail />
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <Logo className="w-8 h-8" />
-            <span className="font-headline text-lg font-semibold text-primary">{shopInfo.name.split(' ')[0]}</span>
+            <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center">
+              {shopInfo.logoUrl && !logoError ? (
+                <img 
+                  src={shopInfo.logoUrl} 
+                  alt={`${shopInfo.nom} Logo`} 
+                  className="h-full w-auto object-contain"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <Logo className="w-8 h-8" />
+              )}
+            </div>
+            <span className="font-headline text-lg font-semibold text-primary group-data-[collapsible=icon]:hidden">{shopInfo.nom.split(' ')[0]}</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -196,7 +232,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                         <div className="text-left group-data-[collapsible=icon]:hidden">
-                            <p className="font-semibold text-sm">Utilisateur Démo</p>
+                            <p className="font-semibold text-sm">{currentUser?.role || 'Utilisateur'}</p>
                             <p className="text-xs text-muted-foreground">{currentUser?.email || 'email@example.com'}</p>
                         </div>
                     </Button>
