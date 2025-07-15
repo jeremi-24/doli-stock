@@ -3,10 +3,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, FactureModele } from '@/lib/types';
+import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { jwtDecode } from 'jwt-decode';
 
 interface AppContextType {
   produits: Produit[];
@@ -14,7 +13,6 @@ interface AppContextType {
   entrepots: Entrepot[];
   clients: Client[];
   ventes: Vente[];
-  factureModeles: FactureModele[];
   addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduits: (produitIds: number[]) => Promise<void>;
@@ -29,9 +27,6 @@ interface AppContextType {
   addClient: (client: Omit<Client, 'id'>) => Promise<void>;
   updateClient: (id: number, client: Partial<Client>) => Promise<void>;
   deleteClient: (id: number) => Promise<void>;
-  addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
-  updateFactureModele: (modele: FactureModele) => Promise<void>;
-  deleteFactureModele: (id: string) => Promise<void>;
   addVente: (venteData: VentePayload) => Promise<void>;
   deleteVente: (venteId: number) => Promise<void>;
   createInventaire: (payload: InventairePayload, isFirst: boolean) => Promise<Inventaire | null>;
@@ -45,7 +40,7 @@ interface AppContextType {
   isMounted: boolean;
   isAuthenticated: boolean;
   currentUser: CurrentUser | null;
-  login: (token: string) => void;
+  login: (token: string, user: CurrentUser) => void;
   logout: () => void;
   scannedProductDetails: any | null;
   setScannedProductDetails: (details: any | null) => void;
@@ -65,7 +60,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [entrepots, setEntrepots] = useState<Entrepot[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [ventes, setVentes] = useState<Vente[]>([]);
-  const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
   const [shopInfo, setShopInfoState] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
@@ -80,6 +74,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setCurrentUser(null);
     localStorage.removeItem('stockhero_token');
+    localStorage.removeItem('stockhero_user');
     // Clear data to avoid flashing old content
     setProduits([]);
     setCategories([]);
@@ -138,32 +133,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [handleFetchError]);
 
-  const processToken = useCallback((tokenToProcess: string) => {
-    try {
-      const decoded: { sub: string, roles: string[] } = jwtDecode(tokenToProcess);
-      const userRole = decoded.roles?.[0];
-      
-      if (!userRole || !ALLOWED_ROLES.includes(userRole)) {
-        console.error('Invalid or unallowed role received in token:', userRole);
-        toast({ variant: 'destructive', title: 'Rôle non autorisé', description: 'Votre rôle ne vous permet pas d\'accéder à cette application.' });
-        logout();
-        return;
-      }
-      
-      const user: CurrentUser = { email: decoded.sub, role: userRole };
-      setToken(tokenToProcess);
-      setCurrentUser(user);
-    } catch (error) {
-      console.error('Invalid token, logging out.', error);
-      toast({ variant: 'destructive', title: 'Session invalide', description: 'Votre session est invalide ou a expiré. Veuillez vous reconnecter.' });
-      logout();
-    }
-  }, [logout, toast]);
-
   useEffect(() => {
     const storedToken = localStorage.getItem('stockhero_token');
-    if (storedToken) {
-      processToken(storedToken);
+    const storedUser = localStorage.getItem('stockhero_user');
+    
+    if (storedToken && storedUser) {
+        try {
+            const user: CurrentUser = JSON.parse(storedUser);
+            if (user && user.role && ALLOWED_ROLES.includes(user.role)) {
+                setToken(storedToken);
+                setCurrentUser(user);
+            } else {
+                // Invalid user object in storage, clear it
+                logout();
+            }
+        } catch (e) {
+            // Corrupted data in storage, clear it
+            logout();
+        }
     }
     
     const storedModules = localStorage.getItem('stockhero_modules');
@@ -173,7 +160,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
     
     setIsMounted(true);
-  }, [processToken]);
+  }, []);
 
   useEffect(() => {
     const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -194,9 +181,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [themeColors, isMounted]);
 
-  const login = (newToken: string) => {
+  const login = (newToken: string, user: CurrentUser) => {
+    if (!user || !user.role || !ALLOWED_ROLES.includes(user.role)) {
+        toast({ variant: 'destructive', title: 'Rôle non autorisé', description: 'Votre rôle ne vous permet pas d\'accéder à cette application.' });
+        logout();
+        return;
+    }
     localStorage.setItem('stockhero_token', newToken);
-    processToken(newToken);
+    localStorage.setItem('stockhero_user', JSON.stringify(user));
+    setToken(newToken);
+    setCurrentUser(user);
   };
   
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
@@ -237,16 +231,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toast({ variant: 'destructive', title: 'Erreur de suppression', description: errorMessage});
     }
   }, [fetchAllData, toast]);
-  
-  const addFactureModele = useCallback(async (data: Omit<FactureModele, 'id'>) => {
-    // This function can be kept for now or removed if truly no longer needed
-  }, []);
-  const updateFactureModele = useCallback(async (data: FactureModele) => {
-    // This function can be kept for now or removed if truly no longer needed
-  }, []);
-  const deleteFactureModele = useCallback(async (id: string) => {
-    // This function can be kept for now or removed if truly no longer needed
-  }, []);
 
   const addVente = useCallback(async (venteData: VentePayload) => {
     try {
@@ -299,12 +283,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [fetchAllData, toast]);
 
   const value = useMemo(() => ({
-    produits, categories, entrepots, clients, ventes, factureModeles,
+    produits, categories, entrepots, clients, ventes,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addClient, updateClient, deleteClient,
-    addFactureModele, updateFactureModele, deleteFactureModele,
     addVente, deleteVente, 
     createInventaire,
     addReapprovisionnement,
@@ -317,12 +300,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     scannedProductDetails, 
     setScannedProductDetails,
   }), [
-    produits, categories, entrepots, clients, ventes, factureModeles,
+    produits, categories, entrepots, clients, ventes,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addEntrepot, updateEntrepot, deleteEntrepots,
     addClient, updateClient, deleteClient,
-    addFactureModele, updateFactureModele, deleteFactureModele,
     addVente, deleteVente,
     createInventaire,
     addReapprovisionnement,
