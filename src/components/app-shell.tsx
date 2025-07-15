@@ -127,6 +127,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       label: 'Catégories',
       active: pathname === '/categories',
       module: 'stock',
+      roles: ['ADMIN'],
     },
     {
       href: '/entrepots',
@@ -134,6 +135,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       label: 'Entrepôts',
       active: pathname === '/entrepots',
       module: 'stock',
+      roles: ['ADMIN'],
     },
     {
       href: '/inventories',
@@ -183,8 +185,15 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       label: 'Paramètres',
       active: pathname === '/settings',
       module: 'all',
+      roles: ['ADMIN'],
     },
   ];
+
+  const visibleNavItems = navItems.filter(item => {
+    const isModuleActive = item.module === 'all' || activeModules[item.module as keyof typeof activeModules];
+    const hasRequiredRole = !item.roles || (currentUser && item.roles.includes(currentUser.role));
+    return isModuleActive && hasRequiredRole;
+  });
 
   return (
     <>
@@ -209,8 +218,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {navItems.map((item) => 
-                (item.module === 'all' || activeModules[item.module as keyof typeof activeModules]) && (
+            {visibleNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <Link href={item.href}>
                     <SidebarMenuButton isActive={item.active} size="lg" tooltip={item.label}>

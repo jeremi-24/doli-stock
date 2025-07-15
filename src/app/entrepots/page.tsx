@@ -19,6 +19,7 @@ import { Building2, PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-re
 import type { Entrepot } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useRouter } from 'next/navigation';
 
 const entrepotSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -26,12 +27,19 @@ const entrepotSchema = z.object({
 });
 
 export default function EntrepotsPage() {
-    const { entrepots, addEntrepot, updateEntrepot, deleteEntrepots, isMounted } = useApp();
+    const { entrepots, addEntrepot, updateEntrepot, deleteEntrepots, isMounted, currentUser } = useApp();
     const { toast } = useToast();
+    const router = useRouter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingEntrepot, setEditingEntrepot] = useState<Entrepot | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedEntrepots, setSelectedEntrepots] = useState<number[]>([]);
+
+    useEffect(() => {
+        if (isMounted && currentUser?.role !== 'ADMIN') {
+            router.push('/');
+        }
+    }, [isMounted, currentUser, router]);
 
     const form = useForm<z.infer<typeof entrepotSchema>>({
         resolver: zodResolver(entrepotSchema),
@@ -112,6 +120,14 @@ export default function EntrepotsPage() {
             setIsLoading(false);
         }
     };
+
+    if (currentUser?.role !== 'ADMIN') {
+        return (
+            <div className="flex flex-1 flex-col items-center justify-center h-full">
+                <p>Accès non autorisé.</p>
+            </div>
+        );
+    }
     
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">

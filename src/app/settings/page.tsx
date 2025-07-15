@@ -23,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { useRouter } from 'next/navigation';
 
 
 const organisationSchema = z.object({
@@ -340,11 +341,18 @@ function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, o
 }
 
 export default function SettingsPage() {
-  const { activeModules, setActiveModules, produits, addMultipleProduits, currentUser } = useApp();
+  const { activeModules, setActiveModules, produits, addMultipleProduits, currentUser, isMounted } = useApp();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [isPrintRequestDialogOpen, setIsPrintRequestDialogOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isMounted && currentUser?.role !== 'ADMIN') {
+        router.push('/');
+    }
+  }, [isMounted, currentUser, router]);
 
   const handleModuleToggle = (module: keyof typeof activeModules) => {
     setActiveModules(prev => {
@@ -365,6 +373,14 @@ export default function SettingsPage() {
     setIsPrintRequestDialogOpen(true); 
   };
   
+  if (currentUser?.role !== 'ADMIN') {
+      return (
+          <div className="flex flex-1 flex-col items-center justify-center h-full">
+              <p>Accès non autorisé.</p>
+          </div>
+      );
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
