@@ -11,54 +11,38 @@ import { Dialog, DialogContent, DialogTrigger, DialogFooter, DialogHeader, Dialo
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from '@/context/app-provider';
-import type { Vente, VenteLigneApi, ShopInfo, Produit } from '@/lib/types';
+import type { Facture, Produit, ShopInfo } from '@/lib/types';
+import * as api from '@/lib/api';
 import { PlusCircle, Eye, Search, History, Trash2, Loader2, FileText, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { InvoiceTemplate } from '@/components/invoice-template';
 import { useToast } from '@/hooks/use-toast';
 
-function SaleDetailsDialog({ vente }: { vente: Vente }) {
-    const { produits } = useApp();
+function SaleDetailsDialog({ facture }: { facture: Facture }) {
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
     
-    const enrichedLignes = useMemo(() => {
-        return vente.lignes.map(ligne => {
-            const produit = produits.find(p => p.id === ligne.produitId);
-            return {
-                ...ligne,
-                produitNom: produit?.nom || `ID: ${ligne.produitId}`,
-            };
-        });
-    }, [vente.lignes, produits]);
-
-    const totalVente = useMemo(() => {
-        return enrichedLignes.reduce((sum, ligne) => sum + ligne.total, 0);
-    }, [enrichedLignes]);
-
     return (
         <Dialog>
             <DialogTrigger asChild><Button variant="ghost" size="icon" aria-label="Voir les détails"><Eye className="h-4 w-4" /></Button></DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle className="font-headline">Détails de la Vente #{vente.ref}</DialogTitle>
+                    <DialogTitle className="font-headline">Détails de la Facture #{facture.idFacture}</DialogTitle>
                     <DialogDescription>
-                        Vente réalisée le {vente.date ? format(new Date(vente.date), 'd MMMM yyyy à HH:mm', { locale: fr }) : 'Date inconnue'} par {vente.caissier}.
+                        Facture générée le {facture.dateFacture ? format(new Date(facture.dateFacture), 'd MMMM yyyy à HH:mm', { locale: fr }) : 'Date inconnue'}.
                     </DialogDescription>
                 </DialogHeader>
                  <div className="p-2 space-y-4">
                     <div className="text-sm">
                         <span className="text-muted-foreground">Client : </span>
-                        <span className="font-semibold">{vente.client}</span>
+                        <span className="font-semibold">{facture.clientNom}</span>
                     </div>
                     <div className="border rounded-lg">
                         <Table>
-                            <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-[100px] text-center">Qté</TableHead><TableHead className="text-right">P.U.</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                            <TableBody>{enrichedLignes.map(l => (<TableRow key={l.id}><TableCell className="font-medium">{l.produitNom}</TableCell><TableCell className="text-center">{l.qteVendu}</TableCell><TableCell className="text-right">{formatCurrency(l.produitPrix)}</TableCell><TableCell className="text-right">{formatCurrency(l.total)}</TableCell></TableRow>))}</TableBody>
+                            <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead>Référence</TableHead><TableHead className="w-[100px] text-center">Qté</TableHead><TableHead className="text-right">P.U.</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
+                            <TableBody>{facture.lignes.map(l => (<TableRow key={l.id}><TableCell className="font-medium">{l.produitNom}</TableCell><TableCell>{l.produitRef}</TableCell><TableCell className="text-center">{l.qteVoulu}</TableCell><TableCell className="text-right">{formatCurrency(l.produitPrix)}</TableCell><TableCell className="text-right">{formatCurrency(l.totalLigne)}</TableCell></TableRow>))}</TableBody>
                             <TableFooter>
-                                <TableRow className="text-base font-bold"><TableCell colSpan={3} className="text-right">Montant Total</TableCell><TableCell className="text-right">{formatCurrency(totalVente)}</TableCell></TableRow>
+                                <TableRow className="text-base font-bold"><TableCell colSpan={4} className="text-right">Montant Total</TableCell><TableCell className="text-right">{formatCurrency(facture.montantTotal)}</TableCell></TableRow>
                             </TableFooter>
                         </Table>
                     </div>
@@ -68,20 +52,10 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
     )
 }
 
-function InvoicePreviewDialog({ vente, shopInfo, produits, isOpen, onOpenChange }: { vente: Vente | null, shopInfo: ShopInfo, produits: Produit[], isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+function InvoicePreviewDialog({ facture, shopInfo, isOpen, onOpenChange }: { facture: Facture | null, shopInfo: ShopInfo, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
     const invoiceRef = React.useRef<HTMLDivElement>(null);
     const [isGenerating, setIsGenerating] = React.useState(false);
     const { toast } = useToast();
-
-    const enrichedVente = useMemo(() => {
-        if (!vente) return null;
-        const enrichedLignes = vente.lignes.map(ligne => {
-            const produit = produits.find(p => p.id === ligne.produitId);
-            return { ...ligne, produitNom: produit?.nom || `ID: ${ligne.produitId}` };
-        });
-        const total = enrichedLignes.reduce((sum, ligne) => sum + ligne.total, 0);
-        return { ...vente, lignes: enrichedLignes, paiement: total };
-    }, [vente, produits]);
 
     const handleGeneratePdf = async () => {
         const input = invoiceRef.current;
@@ -107,7 +81,7 @@ function InvoicePreviewDialog({ vente, shopInfo, produits, isOpen, onOpenChange 
             const imgHeight = pdfWidth / ratio;
             
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
-            pdf.save(`facture-${enrichedVente?.ref || 'vente'}.pdf`);
+            pdf.save(`facture-${facture?.idFacture || 'vente'}.pdf`);
         } catch (error) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Erreur de génération', description: "Impossible de générer le PDF." });
@@ -117,7 +91,7 @@ function InvoicePreviewDialog({ vente, shopInfo, produits, isOpen, onOpenChange 
         }
     };
 
-    if (!enrichedVente) return null;
+    if (!facture) return null;
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -125,12 +99,12 @@ function InvoicePreviewDialog({ vente, shopInfo, produits, isOpen, onOpenChange 
                 <DialogHeader>
                     <DialogTitle className="font-headline">Aperçu de la Facture</DialogTitle>
                     <DialogDescription>
-                        Aperçu de la facture pour la vente #{enrichedVente.ref}. Cliquez sur "Télécharger" pour obtenir le PDF.
+                        Aperçu de la facture #{facture.idFacture}. Cliquez sur "Télécharger" pour obtenir le PDF.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="overflow-auto bg-gray-200 p-4 rounded-md">
                      <div ref={invoiceRef}>
-                         <InvoiceTemplate vente={enrichedVente} shopInfo={shopInfo} />
+                         <InvoiceTemplate facture={facture} shopInfo={shopInfo} />
                     </div>
                 </div>
                 <DialogFooter>
@@ -145,13 +119,13 @@ function InvoicePreviewDialog({ vente, shopInfo, produits, isOpen, onOpenChange 
     );
 }
 
-function DeleteSaleButton({ venteId, onDeleted }: { venteId: number, onDeleted: () => void }) {
-    const { deleteVente } = useApp();
+function DeleteSaleButton({ factureId, onDeleted }: { factureId: number, onDeleted: () => void }) {
+    const { deleteFacture } = useApp();
     const [isLoading, setIsLoading] = useState(false);
     
     const handleDelete = async () => {
         setIsLoading(true);
-        await deleteVente(venteId);
+        await deleteFacture(factureId);
         onDeleted(); 
         setIsLoading(false);
     };
@@ -159,7 +133,7 @@ function DeleteSaleButton({ venteId, onDeleted }: { venteId: number, onDeleted: 
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Supprimer la vente">
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Supprimer la facture">
                     <Trash2 className="h-4 w-4" />
                 </Button>
             </AlertDialogTrigger>
@@ -167,7 +141,7 @@ function DeleteSaleButton({ venteId, onDeleted }: { venteId: number, onDeleted: 
                 <AlertDialogHeader>
                     <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Cette action est irréversible. Elle supprimera définitivement cette vente et les lignes associées. Le stock ne sera PAS restauré.
+                        Cette action est irréversible. Elle supprimera définitivement cette facture et les documents associés. Le stock ne sera PAS impacté.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -182,57 +156,55 @@ function DeleteSaleButton({ venteId, onDeleted }: { venteId: number, onDeleted: 
 }
 
 export default function SalesPage() {
-  const { ventes, shopInfo, produits, isMounted } = useApp();
+  const { factures, shopInfo, isMounted, fetchFactures } = useApp();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedVenteForInvoice, setSelectedVenteForInvoice] = useState<Vente | null>(null);
+  const [selectedFactureForInvoice, setSelectedFactureForInvoice] = useState<Facture | null>(null);
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
   const filteredSales = useMemo(() => {
     if (!isMounted) return [];
-    return [...ventes]
+    return [...factures]
       .sort((a, b) => {
-        if (!a.date) return 1;
-        if (!b.date) return -1;
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (!a.dateFacture) return 1;
+        if (!b.dateFacture) return -1;
+        return new Date(b.dateFacture).getTime() - new Date(a.dateFacture).getTime();
       })
-      .filter(vente => 
-          (vente.client || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-          (vente.ref || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (vente.caissier || '').toLowerCase().includes(searchTerm.toLowerCase())
+      .filter(facture => 
+          (facture.clientNom || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+          (String(facture.idFacture) || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
-  }, [ventes, searchTerm, isMounted]);
+  }, [factures, searchTerm, isMounted]);
   
-  const handleOpenInvoiceDialog = (vente: Vente) => {
-    setSelectedVenteForInvoice(vente);
+  const handleOpenInvoiceDialog = (facture: Facture) => {
+    setSelectedFactureForInvoice(facture);
   };
   
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center gap-4">
-        <h1 className="font-headline text-3xl font-semibold">Historique des Ventes</h1>
+        <h1 className="font-headline text-3xl font-semibold">Historique des Factures</h1>
         <div className="ml-auto flex items-center gap-2">
            <div className="relative flex-1 md:grow-0">
              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
            </div>
-          <Button size="sm" onClick={() => router.push('/invoicing')}><PlusCircle className="h-4 w-4 mr-2" />Créer une Vente</Button>
         </div>
       </div>
 
       <Card>
           <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><History />Toutes les transactions</CardTitle>
-              <CardDescription>Liste de toutes les ventes (PDV et manuelles).</CardDescription>
+              <CardTitle className="font-headline flex items-center gap-2"><History />Toutes les factures</CardTitle>
+              <CardDescription>Liste de toutes les factures générées.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="border rounded-lg">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Référence</TableHead>
+                            <TableHead>N° Facture</TableHead>
+                            <TableHead>N° Commande</TableHead>
                             <TableHead>Client</TableHead>
-                            <TableHead>Caissier</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead className="text-right">Total</TableHead>
                             <TableHead className="text-center w-[120px]">Actions</TableHead>
@@ -243,39 +215,37 @@ export default function SalesPage() {
                         Array.from({ length: 5 }).map((_, i) => (
                             <TableRow key={i}><TableCell colSpan={6} className="h-12"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground"/></TableCell></TableRow>
                         ))
-                    ) : filteredSales.length > 0 ? filteredSales.map(vente => {
-                        const totalVente = vente.lignes.reduce((sum, l) => sum + l.total, 0);
+                    ) : filteredSales.length > 0 ? filteredSales.map(facture => {
                         return (
-                        <TableRow key={vente.id}>
-                            <TableCell className="font-mono text-xs">{vente.ref || 'N/A'}</TableCell>
-                            <TableCell className="font-medium">{vente.client || 'N/A'}</TableCell>
-                            <TableCell><Badge variant="outline">{vente.caissier || 'N/A'}</Badge></TableCell>
-                            <TableCell>{vente.date ? format(new Date(vente.date), 'd MMM yyyy, HH:mm', { locale: fr }) : "N/A"}</TableCell>
-                            <TableCell className="text-right font-semibold">{formatCurrency(totalVente)}</TableCell>
+                        <TableRow key={facture.idFacture}>
+                            <TableCell className="font-mono text-xs">FACT-{String(facture.idFacture).padStart(5, '0')}</TableCell>
+                            <TableCell className="font-mono text-xs">CMD-{String(facture.commandeId).padStart(5, '0')}</TableCell>
+                            <TableCell className="font-medium">{facture.clientNom || 'N/A'}</TableCell>
+                            <TableCell>{facture.dateFacture ? format(new Date(facture.dateFacture), 'd MMM yyyy, HH:mm', { locale: fr }) : "N/A"}</TableCell>
+                            <TableCell className="text-right font-semibold">{formatCurrency(facture.montantTotal)}</TableCell>
                             <TableCell className="text-center">
                                 <div className="flex items-center justify-center">
-                                    <SaleDetailsDialog vente={vente} />
-                                    <Button variant="ghost" size="icon" aria-label="Générer la facture" onClick={() => handleOpenInvoiceDialog(vente)}>
+                                    <SaleDetailsDialog facture={facture} />
+                                    <Button variant="ghost" size="icon" aria-label="Générer la facture" onClick={() => handleOpenInvoiceDialog(facture)}>
                                         <FileText className="h-4 w-4" />
                                     </Button>
-                                    <DeleteSaleButton venteId={vente.id} onDeleted={() => {}}/>
+                                    <DeleteSaleButton factureId={facture.idFacture} onDeleted={() => fetchFactures()}/>
                                 </div>
                             </TableCell>
                         </TableRow>
-                    )}) : (<TableRow><TableCell colSpan={6} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
+                    )}) : (<TableRow><TableCell colSpan={6} className="h-24 text-center">{searchTerm ? "Aucune facture ne correspond à votre recherche." : "Aucune facture trouvée."}</TableCell></TableRow>)}
                     </TableBody>
                 </Table>
             </div>
         </CardContent>
       </Card>
         <InvoicePreviewDialog
-            vente={selectedVenteForInvoice}
+            facture={selectedFactureForInvoice}
             shopInfo={shopInfo}
-            produits={produits}
-            isOpen={!!selectedVenteForInvoice}
+            isOpen={!!selectedFactureForInvoice}
             onOpenChange={(open) => {
                 if (!open) {
-                    setSelectedVenteForInvoice(null);
+                    setSelectedFactureForInvoice(null);
                 }
             }}
         />

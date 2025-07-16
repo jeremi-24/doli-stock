@@ -29,12 +29,12 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, Building2, ClipboardList, PackagePlus, Users } from 'lucide-react';
+import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, Building2, ClipboardList, PackagePlus, Users, FileStack, Truck } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 import { cn } from '@/lib/utils';
 
 function AppShellContent({ children }: { children: React.ReactNode }) {
-  const { activeModules, isMounted, shopInfo, logout, isAuthenticated, currentUser } = useApp();
+  const { isMounted, shopInfo, logout, isAuthenticated, currentUser } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -85,7 +85,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   }, [isMounted, isAuthenticated, isAuthPage, router, pathname]);
 
 
-  // Show a loading screen while we check auth status and redirect if necessary
   if (!isMounted || (!isAuthenticated && !isAuthPage) || (isAuthenticated && isAuthPage)) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -94,7 +93,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If it's an auth page, render it without the main app shell
   if (isAuthPage) {
     return <>{children}</>;
   }
@@ -112,21 +110,41 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <LayoutDashboard />,
       label: 'Tableau de Bord',
       active: pathname === '/',
-      module: 'all', 
+      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/stock',
       icon: <Warehouse />,
       label: 'Stock',
       active: pathname === '/stock',
-      module: 'stock',
+      roles: ['ADMIN', 'USER'],
+    },
+    {
+      href: '/orders',
+      icon: <FileStack />,
+      label: 'Commandes',
+      active: pathname.startsWith('/orders'),
+      roles: ['ADMIN', 'USER'],
+    },
+    {
+      href: '/deliveries',
+      icon: <Truck />,
+      label: 'Bons de Livraison',
+      active: pathname.startsWith('/deliveries'),
+      roles: ['ADMIN', 'USER'],
+    },
+    {
+      href: '/sales',
+      icon: <History />,
+      label: 'Factures',
+      active: pathname === '/sales',
+      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/categories',
       icon: <Tag />,
       label: 'Catégories',
       active: pathname === '/categories',
-      module: 'stock',
       roles: ['ADMIN'],
     },
     {
@@ -134,7 +152,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <Building2 />,
       label: 'Lieux de Stock',
       active: pathname === '/entrepots',
-      module: 'stock',
+      roles: ['ADMIN'],
+    },
+    {
+      href: '/clients',
+      icon: <Users />,
+      label: 'Clients',
+      active: pathname === '/clients',
       roles: ['ADMIN'],
     },
     {
@@ -142,60 +166,34 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <ClipboardList />,
       label: 'Inventaires',
       active: pathname.startsWith('/inventories'),
-      module: 'stock',
+      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/reapprovisionnements',
       icon: <PackagePlus />,
       label: 'Réapprovisionnement',
       active: pathname.startsWith('/reapprovisionnements'),
-      module: 'stock',
+      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/pos',
       icon: <ShoppingCart />,
       label: 'Point de Vente',
       active: pathname === '/pos',
-      module: 'pos',
-    },
-    {
-      href: '/invoicing',
-      icon: <FilePlus />,
-      label: 'Facturation',
-      active: pathname === '/invoicing',
-      module: 'invoicing',
-    },
-    {
-      href: '/clients',
-      icon: <Users />,
-      label: 'Clients',
-      active: pathname === '/clients',
-      module: 'invoicing',
-    },
-    {
-      href: '/sales',
-      icon: <History />,
-      label: 'Ventes',
-      active: pathname === '/sales',
-      module: 'invoicing',
+      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/settings',
       icon: <Settings />,
       label: 'Paramètres',
       active: pathname === '/settings',
-      module: 'all',
       roles: ['ADMIN'],
     },
   ];
 
   const visibleNavItems = navItems.filter(item => {
-    const isModuleActive = item.module === 'all' || activeModules[item.module as keyof typeof activeModules];
-    
-    // An item is visible if it has no specific roles OR if the user's role is in the item's roles array.
     const hasRequiredRole = !item.roles || (currentUser && item.roles.includes(currentUser.role));
-    
-    return isModuleActive && hasRequiredRole;
+    return hasRequiredRole;
   });
 
   return (
@@ -299,5 +297,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
-
-    

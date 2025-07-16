@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, LieuStock, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,7 +12,10 @@ interface AppContextType {
   categories: Categorie[];
   lieuxStock: LieuStock[];
   clients: Client[];
-  ventes: Vente[];
+  factures: Facture[];
+  commandes: Commande[];
+  bonLivraisons: BonLivraison[];
+  fetchFactures: () => Promise<void>;
   addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
   deleteProduits: (produitIds: number[]) => Promise<void>;
@@ -27,12 +30,14 @@ interface AppContextType {
   addClient: (client: Omit<Client, 'id'>) => Promise<void>;
   updateClient: (id: number, client: Partial<Client>) => Promise<void>;
   deleteClient: (id: number) => Promise<void>;
-  addVente: (venteData: VentePayload) => Promise<void>;
-  deleteVente: (venteId: number) => Promise<void>;
+  deleteFacture: (factureId: number) => Promise<void>;
   createInventaire: (payload: InventairePayload, isFirst: boolean) => Promise<Inventaire | null>;
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
-  activeModules: ActiveModules;
-  setActiveModules: React.Dispatch<React.SetStateAction<ActiveModules>>;
+  createCommande: (payload: CommandePayload) => Promise<Commande | null>;
+  validerCommande: (commandeId: number) => Promise<void>;
+  genererFacture: (commandeId: number) => Promise<void>;
+  genererBonLivraison: (commandeId: number) => Promise<void>;
+  validerLivraison: (livraisonId: number) => Promise<void>;
   shopInfo: ShopInfo;
   setShopInfo: (org: ShopInfo) => Promise<void>;
   themeColors: ThemeColors;
@@ -48,8 +53,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const initialModules: ActiveModules = { stock: true, invoicing: true, barcode: true, pos: true };
-const initialShopInfo: ShopInfo = { nom: 'STA', adresse: 'Lomé, Qt Kégué en face de Ecole Américaine', ville: 'Lomé', telephone: '+228 93 75 02 02', email: 'service.sta2022@gmail com' };
+const initialShopInfo: ShopInfo = { nom: 'StockHero', adresse: '123 Rue Principale', ville: 'Lomé', telephone: '+228 90 00 00 00', email: 'contact@stockhero.dev' };
 const initialThemeColors: ThemeColors = { primary: '221 48% 48%', background: '220 13% 96%', accent: '262 52% 50%' };
 const ALLOWED_ROLES = ['ADMIN', 'USER', 'MAGASINIER', 'CONTROLEUR', 'DG'];
 
@@ -59,8 +63,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [lieuxStock, setLieuxStock] = useState<LieuStock[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [ventes, setVentes] = useState<Vente[]>([]);
-  const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
+  const [factures, setFactures] = useState<Facture[]>([]);
+  const [commandes, setCommandes] = useState<Commande[]>([]);
+  const [bonLivraisons, setBonLivraisons] = useState<BonLivraison[]>([]);
   const [shopInfo, setShopInfoState] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
   const [token, setToken] = useState<string | null>(null);
@@ -80,7 +85,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCategories([]);
     setLieuxStock([]);
     setClients([]);
-    setVentes([]);
+    setFactures([]);
+    setCommandes([]);
+    setBonLivraisons([]);
     router.push('/login');
   }, [router]);
 
@@ -92,46 +99,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
   }, [toast, logout]);
 
+  const fetchFactures = useCallback(async () => {
+    try {
+        const data = await api.getFactures();
+        setFactures(data || []);
+    } catch (error) {
+        handleFetchError(error, 'Factures');
+    }
+  }, [handleFetchError]);
+
   const fetchAllData = useCallback(async () => {
     try {
         const orgs = await api.getOrganisations();
         if (orgs && orgs.length > 0) {
             setShopInfoState(orgs[0]);
         }
-    } catch (error) {
-        handleFetchError(error, 'Organisation');
-    }
+    } catch (error) { handleFetchError(error, 'Organisation'); }
     try {
         const produitsData = await api.getProducts();
         setProduits(produitsData || []);
-    } catch (error) {
-        handleFetchError(error, 'Produits');
-    }
+    } catch (error) { handleFetchError(error, 'Produits'); }
     try {
         const categoriesData = await api.getCategories();
         setCategories(categoriesData || []);
-    } catch (error) {
-        handleFetchError(error, 'Catégories');
-    }
+    } catch (error) { handleFetchError(error, 'Catégories'); }
     try {
         const lieuxStockData = await api.getLieuxStock();
         setLieuxStock(lieuxStockData || []);
-    } catch (error) {
-        handleFetchError(error, 'Lieux de Stock');
-    }
+    } catch (error) { handleFetchError(error, 'Lieux de Stock'); }
     try {
         const clientsData = await api.getClients();
         setClients(clientsData || []);
-    } catch (error) {
-        handleFetchError(error, 'Clients');
-    }
+    } catch (error) { handleFetchError(error, 'Clients'); }
     try {
-        const ventesData = await api.getVentes();
-        setVentes(ventesData || []);
-    } catch (error) {
-        handleFetchError(error, 'Ventes');
-    }
-  }, [handleFetchError]);
+        const commandesData = await api.getCommandes();
+        setCommandes(commandesData || []);
+    } catch (error) { handleFetchError(error, 'Commandes'); }
+     try {
+        if(currentUser?.lieuId) {
+            const livraisonsData = await api.getBonsLivraison(currentUser.lieuId);
+            setBonLivraisons(livraisonsData || []);
+        } else {
+             setBonLivraisons([]);
+        }
+    } catch (error) { handleFetchError(error, 'Bons de Livraison'); }
+    fetchFactures();
+  }, [handleFetchError, fetchFactures, currentUser]);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('stockhero_token');
@@ -140,22 +153,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (storedToken && storedUser) {
         try {
             const user: CurrentUser = JSON.parse(storedUser);
-            if (user && user.role && ALLOWED_ROLES.includes(user.role)) {
+            if (user && user.role) {
                 setToken(storedToken);
                 setCurrentUser(user);
             } else {
-                // Invalid user object in storage, clear it
                 logout();
             }
         } catch (e) {
-            // Corrupted data in storage, clear it
             logout();
         }
     }
     
-    const storedModules = localStorage.getItem('stockhero_modules');
-    if (storedModules) setActiveModules(JSON.parse(storedModules));
-
     const storedThemeColors = localStorage.getItem('stockhero_themecolors');
     if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
     
@@ -169,8 +177,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isMounted, token, fetchAllData, pathname]);
   
-  useEffect(() => { if (isMounted) localStorage.setItem('stockhero_modules', JSON.stringify(activeModules)); }, [activeModules, isMounted]);
-
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('stockhero_themecolors', JSON.stringify(themeColors));
@@ -182,8 +188,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [themeColors, isMounted]);
 
   const login = (newToken: string, user: CurrentUser) => {
-    if (!user || !user.role || !ALLOWED_ROLES.includes(user.role)) {
-        toast({ variant: 'destructive', title: 'Rôle non autorisé', description: 'Votre rôle ne vous permet pas d\'accéder à cette application.' });
+    if (!user || !user.role) {
+        toast({ variant: 'destructive', title: 'Rôle manquant', description: 'Votre rôle n\'est pas défini.' });
         logout();
         return;
     }
@@ -232,32 +238,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast]);
 
-  const addVente = useCallback(async (venteData: VentePayload) => {
+  const deleteFacture = useCallback(async (factureId: number) => {
     try {
-      await api.createVente(venteData);
-      await fetchAllData(); // Refetch everything to update stock and sales list
-    } catch (error) {
-       const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-       toast({ variant: 'destructive', title: 'Erreur de Vente', description: errorMessage});
-       throw error; // re-throw to allow caller to handle UI state
-    }
-  }, [fetchAllData, toast]);
-
-  const deleteVente = useCallback(async (venteId: number) => {
-    try {
-        await api.deleteVente(venteId);
-        await fetchAllData();
-        toast({ title: "Vente supprimée avec succès" });
+        await api.deleteFacture(factureId);
+        await fetchFactures();
+        toast({ title: "Facture supprimée avec succès" });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
         toast({ variant: 'destructive', title: 'Erreur de suppression', description: errorMessage });
     }
-  }, [fetchAllData, toast]);
+  }, [fetchFactures, toast]);
 
   const createInventaire = useCallback(async (payload: InventairePayload, isFirst: boolean): Promise<Inventaire | null> => {
     try {
       const newInventaire = await api.createInventaire(payload, isFirst);
-      // This will refresh product quantities after inventory adjustment
       await fetchAllData();
       toast({ title: "Inventaire enregistré avec succès" });
       return newInventaire;
@@ -271,7 +265,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addReapprovisionnement = useCallback(async (payload: ReapproPayload): Promise<Reapprovisionnement | null> => {
     try {
       const newReappro = await api.createReapprovisionnement(payload);
-      // This will refresh product quantities after restocking
       await fetchAllData();
       toast({ title: "Réapprovisionnement enregistré avec succès" });
       return newReappro;
@@ -282,34 +275,86 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast]);
 
+  const createCommande = useCallback(async (payload: CommandePayload): Promise<Commande | null> => {
+    try {
+      const newCommande = await api.createCommande(payload);
+      await fetchAllData();
+      toast({ title: "Commande créée avec succès" });
+      return newCommande;
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: 'Erreur de création', description: errorMessage });
+        return null;
+    }
+  }, [fetchAllData, toast]);
+
+  const validerCommande = useCallback(async (commandeId: number) => {
+    try {
+      await api.validerCommande(commandeId);
+      await fetchAllData();
+      toast({ title: "Commande validée" });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: 'Erreur de validation', description: errorMessage });
+    }
+  }, [fetchAllData, toast]);
+
+  const genererFacture = useCallback(async (commandeId: number) => {
+    try {
+      await api.genererFacture(commandeId);
+      await fetchFactures();
+      toast({ title: "Facture générée" });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: 'Erreur de génération', description: errorMessage });
+    }
+  }, [fetchFactures, toast]);
+
+  const genererBonLivraison = useCallback(async (commandeId: number) => {
+    try {
+      await api.genererBonLivraison(commandeId);
+      await fetchAllData();
+      toast({ title: "Bon de livraison généré" });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: 'Erreur de génération', description: errorMessage });
+    }
+  }, [fetchAllData, toast]);
+
+  const validerLivraison = useCallback(async (livraisonId: number) => {
+    try {
+      await api.validerLivraison(livraisonId);
+      await fetchAllData(); // Refreshes both products and delivery notes
+      toast({ title: "Livraison validée et stock mis à jour" });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: 'Erreur de validation', description: errorMessage });
+    }
+  }, [fetchAllData, toast]);
+
   const value = useMemo(() => ({
-    produits, categories, lieuxStock, clients, ventes,
+    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, fetchFactures,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient,
-    addVente, deleteVente, 
-    createInventaire,
-    addReapprovisionnement,
-    activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted,
-    isAuthenticated: !!token,
-    currentUser,
-    login,
-    logout,
-    scannedProductDetails, 
-    setScannedProductDetails,
+    deleteFacture, 
+    createInventaire, addReapprovisionnement,
+    createCommande, validerCommande, genererFacture, genererBonLivraison, validerLivraison,
+    shopInfo, setShopInfo, themeColors, setThemeColors,
+    isMounted, isAuthenticated: !!token, currentUser,
+    login, logout,
+    scannedProductDetails, setScannedProductDetails,
   }), [
-    produits, categories, lieuxStock, clients, ventes,
+    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, fetchFactures,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
-    addClient, updateClient, deleteClient,
-    addVente, deleteVente,
-    createInventaire,
-    addReapprovisionnement,
-    activeModules, setActiveModules, shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails, login, fetchAllData
+    addClient, updateClient, deleteClient, deleteFacture,
+    createInventaire, addReapprovisionnement,
+    createCommande, validerCommande, genererFacture, genererBonLivraison, validerLivraison,
+    shopInfo, setShopInfo, themeColors, setThemeColors,
+    isMounted, token, logout, currentUser, scannedProductDetails
   ]);
 
   return (
@@ -326,5 +371,3 @@ export function useApp() {
   }
   return context;
 }
-
-    
