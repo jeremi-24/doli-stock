@@ -44,7 +44,7 @@ export default function SignupPage() {
   async function onSubmit(values: SignupPayload) {
     setIsLoading(true);
     try {
-      await api.signupUser(values);
+      await api.registerUser(values);
       toast({
         title: "Inscription réussie",
         description: "Votre compte a été créé. Vous pouvez maintenant vous connecter.",

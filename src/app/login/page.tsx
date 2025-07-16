@@ -44,7 +44,7 @@ export default function LoginPage() {
             title: "Connexion réussie",
             description: response.message || "Vous allez être redirigé vers le tableau de bord.",
         });
-        const user: CurrentUser = { email: values.email, role: response.role };
+        const user: CurrentUser = { email: values.email, role: response.role, lieuId: response.lieuId };
         login(response.token, user);
         router.push('/');
       } else {
