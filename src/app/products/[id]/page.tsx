@@ -10,44 +10,32 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Package, DollarSign, Tag, Barcode, AlertTriangle, Building2 as Warehouse } from 'lucide-react';
 import type { Produit as ProduitType } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { 
     produits, 
-    categories, 
-    lieuxStock,
     isMounted, 
     scannedProductDetails, 
     setScannedProductDetails 
   } = useApp();
   
   const [produit, setProduit] = useState<ProduitType | null | undefined>(undefined);
-  const [categoryName, setCategoryName] = useState<string>('');
-  const [lieuStockName, setLieuStockName] = useState<string>('');
 
   useEffect(() => {
     // Use fresh data from scan if available
     if (scannedProductDetails && scannedProductDetails.id === Number(id)) {
       setProduit(scannedProductDetails);
-      setCategoryName(scannedProductDetails.categorieNom || 'N/A');
-      setLieuStockName(scannedProductDetails.lieuStockNom || 'N/A');
       setScannedProductDetails(null); // Clear after use
     } 
     // Fallback for direct navigation/refresh
     else if (isMounted && id) {
       const foundProduit = produits.find(p => p.id === Number(id));
       setProduit(foundProduit);
-      if (foundProduit) {
-        const foundCategory = categories.find(c => c.id === foundProduit.categorieId);
-        setCategoryName(foundCategory ? foundCategory.nom : 'N/A');
-        
-        const foundLieuStock = lieuxStock.find(e => e.id === foundProduit.lieuStockId);
-        setLieuStockName(foundLieuStock ? foundLieuStock.nom : 'N/A');
-      }
     }
-  }, [id, produits, categories, lieuxStock, isMounted, scannedProductDetails, setScannedProductDetails]);
+  }, [id, produits, isMounted, scannedProductDetails, setScannedProductDetails]);
 
 
   const formatCurrency = (amount: number) => {
@@ -129,11 +117,11 @@ export default function ProductDetailPage() {
             </div>
             <div className="flex items-center justify-between border-b pb-2">
               <span className="text-muted-foreground flex items-center gap-2"><Tag className="h-5 w-5"/>Catégorie</span>
-              <Badge variant="secondary">{categoryName}</Badge>
+              <Badge variant="secondary">{produit.categorieNom || 'N/A'}</Badge>
             </div>
             <div className="flex items-center justify-between border-b pb-2">
                <span className="text-muted-foreground flex items-center gap-2"><Warehouse className="h-5 w-5"/>Lieu de Stock</span>
-              <Badge variant="secondary">{lieuStockName}</Badge>
+              <Badge variant="secondary">{produit.lieuStockNom || 'N/A'}</Badge>
             </div>
             <div className="flex items-center justify-between border-b pb-2 col-span-full">
                <span className="text-muted-foreground flex items-center gap-2"><Barcode className="h-5 w-5"/>Code-barres</span>
@@ -141,15 +129,13 @@ export default function ProductDetailPage() {
             </div>
           </div>
           {produit.qte <= produit.qteMin && (
-            <div className="mt-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-                <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-6 w-6"/>
-                    <div>
-                        <h3 className="font-bold">Alerte de stock faible</h3>
-                        <p className="text-sm">La quantité en stock est inférieure ou égale au seuil d'alerte.</p>
-                    </div>
-                </div>
-            </div>
+            <Alert variant="destructive" className="mt-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Alerte de stock faible</AlertTitle>
+                <AlertDescription>
+                  La quantité en stock est inférieure ou égale au seuil d'alerte.
+                </AlertDescription>
+            </Alert>
           )}
         </CardContent>
         <CardFooter>
@@ -161,5 +147,3 @@ export default function ProductDetailPage() {
     </div>
   );
 }
-
-    
