@@ -1,4 +1,3 @@
-
 import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison } from './types';
 
 const API_BASE_URL = '/api'; 
@@ -94,11 +93,11 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
 // ========== Auth API ==========
 export async function loginUser(data: LoginPayload): Promise<any> {
-  return apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) });
+  return apiFetch('/users/login', { method: 'POST', body: JSON.stringify(data) });
 }
-export async function signupUser(data: SignupPayload): Promise<any> {
+export async function registerUser(data: SignupPayload): Promise<any> {
   const { confirmPassword, ...payload } = data;
-  return apiFetch('/auth/save', { method: 'POST', body: JSON.stringify(payload) });
+  return apiFetch('/users/register', { method: 'POST', body: JSON.stringify(payload) });
 }
 
 // ========== Users & Roles API ==========
