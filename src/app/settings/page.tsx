@@ -588,10 +588,10 @@ function RolesTab() {
                                                                 Cette action est irréversible. Assurez-vous qu'aucun utilisateur n'est assigné à ce rôle.
                                                             </AlertDialogDescription>
                                                         </AlertDialogHeader>
-                                                        <AlertDialogFooter>
+                                                        <DialogFooter>
                                                             <AlertDialogCancel>Annuler</AlertDialogCancel>
                                                             <AlertDialogAction onClick={() => handleDelete(role.id)}>Supprimer</AlertDialogAction>
-                                                        </AlertDialogFooter>
+                                                        </DialogFooter>
                                                     </AlertDialogContent>
                                                 </AlertDialog>
                                             </TableCell>
