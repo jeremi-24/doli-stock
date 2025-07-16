@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -16,24 +17,25 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
-import type { Entrepot } from '@/lib/types';
+import type { LieuStock } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter } from 'next/navigation';
 
-const entrepotSchema = z.object({
+const lieuStockSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
-  ref: z.string().min(2, "La référence doit contenir au moins 2 caractères."),
+  type: z.string().min(2, "Le type doit contenir au moins 2 caractères."),
+  localisation: z.string().optional(),
 });
 
-export default function EntrepotsPage() {
-    const { entrepots, addEntrepot, updateEntrepot, deleteEntrepots, isMounted, currentUser } = useApp();
+export default function LieuxStockPage() {
+    const { lieuxStock, addLieuStock, updateLieuStock, deleteLieuxStock, isMounted, currentUser } = useApp();
     const { toast } = useToast();
     const router = useRouter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingEntrepot, setEditingEntrepot] = useState<Entrepot | null>(null);
+    const [editingLieuStock, setEditingLieuStock] = useState<LieuStock | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedEntrepots, setSelectedEntrepots] = useState<number[]>([]);
+    const [selectedLieux, setSelectedLieux] = useState<number[]>([]);
 
     useEffect(() => {
         if (isMounted && currentUser?.role !== 'ADMIN') {
@@ -41,58 +43,54 @@ export default function EntrepotsPage() {
         }
     }, [isMounted, currentUser, router]);
 
-    const form = useForm<z.infer<typeof entrepotSchema>>({
-        resolver: zodResolver(entrepotSchema),
-        defaultValues: { nom: "", ref: "" },
+    const form = useForm<z.infer<typeof lieuStockSchema>>({
+        resolver: zodResolver(lieuStockSchema),
+        defaultValues: { nom: "", type: "", localisation: "" },
     });
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-    };
-
     useEffect(() => {
-        if (editingEntrepot) {
-            form.reset({ nom: editingEntrepot.nom, ref: editingEntrepot.ref });
+        if (editingLieuStock) {
+            form.reset({ nom: editingLieuStock.nom, type: editingLieuStock.type, localisation: editingLieuStock.localisation || "" });
         } else {
-            form.reset({ nom: "", ref: "" });
+            form.reset({ nom: "", type: "", localisation: "" });
         }
-    }, [editingEntrepot, form]);
+    }, [editingLieuStock, form]);
 
     const handleSelectAll = (checked: boolean | string) => {
         if (checked) {
-          setSelectedEntrepots(entrepots.map((e) => e.id));
+          setSelectedLieux(lieuxStock.map((e) => e.id));
         } else {
-          setSelectedEntrepots([]);
+          setSelectedLieux([]);
         }
     };
 
     const handleSelectOne = (id: number, checked: boolean) => {
         if (checked) {
-            setSelectedEntrepots((prev) => [...prev, id]);
+            setSelectedLieux((prev) => [...prev, id]);
         } else {
-            setSelectedEntrepots((prev) => prev.filter((eId) => eId !== id));
+            setSelectedLieux((prev) => prev.filter((eId) => eId !== id));
         }
     };
 
     const handleAddNew = () => {
-        setEditingEntrepot(null);
+        setEditingLieuStock(null);
         setIsDialogOpen(true);
     };
 
-    const handleEdit = (entrepot: Entrepot) => {
-        setEditingEntrepot(entrepot);
+    const handleEdit = (lieu: LieuStock) => {
+        setEditingLieuStock(lieu);
         setIsDialogOpen(true);
     };
 
-    const onSubmit = async (values: z.infer<typeof entrepotSchema>) => {
+    const onSubmit = async (values: z.infer<typeof lieuStockSchema>) => {
         setIsLoading(true);
         try {
-            if (editingEntrepot) {
-                await updateEntrepot(editingEntrepot.id, values);
-                toast({ title: "Entrepôt mis à jour" });
+            if (editingLieuStock) {
+                await updateLieuStock(editingLieuStock.id, values);
+                toast({ title: "Lieu de stock mis à jour" });
             } else {
-                await addEntrepot(values);
-                toast({ title: "Entrepôt ajouté" });
+                await addLieuStock(values);
+                toast({ title: "Lieu de stock ajouté" });
             }
             setIsDialogOpen(false);
         } catch (error) {
@@ -103,17 +101,11 @@ export default function EntrepotsPage() {
     };
 
     const handleDeleteSelected = async () => {
-        const usedEntrepots = entrepots.filter(e => selectedEntrepots.includes(e.id) && e.quantite && e.quantite > 0);
-        if (usedEntrepots.length > 0) {
-            toast({ variant: 'destructive', title: 'Suppression impossible', description: `Les entrepôts suivants contiennent des produits: ${usedEntrepots.map(e => e.nom).join(', ')}` });
-            return;
-        }
-
         setIsLoading(true);
         try {
-            await deleteEntrepots(selectedEntrepots);
-            toast({ title: "Entrepôts supprimés" });
-            setSelectedEntrepots([]);
+            await deleteLieuxStock(selectedLieux);
+            toast({ title: "Lieux de stock supprimés" });
+            setSelectedLieux([]);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue lors de la suppression.' });
         } finally {
@@ -132,21 +124,21 @@ export default function EntrepotsPage() {
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center">
-                <h1 className="font-headline text-3xl font-semibold">Gestion des Entrepôts</h1>
+                <h1 className="font-headline text-3xl font-semibold">Gestion des Lieux de Stock</h1>
                 <div className="ml-auto flex items-center gap-2">
-                    {selectedEntrepots.length > 0 && (
+                    {selectedLieux.length > 0 && (
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="destructive" size="sm">
                                     <Trash2 className="h-4 w-4 mr-2"/>
-                                    Supprimer ({selectedEntrepots.length})
+                                    Supprimer ({selectedLieux.length})
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
                                 <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Cette action est irréversible. Elle supprimera définitivement {selectedEntrepots.length} entrepôt(s).
+                                    Cette action est irréversible. Elle supprimera définitivement {selectedLieux.length} lieu(x) de stock.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -160,14 +152,14 @@ export default function EntrepotsPage() {
                     )}
                     <Button size="sm" onClick={handleAddNew}>
                         <PlusCircle className="h-4 w-4 mr-2" />
-                        Ajouter un entrepôt
+                        Ajouter un lieu
                     </Button>
                 </div>
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><Building2 /> Vos Entrepôts</CardTitle>
-                    <CardDescription>Gérez les entrepôts où vos produits sont stockés.</CardDescription>
+                    <CardTitle className="font-headline flex items-center gap-2"><Building2 /> Vos Lieux de Stock</CardTitle>
+                    <CardDescription>Gérez les magasins et boutiques où vos produits sont stockés.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="rounded-lg border">
@@ -176,15 +168,14 @@ export default function EntrepotsPage() {
                                 <TableRow>
                                     <TableHead className="w-[40px]">
                                         <Checkbox
-                                            checked={selectedEntrepots.length === entrepots.length && entrepots.length > 0}
+                                            checked={selectedLieux.length === lieuxStock.length && lieuxStock.length > 0}
                                             onCheckedChange={handleSelectAll}
                                             aria-label="Select all"
                                         />
                                     </TableHead>
-                                    <TableHead>Nom de l'Entrepôt</TableHead>
-                                    <TableHead>Référence</TableHead>
-                                    <TableHead className="text-right">Quantité</TableHead>
-                                    <TableHead className="text-right">Valeur du Stock</TableHead>
+                                    <TableHead>Nom</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Localisation</TableHead>
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -195,25 +186,23 @@ export default function EntrepotsPage() {
                                             <TableCell><Skeleton className="h-5 w-5" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-1/4" /></TableCell>
-                                            <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
-                                            <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
                                             <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                                         </TableRow>
                                     ))
-                                ) : entrepots.length > 0 ? (
-                                    entrepots.map((ent) => (
-                                        <TableRow key={ent.id} data-state={selectedEntrepots.includes(ent.id) ? "selected" : undefined}>
+                                ) : lieuxStock.length > 0 ? (
+                                    lieuxStock.map((lieu) => (
+                                        <TableRow key={lieu.id} data-state={selectedLieux.includes(lieu.id) ? "selected" : undefined}>
                                             <TableCell>
                                                 <Checkbox
-                                                    checked={selectedEntrepots.includes(ent.id)}
-                                                    onCheckedChange={(checked) => handleSelectOne(ent.id, !!checked)}
-                                                    aria-label={`Select entrepot ${ent.nom}`}
+                                                    checked={selectedLieux.includes(lieu.id)}
+                                                    onCheckedChange={(checked) => handleSelectOne(lieu.id, !!checked)}
+                                                    aria-label={`Select lieu ${lieu.nom}`}
                                                 />
                                             </TableCell>
-                                            <TableCell className="font-medium">{ent.nom}</TableCell>
-                                            <TableCell>{ent.ref}</TableCell>
-                                            <TableCell className="text-right">{ent.quantite ?? 0}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(ent.valeurVente ?? 0)}</TableCell>
+                                            <TableCell className="font-medium">{lieu.nom}</TableCell>
+                                            <TableCell>{lieu.type}</TableCell>
+                                            <TableCell>{lieu.localisation}</TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -223,7 +212,7 @@ export default function EntrepotsPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => handleEdit(ent)}>
+                                                        <DropdownMenuItem onClick={() => handleEdit(lieu)}>
                                                             <Pencil className="mr-2 h-4 w-4" /> Modifier
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
@@ -233,8 +222,8 @@ export default function EntrepotsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center">
-                                            Aucun entrepôt trouvé. Commencez par en ajouter un.
+                                        <TableCell colSpan={5} className="h-24 text-center">
+                                            Aucun lieu de stock trouvé. Commencez par en ajouter un.
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -247,7 +236,7 @@ export default function EntrepotsPage() {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle className="font-headline">{editingEntrepot ? "Modifier l'Entrepôt" : "Ajouter un Entrepôt"}</DialogTitle>
+                        <DialogTitle className="font-headline">{editingLieuStock ? "Modifier le Lieu" : "Ajouter un Lieu"}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
@@ -256,9 +245,9 @@ export default function EntrepotsPage() {
                                 name="nom"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Nom de l'entrepôt</FormLabel>
+                                        <FormLabel>Nom</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="ex: Dépôt Central" {...field} disabled={isLoading} />
+                                            <Input placeholder="ex: Magasin HED" {...field} disabled={isLoading} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -266,12 +255,25 @@ export default function EntrepotsPage() {
                             />
                              <FormField
                                 control={form.control}
-                                name="ref"
+                                name="type"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Référence</FormLabel>
+                                        <FormLabel>Type</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="ex: DC-01" {...field} disabled={isLoading} />
+                                            <Input placeholder="ex: Magasin, Boutique" {...field} disabled={isLoading} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="localisation"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Localisation</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="ex: Adétikopé" {...field} disabled={isLoading} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -279,7 +281,7 @@ export default function EntrepotsPage() {
                             />
                             <DialogFooter>
                                 <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
-                                <Button type="submit" disabled={isLoading}>{isLoading ? "Sauvegarde..." : (editingEntrepot ? "Sauvegarder" : "Créer")}</Button>
+                                <Button type="submit" disabled={isLoading}>{isLoading ? "Sauvegarde..." : (editingLieuStock ? "Sauvegarder" : "Créer")}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -288,3 +290,5 @@ export default function EntrepotsPage() {
         </div>
     );
 }
+
+    

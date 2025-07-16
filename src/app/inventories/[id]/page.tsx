@@ -101,7 +101,7 @@ export default function InventoryDetailPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Produit</TableHead>
-                            <TableHead>Entrepôt</TableHead>
+                            <TableHead>Lieu de Stock</TableHead>
                             <TableHead className="text-center">Qté Avant</TableHead>
                             <TableHead className="text-center">Qté Scannée</TableHead>
                             <TableHead className="text-center">Écart</TableHead>
@@ -111,7 +111,7 @@ export default function InventoryDetailPage() {
                         {inventory.lignes.map((ligne, index) => (
                              <TableRow key={`${ligne.produitId}-${index}`}>
                                 <TableCell className="font-medium">{ligne.nomProduit}</TableCell>
-                                <TableCell>{ligne.entrepotNom}</TableCell>
+                                <TableCell>{ligne.lieuStockNom}</TableCell>
                                 <TableCell className="text-center">{ligne.qteAvantScan}</TableCell>
                                 <TableCell className="text-center font-semibold">{ligne.qteScanne}</TableCell>
                                 <TableCell className="text-center"><EcartBadge ecart={ligne.ecart} /></TableCell>
@@ -130,3 +130,5 @@ export default function InventoryDetailPage() {
     </div>
   );
 }
+
+    

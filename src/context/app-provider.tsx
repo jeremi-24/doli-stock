@@ -3,14 +3,14 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, Entrepot, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client } from '@/lib/types';
+import type { Produit, Categorie, Vente, VentePayload, ActiveModules, ShopInfo, ThemeColors, LieuStock, AssignationPayload, CurrentUser, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 interface AppContextType {
   produits: Produit[];
   categories: Categorie[];
-  entrepots: Entrepot[];
+  lieuxStock: LieuStock[];
   clients: Client[];
   ventes: Vente[];
   addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
@@ -21,9 +21,9 @@ interface AppContextType {
   addCategorie: (categorie: Omit<Categorie, 'id' | 'nProd'>) => Promise<void>;
   updateCategorie: (id: number, categorie: Partial<Categorie>) => Promise<void>;
   deleteCategories: (categorieIds: number[]) => Promise<void>;
-  addEntrepot: (entrepot: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => Promise<void>;
-  updateEntrepot: (id: number, entrepot: Partial<Entrepot>) => Promise<void>;
-  deleteEntrepots: (entrepotIds: number[]) => Promise<void>;
+  addLieuStock: (lieuStock: Omit<LieuStock, 'id'>) => Promise<void>;
+  updateLieuStock: (id: number, lieuStock: Partial<LieuStock>) => Promise<void>;
+  deleteLieuxStock: (lieuStockIds: number[]) => Promise<void>;
   addClient: (client: Omit<Client, 'id'>) => Promise<void>;
   updateClient: (id: number, client: Partial<Client>) => Promise<void>;
   deleteClient: (id: number) => Promise<void>;
@@ -51,13 +51,13 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const initialModules: ActiveModules = { stock: true, invoicing: true, barcode: true, pos: true };
 const initialShopInfo: ShopInfo = { nom: 'STA', adresse: 'Lomé, Qt Kégué en face de Ecole Américaine', ville: 'Lomé', telephone: '+228 93 75 02 02', email: 'service.sta2022@gmail com' };
 const initialThemeColors: ThemeColors = { primary: '221 48% 48%', background: '220 13% 96%', accent: '262 52% 50%' };
-const ALLOWED_ROLES = ['ADMIN', 'USER'];
+const ALLOWED_ROLES = ['ADMIN', 'USER', 'MAGASINIER', 'CONTROLEUR', 'DG'];
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
   const [produits, setProduits] = useState<Produit[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
-  const [entrepots, setEntrepots] = useState<Entrepot[]>([]);
+  const [lieuxStock, setLieuxStock] = useState<LieuStock[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [ventes, setVentes] = useState<Vente[]>([]);
   const [activeModules, setActiveModules] = useState<ActiveModules>(initialModules);
@@ -78,7 +78,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Clear data to avoid flashing old content
     setProduits([]);
     setCategories([]);
-    setEntrepots([]);
+    setLieuxStock([]);
     setClients([]);
     setVentes([]);
     router.push('/login');
@@ -114,10 +114,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         handleFetchError(error, 'Catégories');
     }
     try {
-        const entrepotsData = await api.getEntrepots();
-        setEntrepots(entrepotsData || []);
+        const lieuxStockData = await api.getLieuxStock();
+        setLieuxStock(lieuxStockData || []);
     } catch (error) {
-        handleFetchError(error, 'Entrepôts');
+        handleFetchError(error, 'Lieux de Stock');
     }
     try {
         const clientsData = await api.getClients();
@@ -160,7 +160,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
     
     setIsMounted(true);
-  }, []);
+  }, [logout]);
 
   useEffect(() => {
     const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -209,9 +209,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchAllData(); }, [fetchAllData]);
   const deleteCategories = useCallback(async (ids: number[]) => { await api.deleteCategories(ids); await fetchAllData(); }, [fetchAllData]);
 
-  const addEntrepot = useCallback(async (data: Omit<Entrepot, 'id' | 'quantite' | 'valeurVente'>) => { await api.createEntrepot(data); await fetchAllData(); }, [fetchAllData]);
-  const updateEntrepot = useCallback(async (id: number, data: Partial<Entrepot>) => { await api.updateEntrepot(id, data); await fetchAllData(); }, [fetchAllData]);
-  const deleteEntrepots = useCallback(async (ids: number[]) => { await api.deleteEntrepots(ids); await fetchAllData(); }, [fetchAllData]);
+  const addLieuStock = useCallback(async (data: Omit<LieuStock, 'id'>) => { await api.createLieuStock(data); await fetchAllData(); }, [fetchAllData]);
+  const updateLieuStock = useCallback(async (id: number, data: Partial<LieuStock>) => { await api.updateLieuStock(id, data); await fetchAllData(); }, [fetchAllData]);
+  const deleteLieuxStock = useCallback(async (ids: number[]) => { await api.deleteLieuxStock(ids); await fetchAllData(); }, [fetchAllData]);
 
   const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => { await api.createProduct(data); await fetchAllData(); }, [fetchAllData]);
   const updateProduit = useCallback(async (data: Produit) => { await api.updateProduct(data.id, data); await fetchAllData(); }, [fetchAllData]);
@@ -283,10 +283,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [fetchAllData, toast]);
 
   const value = useMemo(() => ({
-    produits, categories, entrepots, clients, ventes,
+    produits, categories, lieuxStock, clients, ventes,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
-    addEntrepot, updateEntrepot, deleteEntrepots,
+    addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient,
     addVente, deleteVente, 
     createInventaire,
@@ -300,10 +300,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     scannedProductDetails, 
     setScannedProductDetails,
   }), [
-    produits, categories, entrepots, clients, ventes,
+    produits, categories, lieuxStock, clients, ventes,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
-    addEntrepot, updateEntrepot, deleteEntrepots,
+    addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient,
     addVente, deleteVente,
     createInventaire,
@@ -326,3 +326,5 @@ export function useApp() {
   }
   return context;
 }
+
+    

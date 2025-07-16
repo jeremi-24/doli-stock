@@ -12,12 +12,11 @@ export type Categorie = {
   nProd?: number;
 };
 
-export type Entrepot = {
+export type LieuStock = {
   id: number;
   nom: string;
-  ref: string;
-  quantite?: number;
-  valeurVente?: number;
+  type: string;
+  localisation?: string;
 };
 
 export type Produit = {
@@ -29,10 +28,10 @@ export type Produit = {
   prix: number;
   codeBarre: string;
   categorieId: number;
-  entrepotId: number;
+  lieuStockId: number;
   // These can be returned from specific API calls
   categorieNom?: string | null;
-  entrepotNom?: string | null;
+  lieuStockNom?: string | null;
 };
 
 // This type is used for the local cart state in the UI
@@ -92,7 +91,7 @@ export type VentePayload = {
 export type AssignationPayload = {
     produitIds: number[];
     categorieId?: number;
-    entrepotId?: number;
+    lieuStockId?: number;
 };
 
 // ----- Inventory Types -----
@@ -102,7 +101,7 @@ export type InventaireLigne = {
   qteScanne: number;
   qteAvantScan: number;
   ecart: number;
-  entrepotNom: string;
+  lieuStockNom: string;
 };
 
 export type Inventaire = {
@@ -116,14 +115,14 @@ export type ScannedProduit = {
   produitId: number;
   nomProduit: string;
   qteScanne: number;
-  entrepotNom: string;
+  lieuStockNom: string;
   barcode: string;
 };
 
 export type InventaireProduitPayload = {
     produitId: number;
     qteScanne: number;
-    entrepotNom: string;
+    lieuStockNom: string;
 };
 
 export type InventairePayload = {
@@ -137,7 +136,7 @@ export type ReapproLigne = {
   produitId: number;
   produitNom: string;
   qteAjoutee: number;
-  entrepotNom: string;
+  lieuStockNom: string;
 };
 
 export type Reapprovisionnement = {
@@ -152,14 +151,14 @@ export type ScannedReapproProduit = {
   produitId: number;
   nomProduit: string;
   qteAjoutee: number;
-  entrepotNom: string;
+  lieuStockNom: string;
   barcode: string;
 };
 
 export type ReapproPayloadLigne = {
     produitId: number;
     qteAjoutee: number;
-    entrepotNom: string;
+    lieuStockNom: string;
 };
 
 export type ReapproPayload = {
@@ -169,7 +168,7 @@ export type ReapproPayload = {
 };
 
 
-// ----- App Settings Types (unchanged) -----
+// ----- App Settings Types -----
 
 export type ActiveModules = {
   stock: boolean;
@@ -197,11 +196,15 @@ export type ThemeColors = {
 
 export type Utilisateur = {
   id: number;
-  nom: string;
-  role: 'admin' | 'vendeur';
-  identifiant: string;
-  mot_de_passe_hash: string;
+  email: string;
+  roleNom: string;
+  lieuNom: string;
 };
+
+export type Role = {
+    id: number;
+    nom: string;
+}
 
 export type CurrentUser = {
   email: string;
@@ -219,3 +222,5 @@ export type SignupPayload = {
   confirmPassword?: string;
   role: 'ADMIN' | 'USER';
 }
+
+    

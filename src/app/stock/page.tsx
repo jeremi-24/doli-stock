@@ -14,7 +14,7 @@
   } from "@/components/ui/table";
   import { Button } from "@/components/ui/button";
   import { useApp } from "@/context/app-provider";
-  import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse, AlertCircle, Shuffle } from "lucide-react";
+  import { PlusCircle, MoreHorizontal, Pencil, Trash2, AlertCircle, Shuffle, Building2 as Warehouse } from "lucide-react";
   import {
     DropdownMenu,
     DropdownMenuContent,
@@ -62,7 +62,7 @@ const produitSchema = z.object({
   ref: z.string().min(2, "La référence doit contenir au moins 2 caractères."),
   codeBarre: z.string().optional(),
   categorieId: z.string().min(1, "Veuillez sélectionner une catégorie."),
-  entrepotId: z.string().min(1, "Veuillez sélectionner un entrepôt."),
+  lieuStockId: z.string().min(1, "Veuillez sélectionner un lieu de stock."),
   prix: z.coerce.number().min(0, "Le prix doit être un nombre positif."),
   qte: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
   qteMin: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
@@ -70,15 +70,15 @@ const produitSchema = z.object({
 
 const assignSchema = z.object({
     categorieId: z.string().optional(),
-    entrepotId: z.string().optional(),
-}).refine(data => !!data.categorieId || !!data.entrepotId, {
-    message: "Veuillez sélectionner au moins une catégorie ou un entrepôt.",
+    lieuStockId: z.string().optional(),
+}).refine(data => !!data.categorieId || !!data.lieuStockId, {
+    message: "Veuillez sélectionner au moins une catégorie ou un lieu.",
     path: ["categorieId"], 
 });
 
 
   export default function StockPage() {
-    const { produits, categories, entrepots, addProduit, updateProduit, deleteProduits, assignProduits, isMounted } = useApp();
+    const { produits, categories, lieuxStock, addProduit, updateProduit, deleteProduits, assignProduits, isMounted } = useApp();
     const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [isAssignDialogOpen, setIsAssignDialogOpen] = React.useState(false);
@@ -87,24 +87,24 @@ const assignSchema = z.object({
     const { toast } = useToast();
 
     const categoriesMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.nom])), [categories]);
-    const entrepotsMap = React.useMemo(() => new Map(entrepots.map(e => [e.id, e.nom])), [entrepots]);
+    const lieuxStockMap = React.useMemo(() => new Map(lieuxStock.map(e => [e.id, e.nom])), [lieuxStock]);
     
     const form = useForm<z.infer<typeof produitSchema>>({
       resolver: zodResolver(produitSchema),
       defaultValues: {
-        nom: "", ref: "", codeBarre: "", categorieId: "", entrepotId: "",
+        nom: "", ref: "", codeBarre: "", categorieId: "", lieuStockId: "",
         prix: 0, qte: 0, qteMin: 0,
       },
     });
 
     const assignForm = useForm<z.infer<typeof assignSchema>>({
         resolver: zodResolver(assignSchema),
-        defaultValues: { categorieId: "", entrepotId: "" },
+        defaultValues: { categorieId: "", lieuStockId: "" },
     });
 
     React.useEffect(() => {
         if (!isAssignDialogOpen) {
-            assignForm.reset({ categorieId: "", entrepotId: "" });
+            assignForm.reset({ categorieId: "", lieuStockId: "" });
         }
     }, [isAssignDialogOpen, assignForm]);
 
@@ -128,7 +128,7 @@ const assignSchema = z.object({
       setEditingProduit(null);
       form.reset({
         nom: "", ref: "", codeBarre: `BC-${Date.now().toString().slice(-8)}`,
-        categorieId: "", entrepotId: "",
+        categorieId: "", lieuStockId: "",
         prix: 0, qte: 0, qteMin: 0,
       });
       setIsDialogOpen(true);
@@ -144,7 +144,7 @@ const assignSchema = z.object({
             qteMin: produit.qteMin,
             codeBarre: produit.codeBarre || "",
             categorieId: String(produit.categorieId),
-            entrepotId: String(produit.entrepotId),
+            lieuStockId: String(produit.lieuStockId),
         });
         setIsDialogOpen(true);
     };
@@ -154,7 +154,7 @@ const assignSchema = z.object({
       const productData = { 
           ...values, 
           categorieId: parseInt(values.categorieId, 10),
-          entrepotId: parseInt(values.entrepotId, 10),
+          lieuStockId: parseInt(values.lieuStockId, 10),
           codeBarre: values.codeBarre || `BC-${Date.now().toString().slice(-8)}`
       };
       
@@ -193,7 +193,7 @@ const assignSchema = z.object({
             const dataToSubmit = {
                 produitIds: selectedProduits,
                 categorieId: values.categorieId ? parseInt(values.categorieId, 10) : undefined,
-                entrepotId: values.entrepotId ? parseInt(values.entrepotId, 10) : undefined,
+                lieuStockId: values.lieuStockId ? parseInt(values.lieuStockId, 10) : undefined,
             };
             
             await assignProduits(dataToSubmit);
@@ -265,7 +265,7 @@ const assignSchema = z.object({
                         aria-label="Select all"
                     />
                 </TableHead>
-                <TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Entrepôt</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
+                <TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Lieu de Stock</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
               <TableBody>
                 {!isMounted ? (
                     Array.from({ length: 10 }).map((_, i) => (
@@ -291,7 +291,7 @@ const assignSchema = z.object({
                       </TableCell>
                       <TableCell className="font-medium">{produit.nom} {produit.qte <= produit.qteMin && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
                       <TableCell>{categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
-                      <TableCell>{entrepotsMap.get(produit.entrepotId) || 'N/A'}</TableCell>
+                      <TableCell>{lieuxStockMap.get(produit.lieuStockId) || 'N/A'}</TableCell>
                       <TableCell>{formatCurrency(produit.prix)}</TableCell>
                       <TableCell className="text-right">{produit.qte}</TableCell>
                       <TableCell className="text-right">
@@ -333,11 +333,11 @@ const assignSchema = z.object({
                     <FormMessage />
                   </FormItem>
                 )} />
-                 <FormField control={form.control} name="entrepotId" render={({ field }) => (
-                    <FormItem><FormLabel>Entrepôt</FormLabel>
+                 <FormField control={form.control} name="lieuStockId" render={({ field }) => (
+                    <FormItem><FormLabel>Lieu de Stock</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un entrepôt" /></SelectTrigger></FormControl>
-                          <SelectContent>{entrepots.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un lieu" /></SelectTrigger></FormControl>
+                          <SelectContent>{lieuxStock.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
                       </Select>
                     <FormMessage />
                   </FormItem>
@@ -362,7 +362,7 @@ const assignSchema = z.object({
             <DialogHeader>
                 <DialogTitle className="font-headline">Assignation groupée</DialogTitle>
                 <DialogDescription>
-                    Assigner {selectedProduits.length} produit(s) à une nouvelle catégorie et/ou un nouvel entrepôt.
+                    Assigner {selectedProduits.length} produit(s) à une nouvelle catégorie et/ou un nouveau lieu de stock.
                 </DialogDescription>
             </DialogHeader>
              <Form {...assignForm}>
@@ -376,11 +376,11 @@ const assignSchema = z.object({
                             <FormMessage />
                         </FormItem>
                     )} />
-                    <FormField control={assignForm.control} name="entrepotId" render={({ field }) => (
-                        <FormItem><FormLabel>Nouvel Entrepôt (Optionnel)</FormLabel>
+                    <FormField control={assignForm.control} name="lieuStockId" render={({ field }) => (
+                        <FormItem><FormLabel>Nouveau Lieu de Stock (Optionnel)</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Choisir un entrepôt" /></SelectTrigger></FormControl>
-                                <SelectContent>{entrepots.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Choisir un lieu" /></SelectTrigger></FormControl>
+                                <SelectContent>{lieuxStock.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
                             </Select>
                             <FormMessage />
                         </FormItem>
@@ -396,3 +396,5 @@ const assignSchema = z.object({
     </div>
   );
 }
+
+    

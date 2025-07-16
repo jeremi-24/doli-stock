@@ -132,7 +132,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     {
       href: '/entrepots',
       icon: <Building2 />,
-      label: 'Entrepôts',
+      label: 'Lieux de Stock',
       active: pathname === '/entrepots',
       module: 'stock',
       roles: ['ADMIN'],
@@ -243,7 +243,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                         <div className="text-left group-data-[collapsible=icon]:hidden">
-                            <p className="font-semibold text-sm">{currentUser?.role === 'ADMIN' ? 'Administrateur' : 'Utilisateur'}</p>
+                            <p className="font-semibold text-sm">{currentUser?.role}</p>
                             <p className="text-xs text-muted-foreground">{currentUser?.email || 'email@example.com'}</p>
                         </div>
                     </Button>
@@ -299,3 +299,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
+
+    

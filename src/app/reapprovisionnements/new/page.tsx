@@ -44,7 +44,7 @@ export default function NewReapproPage() {
                     {
                         produitId: product.id,
                         nomProduit: product.nom,
-                        entrepotNom: product.entrepotNom || 'N/A',
+                        lieuStockNom: product.lieuStockNom || 'N/A',
                         qteAjoutee: 1,
                         barcode: product.codeBarre,
                     }
@@ -182,7 +182,7 @@ export default function NewReapproPage() {
                                   <TableHeader>
                                     <TableRow>
                                       <TableHead>Produit</TableHead>
-                                      <TableHead>Entrepôt</TableHead>
+                                      <TableHead>Lieu de Stock</TableHead>
                                       <TableHead className="w-[150px] text-center">Quantité Ajoutée</TableHead>
                                     </TableRow>
                                   </TableHeader>
@@ -190,7 +190,7 @@ export default function NewReapproPage() {
                                     {scannedItems.length > 0 ? scannedItems.map(item => (
                                       <TableRow key={item.produitId}>
                                         <TableCell className="font-medium">{item.nomProduit}</TableCell>
-                                        <TableCell>{item.entrepotNom}</TableCell>
+                                        <TableCell>{item.lieuStockNom}</TableCell>
                                         <TableCell className="text-center">
                                             <div className="flex items-center justify-center gap-1">
                                                 <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(item.produitId, item.qteAjoutee - 1)} disabled={isSaving}><Minus className="h-3 w-3"/></Button>
@@ -235,3 +235,4 @@ export default function NewReapproPage() {
     )
 }
 
+    

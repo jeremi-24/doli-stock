@@ -89,7 +89,7 @@ export default function ReapprovisionnementDetailPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Produit</TableHead>
-                            <TableHead>Entrepôt</TableHead>
+                            <TableHead>Lieu de Stock</TableHead>
                             <TableHead className="text-right">Quantité Ajoutée</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -97,7 +97,7 @@ export default function ReapprovisionnementDetailPage() {
                         {reappro.lignes.map((ligne) => (
                              <TableRow key={ligne.id}>
                                 <TableCell className="font-medium">{ligne.produitNom}</TableCell>
-                                <TableCell>{ligne.entrepotNom}</TableCell>
+                                <TableCell>{ligne.lieuStockNom}</TableCell>
                                 <TableCell className="text-right font-semibold text-green-600">+{ligne.qteAjoutee}</TableCell>
                              </TableRow>
                         ))}
@@ -114,3 +114,5 @@ export default function ReapprovisionnementDetailPage() {
     </div>
   );
 }
+
+    

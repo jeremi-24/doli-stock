@@ -15,16 +15,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode as BarcodeIcon, Warehouse, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer } from 'lucide-react';
-import type { ShopInfo, ThemeColors, Produit } from "@/lib/types";
+import { Settings, Barcode as BarcodeIcon, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer, Building2 as Warehouse } from 'lucide-react';
+import type { ShopInfo, ThemeColors, Produit, Role, Utilisateur, LieuStock } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import * as api from '@/lib/api';
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
-
 
 const organisationSchema = z.object({
   nom: z.string().min(1, "Le nom de l'organisation est requis."),
@@ -36,13 +34,18 @@ const organisationSchema = z.object({
   email: z.string().email("Adresse e-mail invalide.").or(z.literal('')).optional(),
 });
 
-
 const themeColorsSchema = z.object({
   primary: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Utilisez le format 'H S% L%' (ex: 231 48% 48%)").trim(),
   background: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Utilisez le format 'H S% L%' (ex: 220 13% 96%)").trim(),
   accent: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Utilisez le format 'H S% L%' (ex: 262 52% 50%)").trim(),
 });
 
+const userSchema = z.object({
+  email: z.string().email("Adresse e-mail invalide."),
+  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères."),
+  roleId: z.string().min(1, "Veuillez sélectionner un rôle."),
+  lieuId: z.string().min(1, "Veuillez sélectionner un lieu."),
+});
 
 function OrganisationForm() {
   const { shopInfo, setShopInfo } = useApp();
@@ -192,6 +195,151 @@ function AppearanceForm() {
   );
 }
 
+function UsersTab() {
+  const { toast } = useToast();
+  const [users, setUsers] = React.useState<Utilisateur[]>([]);
+  const [roles, setRoles] = React.useState<Role[]>([]);
+  const [lieux, setLieux] = React.useState<LieuStock[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isFormLoading, setFormIsLoading] = React.useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  
+  const form = useForm<z.infer<typeof userSchema>>({
+    resolver: zodResolver(userSchema),
+    defaultValues: { email: "", password: "", roleId: "", lieuId: "" },
+  });
+
+  const fetchData = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [usersData, rolesData, lieuxData] = await Promise.all([
+        api.getUsers(),
+        api.getRoles(),
+        api.getLieuxStock(),
+      ]);
+      setUsers(usersData || []);
+      setRoles(rolesData || []);
+      setLieux(lieuxData || []);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+      toast({ variant: "destructive", title: "Erreur de chargement", description: errorMessage });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+  
+  React.useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  async function onSubmit(values: z.infer<typeof userSchema>) {
+    setFormIsLoading(true);
+    const payload = {
+        ...values,
+        roleId: parseInt(values.roleId, 10),
+        lieuId: parseInt(values.lieuId, 10),
+    };
+    try {
+        await api.createUser(payload);
+        toast({ title: "Utilisateur créé avec succès" });
+        setIsDialogOpen(false);
+        form.reset();
+        await fetchData(); // Refresh user list
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: "destructive", title: "Erreur de création", description: errorMessage });
+    } finally {
+        setFormIsLoading(false);
+    }
+  }
+  
+  return (
+    <>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="font-headline">Utilisateurs</CardTitle>
+          <CardDescription>Gérez les utilisateurs et leurs permissions.</CardDescription>
+        </div>
+        <Button onClick={() => setIsDialogOpen(true)} disabled={isLoading}>Ajouter un utilisateur</Button>
+      </CardHeader>
+      <CardContent>
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>Lieu de Stock</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                ) : users.length > 0 ? (
+                    users.map(user => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.email}</TableCell>
+                        <TableCell><Badge variant="secondary">{user.roleNom}</Badge></TableCell>
+                        <TableCell>{user.lieuNom}</TableCell>
+                      </TableRow>
+                    ))
+                ) : (
+                  <TableRow><TableCell colSpan={3} className="h-24 text-center">Aucun utilisateur trouvé.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+      </CardContent>
+    </Card>
+    
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-headline">Ajouter un utilisateur</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+                 <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="utilisateur@megatram.com" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="password" render={({ field }) => (
+                    <FormItem><FormLabel>Mot de passe</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="roleId" render={({ field }) => (
+                    <FormItem><FormLabel>Rôle</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger></FormControl>
+                          <SelectContent>{roles.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.nom}</SelectItem>)}</SelectContent>
+                      </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="lieuId" render={({ field }) => (
+                    <FormItem><FormLabel>Lieu de Stock</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un lieu" /></SelectTrigger></FormControl>
+                          <SelectContent>{lieux.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}</SelectContent>
+                      </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <DialogFooter className="pt-4">
+                  <DialogClose asChild><Button type="button" variant="ghost" disabled={isFormLoading}>Annuler</Button></DialogClose>
+                  <Button type="submit" disabled={isFormLoading}>
+                    {isFormLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    {isFormLoading ? "Création..." : "Créer l'utilisateur"}
+                  </Button>
+                </DialogFooter>
+            </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+    </>
+  );
+}
+
+
 function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onImportSuccess: (newProducts: any[]) => void }) {
   const [file, setFile] = React.useState<File | null>(null);
   const [isImporting, setIsImporting] = React.useState(false);
@@ -227,7 +375,7 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
         <DialogHeader>
           <DialogTitle className="font-headline">Importer des produits depuis Excel</DialogTitle>
           <DialogDescription>
-            Le fichier doit contenir les colonnes : `nom`, `ref`, `codeBarre`, `categorieId`, `entrepotId`, `prix`, `qte`, `qteMin`. Les IDs de catégorie et d'entrepôt doivent correspondre à des entrées existantes.
+            Le fichier doit contenir les colonnes : `nom`, `ref`, `codeBarre`, `categorieId`, `lieuStockId`, `prix`, `qte`, `qteMin`. Les IDs doivent correspondre à des entrées existantes.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -513,36 +661,7 @@ export default function SettingsPage() {
         </TabsContent>
           
         <TabsContent value="users" className="mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="font-headline">Utilisateurs</CardTitle>
-                <CardDescription>Gérez les utilisateurs et leurs permissions.</CardDescription>
-              </div>
-              <Button disabled>Ajouter un utilisateur</Button>
-            </CardHeader>
-            <CardContent>
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nom</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Rôle</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">Utilisateur Actuel</TableCell>
-                        <TableCell>{currentUser?.email}</TableCell>
-                        <TableCell><Badge variant="secondary">{currentUser?.role}</Badge></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-                 <p className="mt-4 text-sm text-muted-foreground text-center">La gestion des utilisateurs sera bientôt disponible.</p>
-            </CardContent>
-          </Card>
+          <UsersTab />
         </TabsContent>
           
         <TabsContent value="organisation" className="mt-6">
@@ -558,3 +677,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

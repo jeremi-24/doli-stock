@@ -1,5 +1,6 @@
+
 // This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, Entrepot, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload, Client, ShopInfo } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload, Client, ShopInfo, Role, Utilisateur } from './types';
 
 // All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api'; 
@@ -113,6 +114,14 @@ export async function signupUser(data: SignupPayload): Promise<any> {
   return apiFetch('/auth/save', { method: 'POST', body: JSON.stringify(payload) });
 }
 
+// ========== Users & Roles API ==========
+export async function getUsers(): Promise<Utilisateur[]> { return apiFetch('/users'); }
+export async function createUser(data: any): Promise<any> {
+  return apiFetch('/users', { method: 'POST', body: JSON.stringify(data) });
+}
+export async function getRoles(): Promise<Role[]> { return apiFetch('/roles'); }
+
+
 // ========== Organisation API ==========
 export async function getOrganisations(): Promise<ShopInfo[]> {
     return apiFetch('/organisations');
@@ -147,18 +156,17 @@ export async function deleteCategories(ids: number[]): Promise<null> {
   return apiFetch(`/categorie`, { method: 'DELETE', body: JSON.stringify(ids) });
 };
 
-// ========== Entrepots API ==========
-export async function getEntrepots(): Promise<Entrepot[]> { return apiFetch('/entrepot'); };
-export async function createEntrepot(data: { nom: string, ref: string }): Promise<Entrepot> {
-  const body = { nom: data.nom, ref: data.ref };
-  return apiFetch('/entrepot', { method: 'POST', body: JSON.stringify(body) });
+// ========== Lieux de Stock API ==========
+export async function getLieuxStock(): Promise<LieuStock[]> { return apiFetch('/lieustock'); };
+export async function createLieuStock(data: { nom: string, type: string, localisation?: string }): Promise<LieuStock> {
+  return apiFetch('/lieustock', { method: 'POST', body: JSON.stringify(data) });
 };
-export async function updateEntrepot(id: number, data: Partial<Entrepot>): Promise<Entrepot> {
+export async function updateLieuStock(id: number, data: Partial<LieuStock>): Promise<LieuStock> {
   const body = { ...data, id };
-  return apiFetch(`/entrepot/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+  return apiFetch(`/lieustock/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 };
-export async function deleteEntrepots(ids: number[]): Promise<null> {
-  return apiFetch(`/entrepot`, { method: 'DELETE', body: JSON.stringify(ids) });
+export async function deleteLieuxStock(ids: number[]): Promise<null> {
+  return apiFetch(`/lieustock`, { method: 'DELETE', body: JSON.stringify(ids) });
 };
 
 // ========== Products API ==========
@@ -182,7 +190,7 @@ export async function assignProducts(data: AssignationPayload): Promise<null> {
     const payload = {
         produitIds: data.produitIds,
         ...(data.categorieId && { categorieId: data.categorieId }),
-        ...(data.entrepotId && { entrepotId: data.entrepotId }),
+        ...(data.lieuStockId && { lieuStockId: data.lieuStockId }),
     };
   return apiFetch(`/produit/assignation`, { method: 'PUT', body: JSON.stringify(payload) });
 };
@@ -314,3 +322,5 @@ export async function createVente(data: VentePayload): Promise<Vente> {
 export async function deleteVente(id: number): Promise<null> {
   return apiFetch(`/vente/${id}`, { method: 'DELETE' });
 }
+
+    

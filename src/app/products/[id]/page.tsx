@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Package, DollarSign, Tag, Barcode, AlertTriangle, Warehouse } from 'lucide-react';
+import { ArrowLeft, Package, DollarSign, Tag, Barcode, AlertTriangle, Building2 as Warehouse } from 'lucide-react';
 import type { Produit as ProduitType } from '@/lib/types';
 
 export default function ProductDetailPage() {
@@ -17,7 +17,7 @@ export default function ProductDetailPage() {
   const { 
     produits, 
     categories, 
-    entrepots,
+    lieuxStock,
     isMounted, 
     scannedProductDetails, 
     setScannedProductDetails 
@@ -25,14 +25,14 @@ export default function ProductDetailPage() {
   
   const [produit, setProduit] = useState<ProduitType | null | undefined>(undefined);
   const [categoryName, setCategoryName] = useState<string>('');
-  const [entrepotName, setEntrepotName] = useState<string>('');
+  const [lieuStockName, setLieuStockName] = useState<string>('');
 
   useEffect(() => {
     // Use fresh data from scan if available
     if (scannedProductDetails && scannedProductDetails.id === Number(id)) {
       setProduit(scannedProductDetails);
       setCategoryName(scannedProductDetails.categorieNom || 'N/A');
-      setEntrepotName(scannedProductDetails.entrepotNom || 'N/A');
+      setLieuStockName(scannedProductDetails.lieuStockNom || 'N/A');
       setScannedProductDetails(null); // Clear after use
     } 
     // Fallback for direct navigation/refresh
@@ -43,11 +43,11 @@ export default function ProductDetailPage() {
         const foundCategory = categories.find(c => c.id === foundProduit.categorieId);
         setCategoryName(foundCategory ? foundCategory.nom : 'N/A');
         
-        const foundEntrepot = entrepots.find(e => e.id === foundProduit.entrepotId);
-        setEntrepotName(foundEntrepot ? foundEntrepot.nom : 'N/A');
+        const foundLieuStock = lieuxStock.find(e => e.id === foundProduit.lieuStockId);
+        setLieuStockName(foundLieuStock ? foundLieuStock.nom : 'N/A');
       }
     }
-  }, [id, produits, categories, entrepots, isMounted, scannedProductDetails, setScannedProductDetails]);
+  }, [id, produits, categories, lieuxStock, isMounted, scannedProductDetails, setScannedProductDetails]);
 
 
   const formatCurrency = (amount: number) => {
@@ -132,8 +132,8 @@ export default function ProductDetailPage() {
               <Badge variant="secondary">{categoryName}</Badge>
             </div>
             <div className="flex items-center justify-between border-b pb-2">
-               <span className="text-muted-foreground flex items-center gap-2"><Warehouse className="h-5 w-5"/>Entrepôt</span>
-              <Badge variant="secondary">{entrepotName}</Badge>
+               <span className="text-muted-foreground flex items-center gap-2"><Warehouse className="h-5 w-5"/>Lieu de Stock</span>
+              <Badge variant="secondary">{lieuStockName}</Badge>
             </div>
             <div className="flex items-center justify-between border-b pb-2 col-span-full">
                <span className="text-muted-foreground flex items-center gap-2"><Barcode className="h-5 w-5"/>Code-barres</span>
@@ -161,3 +161,5 @@ export default function ProductDetailPage() {
     </div>
   );
 }
+
+    
