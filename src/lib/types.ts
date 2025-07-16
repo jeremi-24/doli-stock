@@ -201,9 +201,25 @@ export type Utilisateur = {
   lieuNom: string;
 };
 
+export type Permission = {
+    id: number;
+    action: string;
+    autorise: boolean;
+    role: string;
+}
+
 export type Role = {
     id: number;
     nom: string;
+    permissions?: Permission[];
+}
+
+export type RoleCreationPayload = {
+    nom: string;
+    permissions: {
+        action: string;
+        autorise: boolean;
+    }[];
 }
 
 export type CurrentUser = {

@@ -15,14 +15,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode as BarcodeIcon, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer, Building2 as Warehouse } from 'lucide-react';
-import type { ShopInfo, ThemeColors, Produit, Role, Utilisateur, LieuStock } from "@/lib/types";
+import { Settings, Barcode as BarcodeIcon, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer, Building2 as Warehouse, ShieldCheck, PlusCircle, Trash2, Pencil } from 'lucide-react';
+import type { ShopInfo, ThemeColors, Produit, Role, Utilisateur, LieuStock, Permission, RoleCreationPayload } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import * as api from '@/lib/api';
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
 
 const organisationSchema = z.object({
   nom: z.string().min(1, "Le nom de l'organisation est requis."),
@@ -46,6 +49,30 @@ const userSchema = z.object({
   roleId: z.string().min(1, "Veuillez sélectionner un rôle."),
   lieuId: z.string().min(1, "Veuillez sélectionner un lieu."),
 });
+
+const roleSchema = z.object({
+  nom: z.string().min(2, "Le nom du rôle est requis."),
+  permissions: z.record(z.boolean()),
+});
+
+const ALL_PERMISSIONS: { action: string, description: string }[] = [
+    { action: 'CREATE_PRODUCT', description: 'Créer des produits' },
+    { action: 'UPDATE_PRODUCT', description: 'Modifier des produits' },
+    { action: 'DELETE_PRODUCT', description: 'Supprimer des produits' },
+    { action: 'VIEW_STOCK', description: 'Voir le stock' },
+    { action: 'MANAGE_CATEGORIES', description: 'Gérer les catégories' },
+    { action: 'MANAGE_LIEUX', description: 'Gérer les lieux de stock' },
+    { action: 'PERFORM_INVENTORY', description: 'Réaliser un inventaire' },
+    { action: 'PERFORM_REAPPRO', description: 'Réaliser un réapprovisionnement' },
+    { action: 'CREATE_ORDER', description: 'Créer des commandes' },
+    { action: 'VALIDATE_ORDER', description: 'Valider des commandes' },
+    { action: 'GENERATE_INVOICE', description: 'Générer des factures' },
+    { action: 'GENERATE_DELIVERY_NOTE', description: 'Générer des bons de livraison' },
+    { action: 'VALIDATE_DELIVERY', description: 'Valider des livraisons' },
+    { action: 'VIEW_REPORTS', description: 'Voir les rapports' },
+    { action: 'MANAGE_USERS', description: 'Gérer les utilisateurs et rôles' },
+    { action: 'MANAGE_SETTINGS', description: 'Accéder aux paramètres' },
+];
 
 function OrganisationForm() {
   const { shopInfo, setShopInfo } = useApp();
@@ -339,6 +366,249 @@ function UsersTab() {
   );
 }
 
+function RoleDialog({
+    isOpen,
+    onOpenChange,
+    editingRole,
+    onSave
+}: {
+    isOpen: boolean,
+    onOpenChange: (open: boolean) => void,
+    editingRole: Role | null,
+    onSave: () => void
+}) {
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = React.useState(false);
+    
+    const form = useForm<z.infer<typeof roleSchema>>({
+        resolver: zodResolver(roleSchema),
+        defaultValues: { nom: "", permissions: {} }
+    });
+
+    React.useEffect(() => {
+        const defaultPermissions: Record<string, boolean> = {};
+        ALL_PERMISSIONS.forEach(p => defaultPermissions[p.action] = false);
+
+        if (isOpen) {
+            if (editingRole && editingRole.permissions) {
+                const currentPermissions = { ...defaultPermissions };
+                editingRole.permissions.forEach(p => {
+                    if (p.autorise) currentPermissions[p.action] = true;
+                });
+                form.reset({ nom: editingRole.nom, permissions: currentPermissions });
+            } else {
+                form.reset({ nom: "", permissions: defaultPermissions });
+            }
+        }
+    }, [isOpen, editingRole, form]);
+
+    async function onSubmit(values: z.infer<typeof roleSchema>) {
+        setIsSaving(true);
+        
+        const permissionsPayload: { action: string, autorise: boolean }[] = Object.entries(values.permissions).map(([action, autorise]) => ({
+            action,
+            autorise
+        }));
+        
+        const payload: RoleCreationPayload = {
+            nom: values.nom,
+            permissions: permissionsPayload
+        };
+
+        try {
+            if (editingRole) {
+                await api.updateRole(editingRole.id, payload);
+                toast({ title: "Rôle mis à jour" });
+            } else {
+                await api.createRole(payload);
+                toast({ title: "Rôle créé" });
+            }
+            onSave();
+            onOpenChange(false);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+            toast({ variant: "destructive", title: "Erreur de sauvegarde", description: errorMessage });
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle className="font-headline">{editingRole ? "Modifier le Rôle" : "Nouveau Rôle"}</DialogTitle>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="nom"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Nom du rôle</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="ex: Magasinier" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div>
+                            <FormLabel>Permissions</FormLabel>
+                            <div className="space-y-2 rounded-lg border p-4 mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {ALL_PERMISSIONS.map(permission => (
+                                    <FormField
+                                        key={permission.action}
+                                        control={form.control}
+                                        name={`permissions.${permission.action}`}
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">{permission.description}</FormLabel>
+                                            </FormItem>
+                                        )}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="ghost" disabled={isSaving}>Annuler</Button></DialogClose>
+                            <Button type="submit" disabled={isSaving}>
+                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSaving ? "Sauvegarde..." : "Enregistrer"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+function RolesTab() {
+    const { toast } = useToast();
+    const [roles, setRoles] = React.useState<Role[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [editingRole, setEditingRole] = React.useState<Role | null>(null);
+
+    const fetchRoles = React.useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const rolesData = await api.getRoles();
+            setRoles(rolesData || []);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Erreur de chargement des rôles";
+            toast({ variant: "destructive", title: "Erreur", description: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [toast]);
+
+    React.useEffect(() => {
+        fetchRoles();
+    }, [fetchRoles]);
+
+    const handleAddNew = () => {
+        setEditingRole(null);
+        setIsDialogOpen(true);
+    };
+
+    const handleEdit = async (role: Role) => {
+        try {
+            const detailedRole = await api.getRoleById(role.id);
+            setEditingRole(detailedRole);
+            setIsDialogOpen(true);
+        } catch(error) {
+             const errorMessage = error instanceof Error ? error.message : "Erreur de chargement du rôle";
+            toast({ variant: "destructive", title: "Erreur", description: errorMessage });
+        }
+    };
+    
+    const handleDelete = async (roleId: number) => {
+        try {
+            await api.deleteRole(roleId);
+            toast({title: "Rôle supprimé"});
+            await fetchRoles();
+        } catch(error) {
+            const errorMessage = error instanceof Error ? error.message : "Impossible de supprimer ce rôle.";
+            toast({ variant: "destructive", title: "Erreur de suppression", description: errorMessage });
+        }
+    }
+
+    return (
+        <>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="font-headline">Rôles & Permissions</CardTitle>
+                        <CardDescription>Gérez les rôles et les actions qu'ils peuvent effectuer.</CardDescription>
+                    </div>
+                    <Button onClick={handleAddNew}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Nouveau Rôle
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    <div className="border rounded-lg">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Nom du Rôle</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow><TableCell colSpan={2} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                                ) : roles.length > 0 ? (
+                                    roles.map(role => (
+                                        <TableRow key={role.id}>
+                                            <TableCell className="font-medium">{role.nom}</TableCell>
+                                            <TableCell className="text-right">
+                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(role)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                 </Button>
+                                                 <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Supprimer le rôle "{role.nom}" ?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Cette action est irréversible. Assurez-vous qu'aucun utilisateur n'est assigné à ce rôle.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDelete(role.id)}>Supprimer</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow><TableCell colSpan={2} className="h-24 text-center">Aucun rôle trouvé.</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+            <RoleDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} editingRole={editingRole} onSave={fetchRoles} />
+        </>
+    )
+}
 
 function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onImportSuccess: (newProducts: any[]) => void }) {
   const [file, setFile] = React.useState<File | null>(null);
@@ -489,29 +759,22 @@ function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, o
 }
 
 export default function SettingsPage() {
-  const { activeModules, setActiveModules, produits, addMultipleProduits, currentUser, isMounted } = useApp();
-  const { toast } = useToast();
+  const { addMultipleProduits, currentUser, isMounted } = useApp();
   const router = useRouter();
 
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [isPrintRequestDialogOpen, setIsPrintRequestDialogOpen] = React.useState(false);
+  const [produits, setProduits] = React.useState<Produit[]>([]);
 
   React.useEffect(() => {
     if (isMounted && currentUser?.role !== 'ADMIN') {
         router.push('/');
     }
+    // Fetch products for the print dialog
+    if (currentUser?.role === 'ADMIN') {
+        api.getProducts().then(setProduits);
+    }
   }, [isMounted, currentUser, router]);
-
-  const handleModuleToggle = (module: keyof typeof activeModules) => {
-    setActiveModules(prev => {
-      const newState = { ...prev, [module]: !prev[module] };
-      toast({
-        title: "Paramètres mis à jour",
-        description: `Le module ${module} a été ${newState[module] ? 'activé' : 'désactivé'}.`,
-      });
-      return newState;
-    });
-  };
 
   const handleImportSuccess = (importedData: any[]) => {
     addMultipleProduits(importedData);
@@ -535,98 +798,21 @@ export default function SettingsPage() {
         <h1 className="font-headline text-3xl font-semibold">Paramètres</h1>
       </div>
       
-      <Tabs defaultValue="modules" className="w-full">
+      <Tabs defaultValue="users" className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-          <TabsTrigger value="modules"><Settings className="mr-2 h-4 w-4"/>Modules</TabsTrigger>
-          <TabsTrigger value="import"><Import className="mr-2 h-4 w-4"/>Import/Export</TabsTrigger>
           <TabsTrigger value="users"><Users className="mr-2 h-4 w-4"/>Utilisateurs</TabsTrigger>
+          <TabsTrigger value="roles"><ShieldCheck className="mr-2 h-4 w-4"/>Rôles & Permissions</TabsTrigger>
+          <TabsTrigger value="import"><Import className="mr-2 h-4 w-4"/>Import/Export</TabsTrigger>
           <TabsTrigger value="organisation"><Store className="mr-2 h-4 w-4"/>Organisation</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4"/>Apparence</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="modules" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Gestion des Modules</CardTitle>
-              <CardDescription>Activez ou désactivez des modules pour personnaliser votre application.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
-                <div className="flex items-start space-x-3">
-                  <Warehouse className="h-6 w-6 mt-1 text-primary"/>
-                  <div>
-                    <Label htmlFor="stock-module" className="font-semibold text-base">Gestion de Stock</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Suivez les quantités, prix et catégories de produits. Requis pour les autres modules.
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="stock-module"
-                  checked={activeModules.stock}
-                  onCheckedChange={() => handleModuleToggle('stock')}
-                  disabled
-                />
-              </div>
-
-              <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
-                <div className="flex items-start space-x-3">
-                   <FileText className="h-6 w-6 mt-1 text-primary"/>
-                  <div>
-                    <Label htmlFor="invoicing-module" className="font-semibold text-base">Facturation</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Créez et gérez des factures simples pour les clients.
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="invoicing-module"
-                  checked={activeModules.invoicing}
-                  onCheckedChange={() => handleModuleToggle('invoicing')}
-                />
-              </div>
-
-              <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
-                <div className="flex items-start space-x-3">
-                   <ShoppingCart className="h-6 w-6 mt-1 text-primary"/>
-                  <div>
-                    <Label htmlFor="pos-module" className="font-semibold text-base">Point de Vente</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Une interface simplifiée pour des ventes rapides en magasin.
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="pos-module"
-                  checked={activeModules.pos}
-                  onCheckedChange={() => handleModuleToggle('pos')}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
-                <div className="flex items-start space-x-3">
-                    <BarcodeIcon className="h-6 w-6 mt-1 text-primary"/>
-                  <div>
-                    <Label htmlFor="barcode-module" className="font-semibold text-base">Scanner de Code-barres</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Utilisez le tableau de bord pour rechercher rapidement des produits par code-barres.
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="barcode-module"
-                  checked={activeModules.barcode}
-                  onCheckedChange={() => handleModuleToggle('barcode')}
-                />
-              </div>
-
-            </CardContent>
-            <CardFooter>
-              <p className="text-xs text-muted-foreground">
-                Les modifications sont sauvegardées automatiquement. Certaines fonctionnalités peuvent nécessiter un rechargement de la page.
-              </p>
-            </CardFooter>
-          </Card>
+        <TabsContent value="users" className="mt-6">
+          <UsersTab />
+        </TabsContent>
+          
+        <TabsContent value="roles" className="mt-6">
+          <RolesTab />
         </TabsContent>
 
         <TabsContent value="import" className="mt-6">
@@ -660,10 +846,6 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
           
-        <TabsContent value="users" className="mt-6">
-          <UsersTab />
-        </TabsContent>
-          
         <TabsContent value="organisation" className="mt-6">
           <OrganisationForm />
         </TabsContent>
@@ -677,5 +859,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

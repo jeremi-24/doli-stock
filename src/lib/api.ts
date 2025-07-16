@@ -1,4 +1,4 @@
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload } from './types';
 
 const API_BASE_URL = '/api'; 
 
@@ -106,6 +106,16 @@ export async function createUser(data: any): Promise<any> {
   return apiFetch('/users', { method: 'POST', body: JSON.stringify(data) });
 }
 export async function getRoles(): Promise<Role[]> { return apiFetch('/roles'); }
+export async function getRoleById(id: number): Promise<Role> { return apiFetch(`/roles/${id}`); }
+export async function createRole(data: RoleCreationPayload): Promise<Role> { 
+    return apiFetch('/roles', { method: 'POST', body: JSON.stringify(data) });
+}
+export async function updateRole(id: number, data: RoleCreationPayload): Promise<Role> {
+    return apiFetch(`/roles/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export async function deleteRole(id: number): Promise<null> {
+    return apiFetch(`/roles/${id}`, { method: 'DELETE' });
+}
 
 
 // ========== Organisation API ==========
