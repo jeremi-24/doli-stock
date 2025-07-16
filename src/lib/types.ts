@@ -237,5 +237,5 @@ export type SignupPayload = {
   email: string;
   password: string;
   confirmPassword?: string;
-  role: 'ADMIN' | 'USER';
+  roleId: number;
 }

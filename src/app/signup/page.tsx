@@ -14,13 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Logo } from "@/components/logo"
 import { useToast } from "@/hooks/use-toast"
 import * as api from "@/lib/api"
-import type { SignupPayload } from "@/lib/types"
+import type { SignupPayload, Role } from "@/lib/types"
 
 const signupSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse e-mail valide." }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères." }),
   confirmPassword: z.string(),
-  role: z.enum(['ADMIN', 'USER'], { required_error: "Veuillez sélectionner un rôle." }),
+  roleId: z.string({ required_error: "Veuillez sélectionner un rôle." }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas.",
   path: ["confirmPassword"],
@@ -31,6 +31,19 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [roles, setRoles] = React.useState<Role[]>([]);
+
+  React.useEffect(() => {
+    async function fetchRoles() {
+        try {
+            const rolesData = await api.getRoles();
+            setRoles(rolesData || []);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les rôles.' });
+        }
+    }
+    fetchRoles();
+  }, [toast]);
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -41,10 +54,16 @@ export default function SignupPage() {
     },
   });
 
-  async function onSubmit(values: SignupPayload) {
+  async function onSubmit(values: z.infer<typeof signupSchema>) {
     setIsLoading(true);
+    const payload: SignupPayload = {
+      email: values.email,
+      password: values.password,
+      confirmPassword: values.confirmPassword,
+      roleId: parseInt(values.roleId, 10),
+    };
     try {
-      await api.registerUser(values);
+      await api.registerUser(payload);
       toast({
         title: "Inscription réussie",
         description: "Votre compte a été créé. Vous pouvez maintenant vous connecter.",
@@ -118,19 +137,20 @@ export default function SignupPage() {
                   />
                 <FormField
                     control={form.control}
-                    name="role"
+                    name="roleId"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Rôle</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || roles.length === 0}>
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sélectionner un rôle" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="ADMIN">Admin</SelectItem>
-                                    <SelectItem value="USER">Utilisateur</SelectItem>
+                                    {roles.map(role => (
+                                        <SelectItem key={role.id} value={String(role.id)}>{role.nom}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
