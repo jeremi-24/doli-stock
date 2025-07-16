@@ -1,11 +1,11 @@
 
 "use client";
 
-import type { ShopInfo, Vente } from '@/lib/types';
+import type { ShopInfo, Facture } from '@/lib/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-export function InvoiceTemplate({ shopInfo, vente }: { shopInfo: ShopInfo, vente: Vente }) {
+export function InvoiceTemplate({ shopInfo, facture }: { shopInfo: ShopInfo, facture: Facture }) {
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
   return (
@@ -30,10 +30,10 @@ export function InvoiceTemplate({ shopInfo, vente }: { shopInfo: ShopInfo, vente
         <div className="w-1/3 text-right">
           <h2 className="text-4xl font-bold uppercase text-gray-700">Facture</h2>
           <p className="mt-2 text-gray-600">
-            <span className="font-semibold">N° : </span>{vente.ref}
+            <span className="font-semibold">N° : </span>FACT-{String(facture.idFacture).padStart(5, '0')}
           </p>
           <p className="text-gray-600">
-            <span className="font-semibold">Date : </span>{vente.date ? format(new Date(vente.date), 'd MMMM yyyy', { locale: fr }) : 'N/A'}
+            <span className="font-semibold">Date : </span>{facture.dateFacture ? format(new Date(facture.dateFacture), 'd MMMM yyyy', { locale: fr }) : 'N/A'}
           </p>
            {shopInfo.numero && <p className="mt-2 text-gray-600"><span className="font-semibold">ID Fiscal : </span>{shopInfo.numero}</p>}
         </div>
@@ -42,7 +42,7 @@ export function InvoiceTemplate({ shopInfo, vente }: { shopInfo: ShopInfo, vente
       {/* Client Info */}
       <section className="mt-8">
         <h3 className="text-sm font-semibold text-gray-500 uppercase">Facturé à</h3>
-        <p className="mt-2 font-bold text-lg text-gray-800">{vente.client}</p>
+        <p className="mt-2 font-bold text-lg text-gray-800">{facture.clientNom}</p>
       </section>
 
       {/* Table */}
@@ -57,12 +57,12 @@ export function InvoiceTemplate({ shopInfo, vente }: { shopInfo: ShopInfo, vente
             </tr>
           </thead>
           <tbody>
-            {vente.lignes.map((ligne) => (
+            {facture.lignes.map((ligne) => (
               <tr key={ligne.id} className="border-b border-gray-100">
-                <td className="p-3">{ligne.produitNom || `Produit ID: ${ligne.produitId}`}</td>
-                <td className="p-3 text-center">{ligne.qteVendu}</td>
+                <td className="p-3">{ligne.produitNom}</td>
+                <td className="p-3 text-center">{ligne.qteVoulu}</td>
                 <td className="p-3 text-right">{formatCurrency(ligne.produitPrix)}</td>
-                <td className="p-3 text-right font-semibold">{formatCurrency(ligne.total)}</td>
+                <td className="p-3 text-right font-semibold">{formatCurrency(ligne.totalLigne)}</td>
               </tr>
             ))}
           </tbody>
@@ -74,7 +74,7 @@ export function InvoiceTemplate({ shopInfo, vente }: { shopInfo: ShopInfo, vente
         <div className="w-full max-w-xs">
           <div className="flex justify-between items-center bg-gray-100 p-4 rounded-lg">
             <span className="text-xl font-bold text-gray-800">TOTAL</span>
-            <span className="text-xl font-bold text-gray-800">{formatCurrency(vente.paiement)}</span>
+            <span className="text-xl font-bold text-gray-800">{formatCurrency(facture.montantTotal)}</span>
           </div>
         </div>
       </section>

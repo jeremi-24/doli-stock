@@ -1,11 +1,8 @@
 
-// This is now a client-side library. No 'use server' directive.
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Vente, VentePayload, Client, ShopInfo, Role, Utilisateur } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison } from './types';
 
-// All API calls will be sent to the Next.js proxy configured in next.config.ts
 const API_BASE_URL = '/api'; 
 
-// Custom Error class to include status code
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -49,10 +46,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
             serverMessage = errorBody;
         }
         
-        console.error(`API Error: ${response.status}`, { url, options, errorBody: serverMessage });
-        
         let userMessage = serverMessage;
-        // Don't show generic HTML error pages or meaningless messages to the user
         if (!userMessage || typeof userMessage !== 'string' || userMessage.trim().startsWith('<') || userMessage.trim() === 'OK') {
             switch (response.status) {
                 case 400: userMessage = 'La requête est incorrecte. Veuillez vérifier les informations soumises.'; break;
@@ -68,10 +62,9 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
       throw new ApiError(userMessage, response.status);
     }
     
-    // Check for a new token in the response headers and update it.
     const newTokenHeader = response.headers.get('Authorization');
     if (newTokenHeader && newTokenHeader.startsWith('Bearer ')) {
-      const newToken = newTokenHeader.substring(7); // "Bearer ".length
+      const newToken = newTokenHeader.substring(7);
       if (typeof window !== 'undefined') {
         localStorage.setItem('stockhero_token', newToken);
       }
@@ -87,19 +80,14 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
   } catch (error) {
     if (error instanceof ApiError) {
-        // Re-throw custom API errors that we've already formatted
         throw error;
     }
     
     if (error instanceof TypeError) {
-      // Handle network errors (e.g., "Failed to fetch")
       const networkErrorMessage = 'Impossible de contacter le serveur. Veuillez vérifier votre connexion Internet et que le service est bien en ligne.';
-      console.error('Erreur de connexion API:', { url, error });
-      throw new ApiError(networkErrorMessage, 0); // Use status 0 for network errors
+      throw new ApiError(networkErrorMessage, 0);
     }
 
-    // Re-throw any other unexpected errors
-    console.error('Erreur inattendue dans apiFetch:', { url, error });
     throw error;
   }
 }
@@ -108,9 +96,8 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 export async function loginUser(data: LoginPayload): Promise<any> {
   return apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) });
 }
-
 export async function signupUser(data: SignupPayload): Promise<any> {
-  const { confirmPassword, ...payload } = data; // Don't send confirmPassword to backend
+  const { confirmPassword, ...payload } = data;
   return apiFetch('/auth/save', { method: 'POST', body: JSON.stringify(payload) });
 }
 
@@ -214,28 +201,10 @@ export async function importProducts(file: File): Promise<Produit[]> {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      const statusText = response.statusText || 'Erreur inconnue';
-      let userMessage = `La requête API a échoué: ${statusText} (status: ${response.status})`;
-       if (response.status === 503 || response.status === 504) {
-          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout). Veuillez vérifier qu\'il est bien démarré et accessible.';
-      } else if (errorBody) {
-         try {
-            const errorJson = JSON.parse(errorBody);
-            userMessage = errorJson.error || errorJson.message || userMessage;
-         } catch(e) {
-            userMessage = `${userMessage}: ${errorBody}`;
-         }
-      }
-      throw new Error(userMessage);
+      throw new Error(`Échec de l'importation: ${errorBody}`);
     }
     
-    const text = await response.text();
-    try {
-      return text ? JSON.parse(text) : null;
-    } catch (error) {
-      console.warn(`API response for /produit/import was successful but not valid JSON. Response body: "${text}"`);
-      return null;
-    }
+    return response.json();
   } catch (error) {
     console.error('Erreur de connexion API pour importProducts:', { error });
     throw error;
@@ -243,41 +212,19 @@ export async function importProducts(file: File): Promise<Produit[]> {
 };
 export async function printBarcodes(data: { produitNom: string, quantite: number }): Promise<Blob> {
   const url = `${API_BASE_URL}/barcode/print`;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('stockhero_token') : null;
-  const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/pdf',
-    ...authHeader
-  };
   
   try {
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       method: 'POST',
-      headers: headers,
       body: JSON.stringify(data),
+      headers: { 'Accept': 'application/pdf' } // We expect a blob back
     });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      const statusText = response.statusText || 'Erreur inconnue';
-      let userMessage = `La génération du PDF a échoué: ${statusText} (status: ${response.status})`;
-      if (response.status === 503 || response.status === 504) {
-          userMessage = 'Le serveur backend ne répond pas (Gateway Timeout). Veuillez vérifier qu\'il est bien démarré et accessible.';
-      } else if (errorBody) {
-         try {
-            const errorJson = JSON.parse(errorBody);
-            userMessage = errorJson.error || errorJson.message || userMessage;
-         } catch(e) {
-            userMessage = `${userMessage}: ${errorBody}`;
-         }
-      }
-      throw new Error(userMessage);
+    if (!(response instanceof Blob)) {
+        throw new Error("La réponse n'est pas un fichier PDF valide.")
     }
     
-    return response.blob();
-
+    return response;
   } catch (error) {
     console.error('Erreur de connexion API pour printBarcodes:', { url, error });
     throw error;
@@ -288,11 +235,9 @@ export async function printBarcodes(data: { produitNom: string, quantite: number
 export async function getInventaires(): Promise<Inventaire[]> {
   return apiFetch('/inventaire');
 }
-
 export async function getInventaire(id: number): Promise<Inventaire> {
   return apiFetch(`/inventaire/${id}`);
 }
-
 export async function createInventaire(data: InventairePayload, isFirst: boolean): Promise<Inventaire> {
   return apiFetch(`/inventaire?premier=${isFirst}`, { method: 'POST', body: JSON.stringify(data) });
 }
@@ -301,26 +246,43 @@ export async function createInventaire(data: InventairePayload, isFirst: boolean
 export async function getReapprovisionnements(): Promise<Reapprovisionnement[]> {
   return apiFetch('/reappro');
 }
-
 export async function getReapprovisionnement(id: number): Promise<Reapprovisionnement> {
   return apiFetch(`/reappro/${id}`);
 }
-
 export async function createReapprovisionnement(data: ReapproPayload): Promise<Reapprovisionnement> {
   return apiFetch('/reappro', { method: 'POST', body: JSON.stringify(data) });
 }
 
-// ========== Sales API ==========
-export async function getVentes(): Promise<Vente[]> {
-  return apiFetch('/vente');
+// ========== Commandes API ==========
+export async function getCommandes(statut?: 'EN_ATTENTE' | 'VALIDEE' | 'ANNULEE'): Promise<Commande[]> {
+    const endpoint = statut ? `/commandes?statut=${statut}` : '/commandes';
+    return apiFetch(endpoint);
+}
+export async function createCommande(data: CommandePayload): Promise<Commande> {
+    return apiFetch('/commandes', { method: 'POST', body: JSON.stringify(data) });
+}
+export async function validerCommande(id: number): Promise<Commande> {
+    return apiFetch(`/commandes/${id}/valider`, { method: 'PUT' });
 }
 
-export async function createVente(data: VentePayload): Promise<Vente> {
-  return apiFetch('/vente', { method: 'POST', body: JSON.stringify(data) });
+// ========== Factures API ==========
+export async function getFactures(): Promise<Facture[]> {
+    return apiFetch('/factures');
+}
+export async function genererFacture(commandeId: number): Promise<Facture> {
+    return apiFetch(`/factures?commandeId=${commandeId}`, { method: 'POST' });
+}
+export async function deleteFacture(id: number): Promise<null> {
+    return apiFetch(`/factures/${id}`, { method: 'DELETE' });
 }
 
-export async function deleteVente(id: number): Promise<null> {
-  return apiFetch(`/vente/${id}`, { method: 'DELETE' });
+// ========== Bons de Livraison API ==========
+export async function getBonsLivraison(lieuId: number): Promise<BonLivraison[]> {
+    return apiFetch(`/livraisons?lieuId=${lieuId}`);
 }
-
-    
+export async function genererBonLivraison(commandeId: number): Promise<BonLivraison> {
+    return apiFetch(`/livraisons?commandeId=${commandeId}`, { method: 'POST' });
+}
+export async function validerLivraison(id: number): Promise<BonLivraison> {
+    return apiFetch(`/livraisons/${id}/valider`, { method: 'PUT' });
+}

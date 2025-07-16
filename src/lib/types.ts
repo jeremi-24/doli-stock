@@ -29,64 +29,9 @@ export type Produit = {
   codeBarre: string;
   categorieId: number;
   lieuStockId: number;
-  // These can be returned from specific API calls
   categorieNom?: string | null;
   lieuStockNom?: string | null;
 };
-
-// This type is used for the local cart state in the UI
-export type VenteLigne = {
-  id: number;
-  produit: Produit;
-  quantite: number;
-  prix_unitaire: number;
-  prix_total: number;
-};
-
-// --- API Types for Sales ---
-
-// Represents a line item in a sale, as returned by the GET /api/ventes endpoint
-export type VenteLigneApi = {
-    id: number;
-    produitId: number;
-    qteVendu: number;
-    produitPrix: number;
-    total: number;
-    vente?: string;
-    // This property is added on the client-side for display purposes
-    produitNom?: string;
-};
-
-// Represents a sale, as returned by the GET /api/ventes endpoint
-export type Vente = {
-    id: number;
-    ref: string;
-    date: string; 
-    caissier: string;
-    client: string;
-    paiement: number; // This is the total amount
-    lignes: VenteLigneApi[];
-};
-
-// --- Payload Types for Creating a new Sale ---
-
-// Represents a line item in the payload for POST /api/ventes
-export type VentePayloadLigne = {
-    produitId: number;
-    produitNom: string;
-    qteVendu: number;
-    produitPrix: number;
-    total: number;
-};
-
-// Represents the payload for POST /api/ventes
-export type VentePayload = {
-    ref: string;
-    caissier: string;
-    clientId: number;
-    lignes: VentePayloadLigne[];
-};
-
 
 export type AssignationPayload = {
     produitIds: number[];
@@ -103,14 +48,12 @@ export type InventaireLigne = {
   ecart: number;
   lieuStockNom: string;
 };
-
 export type Inventaire = {
   inventaireId: number;
   charge: string;
   date: string;
   lignes: InventaireLigne[];
 };
-
 export type ScannedProduit = {
   produitId: number;
   nomProduit: string;
@@ -118,13 +61,11 @@ export type ScannedProduit = {
   lieuStockNom: string;
   barcode: string;
 };
-
 export type InventaireProduitPayload = {
     produitId: number;
     qteScanne: number;
     lieuStockNom: string;
 };
-
 export type InventairePayload = {
   charge: string;
   produits: InventaireProduitPayload[];
@@ -138,7 +79,6 @@ export type ReapproLigne = {
   qteAjoutee: number;
   lieuStockNom: string;
 };
-
 export type Reapprovisionnement = {
   id: number;
   source: string;
@@ -146,7 +86,6 @@ export type Reapprovisionnement = {
   date: string;
   lignes: ReapproLigne[];
 };
-
 export type ScannedReapproProduit = {
   produitId: number;
   nomProduit: string;
@@ -154,13 +93,11 @@ export type ScannedReapproProduit = {
   lieuStockNom: string;
   barcode: string;
 };
-
 export type ReapproPayloadLigne = {
     produitId: number;
     qteAjoutee: number;
     lieuStockNom: string;
 };
-
 export type ReapproPayload = {
   source: string;
   agent: string;
@@ -168,15 +105,78 @@ export type ReapproPayload = {
 };
 
 
-// ----- App Settings Types -----
+// ----- Commande, Facture, Livraison Types -----
 
-export type ActiveModules = {
-  stock: boolean;
-  invoicing: boolean;
-  barcode: boolean;
-  pos: boolean;
+export type LigneCommande = {
+  id: number;
+  produitNom: string;
+  produitRef: string;
+  qteVoulu: number;
+  produitPrix: number;
+  totalLigne: number;
 };
 
+export type Commande = {
+  id: number;
+  date: string;
+  statut: 'EN_ATTENTE' | 'VALIDEE' | 'ANNULEE' | 'LIVREE';
+  client: Client;
+  lieuLivraison: LieuStock;
+  lignes: LigneCommande[];
+  totalCommande: number;
+};
+
+export type LigneFacture = {
+  id: number;
+  produitNom: string;
+  produitRef: string;
+  qteVoulu: number;
+  produitPrix: number;
+  totalLigne: number;
+};
+
+export type Facture = {
+    idFacture: number;
+    dateFacture: string;
+    commandeId: number;
+    clientNom: string;
+    montantTotal: number;
+    lignes: LigneFacture[];
+};
+
+export type LigneBonLivraison = {
+    id: number;
+    produitNom: string;
+    qteLivre: number;
+    produitPrix: number;
+    totalLivraison: number;
+};
+
+export type BonLivraison = {
+    id: number;
+    dateLivraison: string;
+    commandeId: number;
+    lignesLivraison: LigneBonLivraison[];
+    statut: 'EN_ATTENTE_LIVRAISON' | 'LIVREE';
+    lieu: LieuStock;
+    client: Client;
+};
+
+
+// --- Payloads for creating new entities
+export type LigneCommandePayload = {
+  produitId: number;
+  qteVoulu: number;
+};
+
+export type CommandePayload = {
+  clientId: number;
+  lieuLivraisonId: number;
+  lignes: LigneCommandePayload[];
+};
+
+
+// ----- App Settings Types -----
 export type ShopInfo = {
   id?: number;
   nom: string;
@@ -209,6 +209,7 @@ export type Role = {
 export type CurrentUser = {
   email: string;
   role: string;
+  lieuId?: number;
 };
 
 export type LoginPayload = {
@@ -222,5 +223,3 @@ export type SignupPayload = {
   confirmPassword?: string;
   role: 'ADMIN' | 'USER';
 }
-
-    
