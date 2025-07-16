@@ -7,12 +7,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScanLine, Search, Package, DollarSign, Archive, FileText, TrendingUp, AlertCircle } from "lucide-react";
+import { ScanLine, Search, Package, DollarSign, Archive, TrendingUp, AlertCircle, History } from "lucide-react";
 import { useApp } from "@/context/app-provider";
-import type { Produit } from "@/lib/types";
+import type { Produit, Facture } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import * as api from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function BarcodeScannerCard() {
     const [barcode, setBarcode] = useState("");
@@ -89,17 +90,35 @@ function BarcodeScannerCard() {
 
 
 export default function DashboardPage() {
-  const { produits, ventes, activeModules } = useApp();
+  const { produits, factures, isMounted } = useApp();
   
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+  };
+  
+  if (!isMounted || !produits || !factures) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card><CardHeader><Skeleton className="h-4 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-4 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-4 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-4 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="lg:col-span-2"><CardHeader><Skeleton className="h-6 w-1/2"/></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-6 w-1/2"/></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
+        </div>
+      </div>
+    );
+  }
+
   const totalProducts = produits.length;
   const outOfStockProducts = produits.filter(p => p.qte === 0).length;
   const lowStockProducts = produits.filter(p => p.qte > 0 && p.qte <= p.qteMin).length;
   const totalStockValue = produits.reduce((acc, p) => acc + (p.prix * p.qte), 0);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-  };
-  
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
@@ -122,8 +141,8 @@ export default function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{ventes.length}</div>
-            <p className="text-xs text-muted-foreground">Nombre total de transactions</p>
+            <div className="text-2xl font-bold">{factures.length}</div>
+            <p className="text-xs text-muted-foreground">Nombre total de factures</p>
           </CardContent>
         </Card>
         <Card>
@@ -148,23 +167,23 @@ export default function DashboardPage() {
         </Card>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-         {activeModules.barcode && <BarcodeScannerCard />}
+         <BarcodeScannerCard />
          <Card className="lg:col-span-1">
              <CardHeader>
-                <CardTitle className="font-headline">Activité Récente</CardTitle>
-                <CardDescription>Dernières ventes enregistrées.</CardDescription>
+                <CardTitle className="font-headline flex items-center gap-2"><History />Activité Récente</CardTitle>
+                <CardDescription>Dernières factures générées.</CardDescription>
              </CardHeader>
              <CardContent>
-                 {ventes.slice(0, 5).map(vente => (
-                     <div key={vente.id} className="flex items-center justify-between py-2 border-b last:border-none">
+                 {factures.slice(0, 5).map(facture => (
+                     <div key={facture.idFacture} className="flex items-center justify-between py-2 border-b last:border-none">
                          <div>
-                             <p className="font-medium">{vente.client}</p>
-                             <p className="text-xs text-muted-foreground">{new Date(vente.date).toLocaleDateString('fr-FR')}</p>
+                             <p className="font-medium">{facture.clientNom}</p>
+                             <p className="text-xs text-muted-foreground">{new Date(facture.dateFacture).toLocaleDateString('fr-FR')}</p>
                          </div>
-                         <div className="font-semibold">{formatCurrency(vente.paiement)}</div>
+                         <div className="font-semibold">{formatCurrency(facture.montantTotal)}</div>
                      </div>
                  ))}
-                 {ventes.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucune activité récente.</p>}
+                 {factures.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Aucune activité récente.</p>}
              </CardContent>
          </Card>
       </div>
