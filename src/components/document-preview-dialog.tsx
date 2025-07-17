@@ -89,7 +89,7 @@ const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: Bon
                         <th className="p-2 font-semibold">Produit</th>
                         <th className="p-2 font-semibold text-center w-24">Quantité Livrée</th>
                     </tr></thead>
-                    <tbody>{bonLivraison.lignes.map((ligne) => (<tr key={ligne.id} className="border-b border-gray-100">
+                    <tbody>{bonLivraison.lignesLivraison.map((ligne) => (<tr key={ligne.id} className="border-b border-gray-100">
                         <td className="p-2">{ligne.produitNom}</td>
                         <td className="p-2 text-center">{ligne.qteLivre}</td>
                     </tr>))}</tbody>
