@@ -67,7 +67,8 @@ export default function ClientsPage() {
             }
             setIsDialogOpen(false);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue.' });
+             const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+            toast({ variant: 'destructive', title: 'Erreur', description: errorMessage });
         } finally {
             setIsLoading(false);
         }
@@ -78,7 +79,7 @@ export default function ClientsPage() {
         try {
             await deleteClient(clientId);
         } catch (error) {
-           // Error is handled in context
+           // Error is handled in context/app-provider and will show a specific toast.
         } finally {
             setIsLoading(false);
         }

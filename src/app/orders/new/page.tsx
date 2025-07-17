@@ -22,12 +22,11 @@ type LignePanier = {
 };
 
 export default function NewOrderPage() {
-  const { produits, clients, lieuxStock, createCommande } = useApp();
+  const { produits, clients, createCommande } = useApp();
   const { toast } = useToast();
   const router = useRouter();
 
   const [clientId, setClientId] = useState<string | undefined>(undefined);
-  const [lieuLivraisonId, setLieuLivraisonId] = useState<string | undefined>(undefined);
   const [lignes, setLignes] = useState<LignePanier[]>([]);
   const [selectedProduitId, setSelectedProduitId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
@@ -80,7 +79,6 @@ export default function NewOrderPage() {
 
   const handleCreateOrder = async () => {
     if (!clientId) { toast({ title: "Veuillez sélectionner un client", variant: "destructive" }); return; }
-    if (!lieuLivraisonId) { toast({ title: "Veuillez sélectionner un lieu de livraison", variant: "destructive" }); return; }
     if (lignes.length === 0) { toast({ title: "Aucun article dans la commande", variant: "destructive" }); return; }
 
     setIsSaving(true);
@@ -92,7 +90,6 @@ export default function NewOrderPage() {
     try {
         const newCommande = await createCommande({
             clientId: parseInt(clientId, 10),
-            lieuLivraisonId: parseInt(lieuLivraisonId, 10),
             lignes: payloadLignes,
         });
         if (newCommande) {
@@ -125,17 +122,6 @@ export default function NewOrderPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lieu-select">Lieu de Livraison</Label>
-              <Select value={lieuLivraisonId} onValueChange={setLieuLivraisonId} disabled={isSaving}>
-                <SelectTrigger id="lieu-select">
-                  <SelectValue placeholder="Sélectionner un lieu" />
-                </SelectTrigger>
-                <SelectContent>
-                  {lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom} ({l.type})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -188,7 +174,7 @@ export default function NewOrderPage() {
         <CardFooter className="border-t px-6 py-4">
           <div className="ml-auto flex items-center gap-2">
             <Button variant="ghost" onClick={() => router.push('/orders')} disabled={isSaving}>Annuler</Button>
-            <Button onClick={handleCreateOrder} disabled={lignes.length === 0 || !clientId || !lieuLivraisonId || isSaving}>
+            <Button onClick={handleCreateOrder} disabled={lignes.length === 0 || !clientId || isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSaving ? 'Création...' : 'Créer la Commande'}
             </Button>

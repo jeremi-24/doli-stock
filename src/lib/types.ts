@@ -171,7 +171,6 @@ export type LigneCommandePayload = {
 
 export type CommandePayload = {
   clientId: number;
-  lieuLivraisonId: number;
   lignes: LigneCommandePayload[];
 };
 

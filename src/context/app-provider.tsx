@@ -235,6 +235,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch(error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
         toast({ variant: 'destructive', title: 'Erreur de suppression', description: errorMessage});
+        throw error;
     }
   }, [fetchAllData, toast]);
 
@@ -284,7 +285,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
         toast({ variant: 'destructive', title: 'Erreur de création', description: errorMessage });
-        return null;
+        throw error;
     }
   }, [fetchAllData, toast]);
 
