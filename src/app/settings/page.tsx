@@ -58,23 +58,26 @@ const roleSchema = z.object({
 });
 
 const ALL_PERMISSIONS: { action: string, description: string }[] = [
-    { action: 'CREATE_PRODUCT', description: 'Créer des produits' },
-    { action: 'UPDATE_PRODUCT', description: 'Modifier des produits' },
-    { action: 'DELETE_PRODUCT', description: 'Supprimer des produits' },
-    { action: 'VIEW_STOCK', description: 'Voir le stock' },
-    { action: 'MANAGE_CATEGORIES', description: 'Gérer les catégories' },
-    { action: 'MANAGE_LIEUX', description: 'Gérer les lieux de stock' },
-    { action: 'PERFORM_INVENTORY', description: 'Réaliser un inventaire' },
-    { action: 'PERFORM_REAPPRO', description: 'Réaliser un réapprovisionnement' },
-    { action: 'CREATE_ORDER', description: 'Créer des commandes' },
-    { action: 'VALIDATE_ORDER', description: 'Valider des commandes' },
-    { action: 'GENERATE_INVOICE', description: 'Générer des factures' },
-    { action: 'GENERATE_DELIVERY_NOTE', description: 'Générer des bons de livraison' },
-    { action: 'VALIDATE_DELIVERY', description: 'Valider des livraisons' },
-    { action: 'VIEW_REPORTS', description: 'Voir les rapports' },
-    { action: 'MANAGE_USERS', description: 'Gérer les utilisateurs et rôles' },
-    { action: 'MANAGE_SETTINGS', description: 'Accéder aux paramètres' },
+    { action: 'PRODUIT_CREATE', description: 'Créer des produits' },
+    { action: 'PRODUIT_READ', description: 'Consulter des produits' },
+    { action: 'PRODUIT_UPDATE', description: 'Modifier des produits' },
+    { action: 'PRODUIT_DELETE', description: 'Supprimer des produits' },
+    { action: 'PRODUIT_IMPORT', description: 'Importer des produits' },
+    { action: 'COMMANDE_CREATE', description: 'Créer des commandes' },
+    { action: 'COMMANDE_READ', description: 'Consulter des commandes' },
+    { action: 'COMMANDE_VALIDATE', description: 'Valider des commandes' },
+    { action: 'COMMANDE_CANCEL', description: 'Annuler des commandes' },
+    { action: 'LIVRAISON_GENERATE', description: 'Générer des bons de livraison' },
+    { action: 'LIVRAISON_READ', description: 'Consulter des bons de livraison' },
+    { action: 'LIVRAISON_VALIDATE', description: 'Valider des livraisons' },
+    { action: 'FACTURE_GENERATE', description: 'Générer des factures' },
+    { action: 'VENTE_READ', description: 'Consulter l\'historique des ventes' },
+    { action: 'INVENTAIRE_MANAGE', description: 'Gérer les inventaires' },
+    { action: 'REAPPRO_MANAGE', description: 'Gérer les réapprovisionnements' },
+    { action: 'USER_MANAGE', description: 'Gérer les utilisateurs et rôles' },
+    { action: 'REPORT_VIEW', description: 'Voir les rapports' },
 ];
+
 
 function OrganisationForm() {
   const { shopInfo, setShopInfo } = useApp();
