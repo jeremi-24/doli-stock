@@ -758,22 +758,15 @@ function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, o
 }
 
 export default function SettingsPage() {
-  const { addMultipleProduits, currentUser, isMounted } = useApp();
-  const router = useRouter();
-
+  const { addMultipleProduits } = useApp();
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [isPrintRequestDialogOpen, setIsPrintRequestDialogOpen] = React.useState(false);
   const [produits, setProduits] = React.useState<Produit[]>([]);
 
   React.useEffect(() => {
-    if (isMounted && currentUser?.role !== 'ADMIN') {
-        router.push('/');
-    }
     // Fetch products for the print dialog
-    if (currentUser?.role === 'ADMIN') {
-        api.getProducts().then(setProduits);
-    }
-  }, [isMounted, currentUser, router]);
+    api.getProducts().then(setProduits);
+  }, []);
 
   const handleImportSuccess = (importedData: any[]) => {
     addMultipleProduits(importedData);
@@ -782,14 +775,6 @@ export default function SettingsPage() {
   const handlePrintAll = () => { 
     setIsPrintRequestDialogOpen(true); 
   };
-  
-  if (currentUser?.role !== 'ADMIN') {
-      return (
-          <div className="flex flex-1 flex-col items-center justify-center h-full">
-              <p>Accès non autorisé.</p>
-          </div>
-      );
-  }
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">

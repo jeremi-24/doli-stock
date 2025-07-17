@@ -26,19 +26,12 @@ const categorieSchema = z.object({
 });
 
 export default function CategoriesPage() {
-    const { categories, addCategorie, updateCategorie, deleteCategories, isMounted, currentUser } = useApp();
+    const { categories, addCategorie, updateCategorie, deleteCategories, isMounted } = useApp();
     const { toast } = useToast();
-    const router = useRouter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCategorie, setEditingCategorie] = useState<Categorie | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-
-    useEffect(() => {
-        if (isMounted && currentUser?.role !== 'ADMIN') {
-            router.push('/');
-        }
-    }, [isMounted, currentUser, router]);
 
     const form = useForm<z.infer<typeof categorieSchema>>({
         resolver: zodResolver(categorieSchema),
@@ -116,14 +109,6 @@ export default function CategoriesPage() {
         }
     };
 
-    if (currentUser?.role !== 'ADMIN') {
-        return (
-            <div className="flex flex-1 flex-col items-center justify-center h-full">
-                <p>Accès non autorisé.</p>
-            </div>
-        );
-    }
-    
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center">

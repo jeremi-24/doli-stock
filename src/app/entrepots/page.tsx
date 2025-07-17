@@ -29,19 +29,12 @@ const lieuStockSchema = z.object({
 });
 
 export default function LieuxStockPage() {
-    const { lieuxStock, addLieuStock, updateLieuStock, deleteLieuxStock, isMounted, currentUser } = useApp();
+    const { lieuxStock, addLieuStock, updateLieuStock, deleteLieuxStock, isMounted } = useApp();
     const { toast } = useToast();
-    const router = useRouter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingLieuStock, setEditingLieuStock] = useState<LieuStock | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedLieux, setSelectedLieux] = useState<number[]>([]);
-
-    useEffect(() => {
-        if (isMounted && currentUser?.role !== 'ADMIN') {
-            router.push('/');
-        }
-    }, [isMounted, currentUser, router]);
 
     const form = useForm<z.infer<typeof lieuStockSchema>>({
         resolver: zodResolver(lieuStockSchema),
@@ -112,14 +105,6 @@ export default function LieuxStockPage() {
             setIsLoading(false);
         }
     };
-
-    if (currentUser?.role !== 'ADMIN') {
-        return (
-            <div className="flex flex-1 flex-col items-center justify-center h-full">
-                <p>Accès non autorisé.</p>
-            </div>
-        );
-    }
     
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
