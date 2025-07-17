@@ -230,7 +230,7 @@ export type RoleCreationPayload = {
 export type CurrentUser = {
   id: number;
   email: string;
-  role: string;
+  role: Role;
   lieuId?: number;
   clientId?: number;
   permissions: Permission[];

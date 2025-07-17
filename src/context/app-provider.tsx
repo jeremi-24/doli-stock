@@ -127,7 +127,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const adminRoles = ['SECRETARIAT', 'ADMIN', 'DG'];
     let fetchCommandesPromise;
 
-    if (adminRoles.includes(user.role)) {
+    if (adminRoles.includes(user.role.nom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
     } else if (user.clientId) {
         // This covers MAGASINIER, CONTROLLEUR, and any other role with an associated clientId
@@ -213,7 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   const hasPermission = useCallback((action: string) => {
     if (!currentUser || !isMounted) return false;
-    if (currentUser.role === 'ADMIN') return true;
+    if (currentUser.role?.nom === 'ADMIN') return true;
     return permissions.has(action);
   }, [permissions, currentUser, isMounted]);
   

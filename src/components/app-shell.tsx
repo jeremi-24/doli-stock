@@ -278,7 +278,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                         <div className="text-left group-data-[collapsible=icon]:hidden">
-                            <p className="font-semibold text-sm">{currentUser?.role}</p>
+                            <p className="font-semibold text-sm">{currentUser?.role?.nom}</p>
                             <p className="text-xs text-muted-foreground">{currentUser?.email || 'email@example.com'}</p>
                         </div>
                     </Button>
