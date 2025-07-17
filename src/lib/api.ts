@@ -127,15 +127,15 @@ export async function saveOrganisation(data: Partial<ShopInfo>): Promise<ShopInf
 }
 
 // ========== Clients API ==========
-export async function getClients(): Promise<Client[]> { return apiFetch('/client'); }
+export async function getClients(): Promise<Client[]> { return apiFetch('/clients'); }
 export async function createClient(data: Omit<Client, 'id'>): Promise<Client> {
-  return apiFetch('/client', { method: 'POST', body: JSON.stringify(data) });
+  return apiFetch('/clients', { method: 'POST', body: JSON.stringify(data) });
 }
 export async function updateClient(id: number, data: Partial<Client>): Promise<Client> {
-  return apiFetch(`/client/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  return apiFetch(`/clients/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 }
 export async function deleteClient(id: number): Promise<null> {
-  return apiFetch(`/client/${id}`, { method: 'DELETE' });
+  return apiFetch(`/clients/${id}`, { method: 'DELETE' });
 }
 
 // ========== Categories API ==========
