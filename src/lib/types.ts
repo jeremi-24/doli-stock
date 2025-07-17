@@ -148,6 +148,8 @@ export type LigneBonLivraison = {
     id: number;
     produitNom: string;
     qteLivre: number;
+    produitPrix: number;
+    totalLigne: number;
 };
 
 export type BonLivraison = {
@@ -158,6 +160,12 @@ export type BonLivraison = {
     statut: 'EN_ATTENTE_LIVRAISON' | 'LIVREE';
     lieu: LieuStock;
     client: Client;
+};
+
+export type ValidationCommandeResponse = {
+  commande: Commande;
+  facture: Facture;
+  bonLivraison: BonLivraison;
 };
 
 

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/context/app-provider';
-import type { Commande } from '@/lib/types';
+import type { Commande, ValidationCommandeResponse } from '@/lib/types';
 import { PlusCircle, FileStack, Loader2, Check, FileSignature, Truck, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -21,17 +21,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
 
 
 export default function OrdersPage() {
     const { commandes, isMounted, currentUser, hasPermission, validerCommande, annulerCommande, genererFacture, genererBonLivraison } = useApp();
     const router = useRouter();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
+    const [validationData, setValidationData] = useState<ValidationCommandeResponse | null>(null);
 
-    const handleAction = async (action: (id: number) => Promise<void>, commandeId: number) => {
+    const handleAction = async <T,>(action: (id: number) => Promise<T | void>, commandeId: number, callback?: (result: T) => void) => {
         setLoadingStates(prev => ({ ...prev, [commandeId]: true }));
-        await action(commandeId);
-        setLoadingStates(prev => ({ ...prev, [commandeId]: false }));
+        try {
+            const result = await action(commandeId);
+            if (result && callback) {
+                callback(result as T);
+            }
+        } finally {
+            setLoadingStates(prev => ({ ...prev, [commandeId]: false }));
+        }
+    };
+    
+    const handleValidate = (result: ValidationCommandeResponse) => {
+        setValidationData(result);
     };
 
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -97,7 +109,7 @@ export default function OrdersPage() {
                                                     <Loader2 className="h-4 w-4 animate-spin ml-auto" />
                                                 ) : isPendingSecretariatAction ? (
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <Button size="sm" onClick={() => handleAction(validerCommande, cmd.id)} disabled={isLoading}>
+                                                        <Button size="sm" onClick={() => handleAction(validerCommande, cmd.id, handleValidate)} disabled={isLoading}>
                                                             <Check className="mr-2 h-4 w-4" /> Valider
                                                         </Button>
                                                         <AlertDialog>
@@ -142,11 +154,8 @@ export default function OrdersPage() {
                                                                     {(canGenerateInvoice || canGenerateBL) && <DropdownMenuSeparator />}
                                                                 </>
                                                             )}
-                                                            <DropdownMenuItem disabled={cmd.statut !== 'ANNULEE'} onClick={() => {}}>
-                                                                Commande annulée
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem disabled={cmd.statut !== 'EN_ATTENTE'}>
-                                                                En attente de validation
+                                                            <DropdownMenuItem disabled>
+                                                                {cmd.statut === 'EN_ATTENTE' ? 'En attente de validation' : `Commande ${cmd.statut.toLowerCase()}`}
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
@@ -162,6 +171,14 @@ export default function OrdersPage() {
                     </div>
                 </CardContent>
             </Card>
+            {validationData && (
+                <DocumentPreviewDialog 
+                    isOpen={!!validationData}
+                    onOpenChange={() => setValidationData(null)}
+                    facture={validationData.facture}
+                    bonLivraison={validationData.bonLivraison}
+                />
+            )}
         </div>
     )
 }

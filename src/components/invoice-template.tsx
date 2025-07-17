@@ -4,12 +4,14 @@
 import type { ShopInfo, Facture } from '@/lib/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useReactToPrint } from 'react-to-print';
+import React from 'react';
 
-export function InvoiceTemplate({ shopInfo, facture }: { shopInfo: ShopInfo, facture: Facture }) {
+export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Facture, shopInfo: ShopInfo }>(({ shopInfo, facture }, ref) => {
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
   return (
-    <div className="bg-white text-black p-8 font-sans text-sm w-[210mm] min-h-[297mm]">
+    <div ref={ref} className="bg-white text-black p-8 font-sans text-sm w-[210mm] min-h-[297mm]">
       {/* Header */}
       <header className="flex justify-between items-start pb-8 border-b-2 border-gray-200">
         <div className="w-2/3">
@@ -86,4 +88,6 @@ export function InvoiceTemplate({ shopInfo, facture }: { shopInfo: ShopInfo, fac
       </footer>
     </div>
   );
-}
+});
+
+InvoiceTemplate.displayName = 'InvoiceTemplate';

@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, ValidationCommandeResponse } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -35,7 +35,7 @@ interface AppContextType {
   createInventaire: (payload: InventairePayload, isFirst: boolean) => Promise<Inventaire | null>;
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   createCommande: (payload: CommandePayload) => Promise<Commande | null>;
-  validerCommande: (commandeId: number) => Promise<void>;
+  validerCommande: (commandeId: number) => Promise<ValidationCommandeResponse | null>;
   annulerCommande: (commandeId: number) => Promise<void>;
   genererFacture: (commandeId: number) => Promise<void>;
   genererBonLivraison: (commandeId: number) => Promise<void>;
@@ -309,13 +309,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast, handleGenericError, currentUser]);
 
-  const validerCommande = useCallback(async (commandeId: number) => {
+  const validerCommande = useCallback(async (commandeId: number): Promise<ValidationCommandeResponse | null> => {
     try {
-      await api.validerCommande(commandeId);
+      const validationData = await api.validerCommande(commandeId);
       await fetchAllData(currentUser);
       toast({ title: "Commande validée" });
+      return validationData;
     } catch (error) {
         handleGenericError(error, "Erreur de validation");
+        return null;
     }
   }, [fetchAllData, toast, handleGenericError, currentUser]);
 
@@ -381,7 +383,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createInventaire, addReapprovisionnement,
     createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, validerLivraison,
     shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails, hasPermission, login, loadUserAndData
+    isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout
   ]);
 
   return (

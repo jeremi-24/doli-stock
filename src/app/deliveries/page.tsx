@@ -18,8 +18,11 @@ export default function DeliveriesPage() {
 
     const handleValidate = async (livraisonId: number) => {
         setLoadingStates(prev => ({ ...prev, [livraisonId]: true }));
-        await validerLivraison(livraisonId);
-        setLoadingStates(prev => ({ ...prev, [livraisonId]: false }));
+        try {
+            await validerLivraison(livraisonId);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, [livraisonId]: false }));
+        }
     };
 
     return (

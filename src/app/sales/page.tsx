@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,11 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { useApp } from '@/context/app-provider';
 import type { Facture, Produit, ShopInfo } from '@/lib/types';
 import * as api from '@/lib/api';
-import { PlusCircle, Eye, Search, History, Trash2, Loader2, FileText, Download } from 'lucide-react';
+import { PlusCircle, Eye, Search, History, Trash2, Loader2, FileText, Download, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { InvoiceTemplate } from '@/components/invoice-template';
 import { useToast } from '@/hooks/use-toast';
+import { useReactToPrint } from 'react-to-print';
 
 function SaleDetailsDialog({ facture }: { facture: Facture }) {
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -53,65 +54,33 @@ function SaleDetailsDialog({ facture }: { facture: Facture }) {
 }
 
 function InvoicePreviewDialog({ facture, shopInfo, isOpen, onOpenChange }: { facture: Facture | null, shopInfo: ShopInfo, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
-    const invoiceRef = React.useRef<HTMLDivElement>(null);
-    const [isGenerating, setIsGenerating] = React.useState(false);
+    const invoiceRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
-    const handleGeneratePdf = async () => {
-        const input = invoiceRef.current;
-        if (!input) {
-            toast({ variant: 'destructive', title: 'Erreur', description: "L'élément de facture est introuvable." });
-            return;
-        }
-
-        setIsGenerating(true);
-        try {
-            const canvas = await html2canvas(input, {
-                scale: 2,
-                useCORS: true, 
-            });
-            const imgData = canvas.toDataURL('image/png');
-            
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-            const ratio = canvasWidth / canvasHeight;
-            const imgHeight = pdfWidth / ratio;
-            
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
-            pdf.save(`facture-${facture?.idFacture || 'vente'}.pdf`);
-        } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: 'Erreur de génération', description: "Impossible de générer le PDF." });
-        } finally {
-            setIsGenerating(false);
-            onOpenChange(false);
-        }
-    };
+    const handlePrint = useReactToPrint({
+      content: () => invoiceRef.current,
+      onAfterPrint: () => onOpenChange(false),
+      onPrintError: () => toast({ variant: 'destructive', title: 'Erreur d\'impression', description: 'Veuillez réessayer.' }),
+    });
 
     if (!facture) return null;
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl h-[90vh]">
+            <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle className="font-headline">Aperçu de la Facture</DialogTitle>
                     <DialogDescription>
-                        Aperçu de la facture #{facture.idFacture}. Cliquez sur "Télécharger" pour obtenir le PDF.
+                        Aperçu de la facture #{facture.idFacture}.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="overflow-auto bg-gray-200 p-4 rounded-md">
-                     <div ref={invoiceRef}>
-                         <InvoiceTemplate facture={facture} shopInfo={shopInfo} />
-                    </div>
+                <div className="overflow-auto bg-gray-200 p-4 rounded-md flex-1">
+                     <InvoiceTemplate ref={invoiceRef} facture={facture} shopInfo={shopInfo} />
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isGenerating}>Fermer</Button>
-                    <Button onClick={handleGeneratePdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}
-                        {isGenerating ? "Génération..." : "Télécharger le PDF"}
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Fermer</Button>
+                    <Button onClick={handlePrint}>
+                        <Printer className="mr-2 h-4 w-4"/>Imprimer
                     </Button>
                 </DialogFooter>
             </DialogContent>
