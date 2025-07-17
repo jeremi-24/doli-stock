@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/context/app-provider';
 import type { Commande } from '@/lib/types';
-import { PlusCircle, FileStack, Loader2, Check, FileSignature, Truck } from 'lucide-react';
+import { PlusCircle, FileStack, Loader2, Check, FileSignature, Truck, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -17,12 +17,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 
 export default function OrdersPage() {
-    const { commandes, isMounted, currentUser, validerCommande, genererFacture, genererBonLivraison } = useApp();
+    const { commandes, isMounted, currentUser, hasPermission, validerCommande, annulerCommande, genererFacture, genererBonLivraison } = useApp();
     const router = useRouter();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
 
@@ -37,15 +39,23 @@ export default function OrdersPage() {
     const sortedCommandes = React.useMemo(() => 
         [...commandes].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
     [commandes]);
+    
+    const canValidate = React.useMemo(() => hasPermission('COMMANDE_VALIDATE'), [hasPermission]);
+    const canCancel = React.useMemo(() => hasPermission('COMMANDE_CANCEL'), [hasPermission]);
+    const canGenerateInvoice = React.useMemo(() => hasPermission('FACTURE_GENERATE'), [hasPermission]);
+    const canGenerateBL = React.useMemo(() => hasPermission('LIVRAISON_GENERATE'), [hasPermission]);
+
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center gap-4">
                 <h1 className="font-headline text-3xl font-semibold">Suivi des Commandes</h1>
                 <div className="ml-auto">
-                    <Button size="sm" onClick={() => router.push('/orders/new')}>
-                        <PlusCircle className="h-4 w-4 mr-2" /> Nouvelle Commande
-                    </Button>
+                    {hasPermission('COMMANDE_CREATE') && (
+                        <Button size="sm" onClick={() => router.push('/orders/new')}>
+                            <PlusCircle className="h-4 w-4 mr-2" /> Nouvelle Commande
+                        </Button>
+                    )}
                 </div>
             </div>
             <Card>
@@ -96,21 +106,51 @@ export default function OrdersPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            {currentUser?.role === 'ADMIN' && cmd.statut === 'EN_ATTENTE' && (
-                                                                <DropdownMenuItem onClick={() => handleAction(validerCommande, cmd.id)}>
-                                                                    <Check className="mr-2 h-4 w-4" /> Valider
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            {currentUser?.role === 'ADMIN' && cmd.statut === 'VALIDEE' && (
+                                                            {cmd.statut === 'EN_ATTENTE' && (
                                                                 <>
-                                                                    <DropdownMenuItem onClick={() => handleAction(genererFacture, cmd.id)}>
-                                                                        <FileSignature className="mr-2 h-4 w-4" /> Générer Facture
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => handleAction(genererBonLivraison, cmd.id)}>
-                                                                        <Truck className="mr-2 h-4 w-4" /> Générer BL
-                                                                    </DropdownMenuItem>
+                                                                    {canValidate && (
+                                                                        <DropdownMenuItem onClick={() => handleAction(validerCommande, cmd.id)}>
+                                                                            <Check className="mr-2 h-4 w-4" /> Valider
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    {canCancel && (
+                                                                        <AlertDialog>
+                                                                            <AlertDialogTrigger asChild>
+                                                                                <Button variant="ghost" className="w-full justify-start text-sm font-normal text-destructive hover:text-destructive hover:bg-destructive/10 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
+                                                                                    <XCircle className="mr-2 h-4 w-4" /> Annuler
+                                                                                </Button>
+                                                                            </AlertDialogTrigger>
+                                                                            <AlertDialogContent>
+                                                                                <AlertDialogHeader>
+                                                                                    <AlertDialogTitle>Annuler la commande ?</AlertDialogTitle>
+                                                                                    <AlertDialogDescription>
+                                                                                        Cette action est irréversible.
+                                                                                    </AlertDialogDescription>
+                                                                                </AlertDialogHeader>
+                                                                                <AlertDialogFooter>
+                                                                                    <AlertDialogCancel>Retour</AlertDialogCancel>
+                                                                                    <AlertDialogAction onClick={() => handleAction(annulerCommande, cmd.id)}>Annuler la commande</AlertDialogAction>
+                                                                                </AlertDialogFooter>
+                                                                            </AlertDialogContent>
+                                                                        </AlertDialog>
+                                                                    )}
                                                                 </>
                                                             )}
+                                                            {cmd.statut === 'VALIDEE' && (
+                                                                <>
+                                                                    {canGenerateInvoice && (
+                                                                        <DropdownMenuItem onClick={() => handleAction(genererFacture, cmd.id)}>
+                                                                            <FileSignature className="mr-2 h-4 w-4" /> Générer Facture
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    {canGenerateBL && (
+                                                                        <DropdownMenuItem onClick={() => handleAction(genererBonLivraison, cmd.id)}>
+                                                                            <Truck className="mr-2 h-4 w-4" /> Générer BL
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                            {(cmd.statut !== 'EN_ATTENTE' && cmd.statut !== 'VALIDEE') && <DropdownMenuItem disabled>Aucune action</DropdownMenuItem>}
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 )}
