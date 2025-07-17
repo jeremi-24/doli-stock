@@ -222,8 +222,16 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <Settings />,
       label: 'Paramètres',
       active: pathname === '/settings',
+      permission: 'USER_MANAGE',
     },
   ];
+
+  const filteredNavItems = navItems.filter(item => {
+    if (item.permission) {
+        return hasPermission(item.permission);
+    }
+    return true;
+  });
 
   return (
     <>
@@ -248,7 +256,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <Link href={item.href}>
                     <SidebarMenuButton isActive={item.active} size="lg" tooltip={item.label}>
