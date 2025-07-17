@@ -140,6 +140,7 @@ export async function deleteClient(id: number): Promise<null> {
 
 // ========== Categories API ==========
 export async function getCategories(): Promise<Categorie[]> { return apiFetch('/categorie'); };
+export async function getCategoryIdByName(nom: string): Promise<number> { return apiFetch(`/categorie/id?nom=${encodeURIComponent(nom)}`); };
 export async function createCategory(data: { nom: string }): Promise<Categorie> {
   const body = { nom: data.nom };
   return apiFetch('/categorie', { method: 'POST', body: JSON.stringify(body) });
@@ -154,6 +155,7 @@ export async function deleteCategories(ids: number[]): Promise<null> {
 
 // ========== Lieux de Stock API ==========
 export async function getLieuxStock(): Promise<LieuStock[]> { return apiFetch('/lieustock'); };
+export async function getLieuStockIdByName(nom: string): Promise<number> { return apiFetch(`/lieustock/id?nom=${encodeURIComponent(nom)}`); };
 export async function createLieuStock(data: { nom: string, type: string, localisation?: string }): Promise<LieuStock> {
   return apiFetch('/lieustock', { method: 'POST', body: JSON.stringify(data) });
 };

@@ -56,6 +56,7 @@
   import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
   import { Skeleton } from "@/components/ui/skeleton";
   import { Checkbox } from "@/components/ui/checkbox";
+  import * as api from "@/lib/api";
 
 const produitSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -151,18 +152,40 @@ const assignSchema = z.object({
     
     const onSubmit = async (values: z.infer<typeof produitSchema>) => {
       setIsLoading(true);
-      const productData = { 
-          ...values, 
-          categorieId: parseInt(values.categorieId, 10),
-          lieuStockId: parseInt(values.lieuStockId, 10),
-          codeBarre: values.codeBarre || `BC-${Date.now().toString().slice(-8)}`
-      };
-      
       try {
           if (editingProduit) {
+              const categorieIdIsString = typeof values.categorieId === 'string';
+              const lieuStockIdIsString = typeof values.lieuStockId === 'string';
+
+              let finalCategorieId = parseInt(values.categorieId, 10);
+              let finalLieuStockId = parseInt(values.lieuStockId, 10);
+
+              // If the value is a string and hasn't changed, it might be the old ID.
+              // A better approach is to fetch ID by name if the value didn't change in the dropdown
+              const formState = form.getValues();
+              
+              if(String(editingProduit.categorieId) === formState.categorieId && editingProduit.categorieNom) {
+                 finalCategorieId = await api.getCategoryIdByName(editingProduit.categorieNom);
+              }
+              if(String(editingProduit.lieuStockId) === formState.lieuStockId && editingProduit.lieuStockNom) {
+                  finalLieuStockId = await api.getLieuStockIdByName(editingProduit.lieuStockNom);
+              }
+
+              const productData = { 
+                  ...values, 
+                  categorieId: finalCategorieId,
+                  lieuStockId: finalLieuStockId,
+                  codeBarre: values.codeBarre || `BC-${Date.now().toString().slice(-8)}`
+              };
               await updateProduit({ ...editingProduit, ...productData });
               toast({ title: "Produit mis à jour" });
           } else {
+              const productData = { 
+                  ...values, 
+                  categorieId: parseInt(values.categorieId, 10),
+                  lieuStockId: parseInt(values.lieuStockId, 10),
+                  codeBarre: values.codeBarre || `BC-${Date.now().toString().slice(-8)}`
+              };
               await addProduit(productData);
               toast({ title: "Produit ajouté" });
           }
