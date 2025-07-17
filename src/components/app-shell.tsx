@@ -156,91 +156,76 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <LayoutDashboard />,
       label: 'Tableau de Bord',
       active: pathname === '/',
-      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/stock',
       icon: <Warehouse />,
       label: 'Stock',
       active: pathname === '/stock',
-      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/orders',
       icon: <FileStack />,
       label: 'Commandes',
       active: pathname.startsWith('/orders'),
-      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/deliveries',
       icon: <Truck />,
       label: 'Bons de Livraison',
       active: pathname.startsWith('/deliveries'),
-      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/sales',
       icon: <History />,
       label: 'Factures',
       active: pathname === '/sales',
-      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/categories',
       icon: <Tag />,
       label: 'Catégories',
       active: pathname === '/categories',
-      roles: ['ADMIN'],
     },
     {
       href: '/entrepots',
       icon: <Building2 />,
       label: 'Lieux de Stock',
       active: pathname === '/entrepots',
-      roles: ['ADMIN'],
     },
     {
       href: '/clients',
       icon: <Users />,
       label: 'Clients',
       active: pathname === '/clients',
-      roles: ['ADMIN'],
     },
     {
       href: '/inventories',
       icon: <ClipboardList />,
       label: 'Inventaires',
       active: pathname.startsWith('/inventories'),
-      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/reapprovisionnements',
       icon: <PackagePlus />,
       label: 'Réapprovisionnement',
       active: pathname.startsWith('/reapprovisionnements'),
-      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/pos',
       icon: <ShoppingCart />,
       label: 'Point de Vente',
       active: pathname === '/pos',
-      roles: ['ADMIN', 'USER'],
     },
     {
       href: '/settings',
       icon: <Settings />,
       label: 'Paramètres',
       active: pathname === '/settings',
-      roles: ['ADMIN'],
     },
   ];
 
-  const visibleNavItems = navItems.filter(item => {
-    const hasRequiredRole = !item.roles || (currentUser && item.roles.includes(currentUser.role));
-    return hasRequiredRole;
-  });
+  const visibleNavItems = navItems;
 
   return (
     <>
