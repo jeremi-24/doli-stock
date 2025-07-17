@@ -101,7 +101,7 @@ export async function registerUser(data: SignupPayload): Promise<any> {
 }
 
 export async function getUserProfile(): Promise<CurrentUser> {
-    return apiFetch('/users/profile');
+    return apiFetch('/users/me');
 }
 
 
