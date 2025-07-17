@@ -84,8 +84,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPermissions(new Set());
     localStorage.removeItem('stockhero_token');
     router.push('/login');
+    setIsMounted(true); 
   }, [router]);
-
+  
   const handleFetchError = useCallback((error: unknown, resourceName: string) => {
       const description = (error instanceof api.ApiError) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
       if (error instanceof api.ApiError && (error.status === 403)) {
@@ -147,7 +148,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
     try {
-      const userProfile = await api.getUserProfile();
+      const userProfile = await api.getMe();
       setCurrentUser(userProfile);
       const userPermissions = new Set(userProfile.permissions?.filter(p => p.autorise).map(p => p.action) || []);
       setPermissions(userPermissions);
@@ -174,7 +175,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsMounted(true);
     };
     initializeApp();
-  }, [loadUserAndData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   
   useEffect(() => {
@@ -188,16 +190,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [themeColors, isMounted]);
 
   const login = async (newToken: string) => {
+    setIsMounted(false);
     localStorage.setItem('stockhero_token', newToken);
     setToken(newToken);
     await loadUserAndData(newToken);
+    setIsMounted(true);
   };
   
   const hasPermission = useCallback((action: string) => {
-    if (!currentUser) return false;
+    if (!currentUser || !isMounted) return false;
     if (currentUser.role?.nom === 'ADMIN') return true;
     return permissions.has(action);
-  }, [permissions, currentUser]);
+  }, [permissions, currentUser, isMounted]);
   
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
     try {
@@ -377,7 +381,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createInventaire, addReapprovisionnement,
     createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, validerLivraison,
     shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails, hasPermission, login, fetchAllData
+    isMounted, token, logout, currentUser, scannedProductDetails, hasPermission, login, loadUserAndData
   ]);
 
   return (

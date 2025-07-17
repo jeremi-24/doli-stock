@@ -48,7 +48,7 @@ export default function LoginPage() {
         await login(response.token);
         router.push('/');
       } else {
-        throw new Error("Réponse de connexion invalide, token ou succès manquant.");
+        throw new Error("Les identifiants de connexion sont incorrects.");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";

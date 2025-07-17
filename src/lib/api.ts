@@ -100,7 +100,7 @@ export async function registerUser(data: SignupPayload): Promise<any> {
   return apiFetch('/users/register', { method: 'POST', body: JSON.stringify(payload) });
 }
 
-export async function getUserProfile(): Promise<CurrentUser> {
+export async function getMe(): Promise<CurrentUser> {
     return apiFetch('/users/me');
 }
 
