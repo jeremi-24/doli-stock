@@ -105,6 +105,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (error instanceof api.ApiError && (error.status === 401 || error.status === 403)) {
       setTimeout(() => logout(), 1500);
     }
+    throw error;
   }, [toast, logout]);
 
   const fetchFactures = useCallback(async () => {
@@ -214,49 +215,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toast({ title: "Informations de l'organisation mises à jour" });
     } catch (error) {
         handleGenericError(error, "Erreur de sauvegarde");
-        throw error;
     }
   }, [fetchAllData, toast, handleGenericError]);
 
   const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => {
-    try { await api.createCategory(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); throw error; }
+    try { await api.createCategory(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
   }, [fetchAllData, handleGenericError]);
   const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => {
-    try { await api.updateCategory(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); throw error; }
+    try { await api.updateCategory(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
   }, [fetchAllData, handleGenericError]);
   const deleteCategories = useCallback(async (ids: number[]) => {
-    try { await api.deleteCategories(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); throw error; }
+    try { await api.deleteCategories(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
   }, [fetchAllData, handleGenericError]);
 
   const addLieuStock = useCallback(async (data: Omit<LieuStock, 'id'>) => {
-    try { await api.createLieuStock(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); throw error; }
+    try { await api.createLieuStock(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
   }, [fetchAllData, handleGenericError]);
   const updateLieuStock = useCallback(async (id: number, data: Partial<LieuStock>) => {
-    try { await api.updateLieuStock(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); throw error; }
+    try { await api.updateLieuStock(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
   }, [fetchAllData, handleGenericError]);
   const deleteLieuxStock = useCallback(async (ids: number[]) => {
-    try { await api.deleteLieuxStock(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); throw error; }
+    try { await api.deleteLieuxStock(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
   }, [fetchAllData, handleGenericError]);
 
   const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => {
-    try { await api.createProduct(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); throw error; }
+    try { await api.createProduct(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
   }, [fetchAllData, handleGenericError]);
   const updateProduit = useCallback(async (data: Produit) => {
-    try { await api.updateProduct(data.id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); throw error; }
+    try { await api.updateProduct(data.id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
   }, [fetchAllData, handleGenericError]);
   const deleteProduits = useCallback(async (ids: number[]) => {
-    try { await api.deleteProducts(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); throw error; }
+    try { await api.deleteProducts(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
   }, [fetchAllData, handleGenericError]);
   const assignProduits = useCallback(async (data: AssignationPayload) => {
-    try { await api.assignProducts(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'assignation"); throw error; }
+    try { await api.assignProducts(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'assignation"); }
   }, [fetchAllData, handleGenericError]);
   const addMultipleProduits = useCallback(async () => { await fetchAllData(); }, [fetchAllData]);
   
   const addClient = useCallback(async (data: Omit<Client, 'id'>) => {
-    try { await api.createClient(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); throw error; }
+    try { await api.createClient(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
   }, [fetchAllData, handleGenericError]);
   const updateClient = useCallback(async (id: number, data: Partial<Client>) => {
-    try { await api.updateClient(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); throw error; }
+    try { await api.updateClient(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
   }, [fetchAllData, handleGenericError]);
   const deleteClient = useCallback(async (id: number) => {
     try {
@@ -265,7 +265,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toast({ title: "Client supprimé" });
     } catch(error) {
         handleGenericError(error, "Erreur de suppression");
-        throw error;
     }
   }, [fetchAllData, toast, handleGenericError]);
 
@@ -311,7 +310,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return newCommande;
     } catch (error) {
         handleGenericError(error, "Erreur de création");
-        throw error;
+        return null;
     }
   }, [fetchAllData, toast, handleGenericError]);
 

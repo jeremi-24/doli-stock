@@ -22,7 +22,7 @@ type LignePanier = {
 };
 
 export default function NewOrderPage() {
-  const { produits, clients, createCommande, currentUser } = useApp();
+  const { produits, clients, createCommande } = useApp();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -101,8 +101,7 @@ export default function NewOrderPage() {
             router.push('/orders');
         }
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
-        toast({ variant: "destructive", title: "Échec de la création", description: errorMessage });
+        // Error is handled in context and will show a specific toast
     } finally {
         setIsSaving(false);
     }
