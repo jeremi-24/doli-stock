@@ -25,7 +25,7 @@ const clientSchema = z.object({
 });
 
 export default function ClientsPage() {
-    const { clients, addClient, updateClient, deleteClient, isMounted } = useApp();
+    const { clients, addClient, updateClient, deleteClient, isMounted, currentUser } = useApp();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<Client | null>(null);

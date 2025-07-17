@@ -29,7 +29,7 @@ const lieuStockSchema = z.object({
 });
 
 export default function LieuxStockPage() {
-    const { lieuxStock, addLieuStock, updateLieuStock, deleteLieuxStock, isMounted } = useApp();
+    const { lieuxStock, addLieuStock, updateLieuStock, deleteLieuxStock, isMounted, currentUser } = useApp();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingLieuStock, setEditingLieuStock] = useState<LieuStock | null>(null);
@@ -275,5 +275,4 @@ export default function LieuxStockPage() {
         </div>
     );
 }
-
     

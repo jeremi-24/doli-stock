@@ -26,7 +26,7 @@ const categorieSchema = z.object({
 });
 
 export default function CategoriesPage() {
-    const { categories, addCategorie, updateCategorie, deleteCategories, isMounted } = useApp();
+    const { categories, addCategorie, updateCategorie, deleteCategories, isMounted, currentUser } = useApp();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCategorie, setEditingCategorie] = useState<Categorie | null>(null);

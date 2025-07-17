@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode as BarcodeIcon, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer, Building2 as Warehouse, ShieldCheck, PlusCircle, Trash2, Pencil } from 'lucide-react';
+import { Settings, Barcode as BarcodeIcon, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer, Building2 as Warehouse, ShieldCheck, PlusCircle, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
 import type { ShopInfo, ThemeColors, Produit, Role, Utilisateur, LieuStock, Permission, RoleCreationPayload } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import * as api from '@/lib/api';
@@ -25,6 +25,8 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { cn } from "@/lib/utils";
 
 
 const organisationSchema = z.object({
@@ -278,6 +280,10 @@ function UsersTab() {
         setFormIsLoading(false);
     }
   }
+
+  const permissionDescriptions = React.useMemo(() => 
+    new Map(ALL_PERMISSIONS.map(p => [p.action, p.description])), 
+  []);
   
   return (
     <>
@@ -290,32 +296,45 @@ function UsersTab() {
         <Button onClick={() => setIsDialogOpen(true)} disabled={isLoading}>Ajouter un utilisateur</Button>
       </CardHeader>
       <CardContent>
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rôle</TableHead>
-                  <TableHead>Lieu de Stock</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                ) : users.length > 0 ? (
-                    users.map(user => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.email}</TableCell>
-                        <TableCell><Badge variant="secondary">{user.roleNom}</Badge></TableCell>
-                        <TableCell>{user.lieuNom}</TableCell>
-                      </TableRow>
-                    ))
-                ) : (
-                  <TableRow><TableCell colSpan={3} className="h-24 text-center">Aucun utilisateur trouvé.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <Accordion type="single" collapsible className="w-full">
+            {isLoading ? (
+                <div className="text-center p-8"><Loader2 className="animate-spin mx-auto" /></div>
+            ) : users.length > 0 ? (
+                users.map(user => (
+                  <AccordionItem value={user.email} key={user.id}>
+                    <AccordionTrigger>
+                      <div className="flex flex-col md:flex-row md:items-center gap-x-4 gap-y-1 text-left">
+                        <span className="font-semibold">{user.email}</span>
+                        <div className="flex items-center gap-4">
+                          <Badge variant="secondary">{user.roleNom}</Badge>
+                          <Badge variant="outline">{user.lieuNom}</Badge>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="px-4 pb-4">
+                          <h4 className="font-semibold mb-2 text-sm">Permissions :</h4>
+                          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                            {user.permissions && user.permissions
+                                .filter(p => p.autorise)
+                                .map(permission => (
+                                <li key={permission.id} className="flex items-center gap-2">
+                                  <CheckCircle className="h-4 w-4 text-green-500" />
+                                  <span>{permissionDescriptions.get(permission.action) || permission.action}</span>
+                                </li>
+                            ))}
+                          </ul>
+                          {(!user.permissions || user.permissions.filter(p => p.autorise).length === 0) && (
+                            <p className="text-sm text-muted-foreground">Cet utilisateur n'a aucune permission spécifique.</p>
+                          )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))
+            ) : (
+              <div className="text-center text-muted-foreground p-8">Aucun utilisateur trouvé.</div>
+            )}
+          </Accordion>
       </CardContent>
     </Card>
     
