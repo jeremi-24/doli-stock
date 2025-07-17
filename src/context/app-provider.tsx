@@ -227,7 +227,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
   
   const hasPermission = useCallback((action: string) => {
-    if (currentUser?.role === 'ADMIN') return true;
+    if (currentUser?.role?.nom === 'ADMIN') return true;
     return permissions.has(action);
   }, [permissions, currentUser]);
   
