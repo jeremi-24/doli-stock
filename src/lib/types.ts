@@ -148,8 +148,6 @@ export type LigneBonLivraison = {
     id: number;
     produitNom: string;
     qteLivre: number;
-    produitPrix: number;
-    totalLigne: number;
 };
 
 export type BonLivraison = {
