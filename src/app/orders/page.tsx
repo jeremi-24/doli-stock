@@ -76,8 +76,8 @@ export default function OrdersPage() {
                                         <TableRow key={cmd.id}>
                                             <TableCell className="font-mono text-xs">CMD-{String(cmd.id).padStart(5, '0')}</TableCell>
                                             <TableCell>{format(new Date(cmd.date), 'd MMM yyyy', { locale: fr })}</TableCell>
-                                            <TableCell>{cmd.client.nom}</TableCell>
-                                            <TableCell>{cmd.lieuLivraison.nom}</TableCell>
+                                            <TableCell>{cmd.client?.nom || 'N/A'}</TableCell>
+                                            <TableCell>{cmd.lieuLivraison?.nom || 'N/A'}</TableCell>
                                             <TableCell className="font-medium">{formatCurrency(cmd.totalCommande)}</TableCell>
                                             <TableCell>
                                                 <Badge variant={cmd.statut === 'VALIDEE' ? 'default' : (cmd.statut === 'ANNULEE' ? 'destructive' : 'secondary')}>
