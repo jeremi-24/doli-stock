@@ -43,7 +43,9 @@ export default function OrdersPage() {
     };
     
     const handleValidate = (result: ValidationCommandeResponse) => {
-        setValidationData(result);
+        if(result){
+            setValidationData(result);
+        }
     };
 
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);

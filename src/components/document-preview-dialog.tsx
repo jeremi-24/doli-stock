@@ -3,13 +3,12 @@
 
 import React, { useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Facture, BonLivraison, ShopInfo } from '@/lib/types';
 import { useApp } from '@/context/app-provider';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Separator } from './ui/separator';
 import { Printer, X } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 
