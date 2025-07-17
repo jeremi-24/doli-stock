@@ -69,7 +69,7 @@ export default function DeliveriesPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant={bl.statut === 'LIVREE' ? "default" : "secondary"}>
+                                                <Badge variant={bl.statut === 'LIVREE' ? 'default' : "secondary"}>
                                                     {bl.statut === 'LIVREE' ? 'Livré' : 'En attente de validation'}
                                                 </Badge>
                                             </TableCell>
