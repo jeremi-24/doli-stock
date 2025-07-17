@@ -128,43 +128,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [handleFetchError]);
 
   const fetchAllData = useCallback(async () => {
+    const dataFetchPromises = [
+        api.getOrganisations().then(orgs => {
+            if (orgs && orgs.length > 0) setShopInfoState(orgs[0]);
+        }).catch(err => handleFetchError(err, 'Organisation')),
+        api.getProducts().then(data => setProduits(data || [])).catch(err => handleFetchError(err, 'Produits')),
+        api.getCategories().then(data => setCategories(data || [])).catch(err => handleFetchError(err, 'Catégories')),
+        api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
+        api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients')),
+        api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes')),
+        fetchFactures(),
+    ];
+
     try {
-        const orgs = await api.getOrganisations();
-        if (orgs && orgs.length > 0) {
-            setShopInfoState(orgs[0]);
-        }
-    } catch (error) { handleFetchError(error, 'Organisation'); }
-    try {
-        const produitsData = await api.getProducts();
-        setProduits(produitsData || []);
-    } catch (error) { handleFetchError(error, 'Produits'); }
-    try {
-        const categoriesData = await api.getCategories();
-        setCategories(categoriesData || []);
-    } catch (error) { handleFetchError(error, 'Catégories'); }
-    try {
-        const lieuxStockData = await api.getLieuxStock();
-        setLieuxStock(lieuxStockData || []);
-    } catch (error) { handleFetchError(error, 'Lieux de Stock'); }
-    try {
-        const clientsData = await api.getClients();
-        setClients(clientsData || []);
-    } catch (error) { handleFetchError(error, 'Clients'); }
-    try {
-        const commandesData = await api.getCommandes();
-        setCommandes(commandesData || []);
-    } catch (error) { handleFetchError(error, 'Commandes'); }
-     try {
         const user = JSON.parse(localStorage.getItem('stockhero_user') || 'null');
-        if(user && user.lieuId) {
-            const livraisonsData = await api.getBonsLivraison(user.lieuId);
-            setBonLivraisons(livraisonsData || []);
+        if (user && user.lieuId) {
+            dataFetchPromises.push(
+                api.getBonsLivraison(user.lieuId)
+                    .then(data => setBonLivraisons(data || []))
+                    .catch(err => handleFetchError(err, 'Bons de Livraison'))
+            );
         } else {
-             setBonLivraisons([]);
+            setBonLivraisons([]);
         }
-    } catch (error) { handleFetchError(error, 'Bons de Livraison'); }
-    fetchFactures();
+    } catch (error) {
+        handleFetchError(error, 'User Info for Deliveries');
+    }
+
+    await Promise.allSettled(dataFetchPromises);
   }, [handleFetchError, fetchFactures]);
+
 
   const updateUserFromStorage = useCallback(() => {
     const storedToken = localStorage.getItem('stockhero_token');
