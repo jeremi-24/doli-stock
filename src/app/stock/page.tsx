@@ -87,7 +87,6 @@ const assignSchema = z.object({
     const [isLoading, setIsLoading] = React.useState(false);
     const { toast } = useToast();
 
-    const canCreate = React.useMemo(() => hasPermission('PRODUIT_CREATE'), [hasPermission]);
     const canUpdate = React.useMemo(() => hasPermission('PRODUIT_UPDATE'), [hasPermission]);
     const canDelete = React.useMemo(() => hasPermission('PRODUIT_DELETE'), [hasPermission]);
 
@@ -279,9 +278,7 @@ const assignSchema = z.object({
             )}
             </>
           )}
-          {canCreate && (
-            <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
-          )}
+          <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
         </div>
       </div>
       <Card>
