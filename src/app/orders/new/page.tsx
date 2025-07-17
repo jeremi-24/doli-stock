@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,12 @@ export default function NewOrderPage() {
     if (!clients) return null;
     return clients.find(c => c.nom.toUpperCase() === 'CLIENT GENERIQUE');
   }, [clients]);
+
+  useEffect(() => {
+      if (currentUser && genericClient && currentUser.role?.nom !== 'ADMIN' && currentUser.role?.nom !== 'SECRETARIAT' && currentUser.role?.nom !== 'DG') {
+          setClientId(String(genericClient.id));
+      }
+  }, [currentUser, genericClient]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -107,6 +113,8 @@ export default function NewOrderPage() {
     }
   };
 
+  const canSelectClient = currentUser?.role?.nom === 'ADMIN' || currentUser?.role?.nom === 'SECRETARIAT' || currentUser?.role?.nom === 'DG';
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
@@ -121,17 +129,18 @@ export default function NewOrderPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="client-select">Client (Demandeur)</Label>
-              <Select value={clientId} onValueChange={setClientId} disabled={isSaving}>
-                <SelectTrigger id="client-select">
-                  <SelectValue placeholder="Sélectionner un client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {genericClient && currentUser && (
-                    <SelectItem key={genericClient.id} value={String(genericClient.id)}>{currentUser.email}</SelectItem>
-                  )}
-                  {clients.filter(c => c.nom.toUpperCase() !== 'CLIENT GENERIQUE').map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
-                </SelectContent>
-              </Select>
+               <Select value={clientId} onValueChange={setClientId} disabled={isSaving || !canSelectClient}>
+                  <SelectTrigger id="client-select">
+                    <SelectValue placeholder="Sélectionner un client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {canSelectClient ? (
+                       clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)
+                    ) : (
+                      <SelectItem value={clientId || ''}>{currentUser?.email}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
             </div>
           </div>
           
