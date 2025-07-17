@@ -95,25 +95,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const handleFetchError = useCallback((error: unknown, resourceName: string) => {
       const description = (error instanceof api.ApiError) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
-      if (!(error instanceof api.ApiError && (error.status === 403 || error.status === 401))) {
-        toast({ variant: 'destructive', title: 'Erreur de chargement', description });
-      } else if(error instanceof api.ApiError && error.status === 403) {
-        toast({ variant: 'destructive', title: 'Accès refusé', description });
-      }
-      if (error instanceof api.ApiError && error.status === 401) {
+      if (error instanceof api.ApiError && (error.status === 403)) {
+         // Don't show a toast for 403, as it's an expected access denial, not a system error
+         console.warn(`Access denied for resource: ${resourceName}`);
+      } else if (error instanceof api.ApiError && error.status === 401) {
+        toast({ variant: 'destructive', title: 'Session expirée', description });
         setTimeout(() => logout(), 1500);
+      } else {
+        toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger: ${resourceName}.` });
       }
   }, [toast, logout]);
   
   const handleGenericError = useCallback((error: unknown, title: string = "Erreur") => {
     const description = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
-    if (!(error instanceof api.ApiError && (error.status === 403 || error.status === 401))) {
-      toast({ variant: 'destructive', title, description });
-    } else if(error instanceof api.ApiError && error.status === 403) {
+    if (error instanceof api.ApiError && error.status === 403) {
         toast({ variant: 'destructive', title: 'Accès refusé', description });
-    }
-    if (error instanceof api.ApiError && error.status === 401) {
+    } else if (error instanceof api.ApiError && error.status === 401) {
       setTimeout(() => logout(), 1500);
+    } else {
+      toast({ variant: 'destructive', title, description });
     }
     throw error;
   }, [toast, logout]);
@@ -124,6 +124,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setFactures(data || []);
     } catch (error) {
         handleFetchError(error, 'Factures');
+        // Still throw so Promise.allSettled can see it as rejected
+        throw error;
     }
   }, [handleFetchError]);
 
@@ -220,7 +222,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
   
   const hasPermission = useCallback((action: string) => {
-    if (currentUser?.role?.nom === 'ADMIN') return true;
+    if (currentUser?.role?.nom === 'ADMIN') {
+        return true;
+    }
     return permissions.has(action);
   }, [permissions, currentUser]);
   
@@ -409,3 +413,5 @@ export function useApp() {
   }
   return context;
 }
+
+    
