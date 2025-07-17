@@ -22,7 +22,7 @@ type LignePanier = {
 };
 
 export default function NewOrderPage() {
-  const { produits, clients, createCommande } = useApp();
+  const { produits, clients, createCommande, currentUser } = useApp();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -34,6 +34,13 @@ export default function NewOrderPage() {
   const availableProducts = useMemo(() => {
     return produits.filter(p => !lignes.some(ligne => ligne.produitId === p.id));
   }, [produits, lignes]);
+
+  const meAsClient = useMemo(() => {
+    if (!currentUser || !clients) return null;
+    // Assuming client name can be the user's email or another unique identifier.
+    // Here we check by name, which might need adjustment based on backend logic.
+    return clients.find(c => c.nom.toLowerCase() === currentUser.email.toLowerCase());
+  }, [currentUser, clients]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -121,6 +128,9 @@ export default function NewOrderPage() {
                   <SelectValue placeholder="Sélectionner un client" />
                 </SelectTrigger>
                 <SelectContent>
+                  {meAsClient && (
+                    <SelectItem key={meAsClient.id} value={String(meAsClient.id)}>Moi ({meAsClient.nom})</SelectItem>
+                  )}
                   {clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
                 </SelectContent>
               </Select>
