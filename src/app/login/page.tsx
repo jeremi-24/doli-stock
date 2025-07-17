@@ -1,3 +1,4 @@
+
 "use client"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -39,15 +40,15 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await api.loginUser(values);
-      if (response && response.token) {
+      if (response && response.token && response.user) {
         toast({
             title: "Connexion réussie",
-            description: response.message || "Vous allez être redirigé vers le tableau de bord.",
+            description: "Vous allez être redirigé vers le tableau de bord.",
         });
-        login(response.token);
+        login(response.token, response.user);
         router.push('/');
       } else {
-        throw new Error("Réponse de connexion invalide, token manquant.");
+        throw new Error("Réponse de connexion invalide, token ou profil manquant.");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";

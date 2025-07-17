@@ -227,6 +227,7 @@ export type CurrentUser = {
   email: string;
   role: string;
   lieuId?: number;
+  permissions: Permission[];
 };
 
 export type LoginPayload = {

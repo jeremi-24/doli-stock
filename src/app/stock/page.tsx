@@ -79,13 +79,17 @@ const assignSchema = z.object({
 
 
   export default function StockPage() {
-    const { produits, categories, lieuxStock, addProduit, updateProduit, deleteProduits, assignProduits, isMounted } = useApp();
+    const { produits, categories, lieuxStock, addProduit, updateProduit, deleteProduits, assignProduits, isMounted, hasPermission } = useApp();
     const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [isAssignDialogOpen, setIsAssignDialogOpen] = React.useState(false);
     const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
     const [isLoading, setIsLoading] = React.useState(false);
     const { toast } = useToast();
+
+    const canCreate = React.useMemo(() => hasPermission('PRODUIT_CREATE'), [hasPermission]);
+    const canUpdate = React.useMemo(() => hasPermission('PRODUIT_UPDATE'), [hasPermission]);
+    const canDelete = React.useMemo(() => hasPermission('PRODUIT_DELETE'), [hasPermission]);
 
     const categoriesMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.nom])), [categories]);
     const lieuxStockMap = React.useMemo(() => new Map(lieuxStock.map(e => [e.id, e.nom])), [lieuxStock]);
@@ -243,35 +247,41 @@ const assignSchema = z.object({
         <div className="ml-auto flex items-center gap-2">
           {selectedProduits.length > 0 && (
             <>
-            <Button size="sm" variant="outline" onClick={() => setIsAssignDialogOpen(true)}>
-                <Shuffle className="h-4 w-4 mr-2"/>
-                Assigner ({selectedProduits.length})
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="h-4 w-4 mr-2"/>
-                  Supprimer ({selectedProduits.length})
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Cette action est irréversible. Elle supprimera définitivement {selectedProduits.length} produit(s).
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteSelected} disabled={isLoading}>
-                    {isLoading ? "Suppression..." : "Supprimer"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {canUpdate && (
+              <Button size="sm" variant="outline" onClick={() => setIsAssignDialogOpen(true)}>
+                  <Shuffle className="h-4 w-4 mr-2"/>
+                  Assigner ({selectedProduits.length})
+              </Button>
+            )}
+            {canDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-2"/>
+                    Supprimer ({selectedProduits.length})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Cette action est irréversible. Elle supprimera définitivement {selectedProduits.length} produit(s).
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteSelected} disabled={isLoading}>
+                      {isLoading ? "Suppression..." : "Supprimer"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             </>
           )}
-          <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
+          {canCreate && (
+            <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
+          )}
         </div>
       </div>
       <Card>
@@ -287,7 +297,9 @@ const assignSchema = z.object({
                         aria-label="Select all"
                     />
                 </TableHead>
-                <TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Lieu de Stock</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
+                <TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Lieu de Stock</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead>
+                {(canUpdate || canDelete) && <TableHead><span className="sr-only">Actions</span></TableHead>}
+                </TableRow></TableHeader>
               <TableBody>
                 {!isMounted ? (
                     Array.from({ length: 10 }).map((_, i) => (
@@ -316,14 +328,16 @@ const assignSchema = z.object({
                       <TableCell>{produit.lieuStockNom || lieuxStockMap.get(produit.lieuStockId) || 'N/A'}</TableCell>
                       <TableCell>{formatCurrency(produit.prix)}</TableCell>
                       <TableCell className="text-right">{produit.qte}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Menu</span></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(produit)}><Pencil className="mr-2 h-4 w-4" /> Modifier</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                      {(canUpdate || canDelete) && (
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Menu</span></Button></DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {canUpdate && <DropdownMenuItem onClick={() => handleEdit(produit)}><Pencil className="mr-2 h-4 w-4" /> Modifier</DropdownMenuItem>}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 ) : ( <TableRow><TableCell colSpan={7} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}

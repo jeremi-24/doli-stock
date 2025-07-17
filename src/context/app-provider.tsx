@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -46,8 +46,9 @@ interface AppContextType {
   isMounted: boolean;
   isAuthenticated: boolean;
   currentUser: CurrentUser | null;
-  login: (token: string) => void;
+  login: (token: string, profile: any) => void;
   logout: () => void;
+  hasPermission: (action: string) => boolean;
   scannedProductDetails: any | null;
   setScannedProductDetails: (details: any | null) => void;
 }
@@ -71,6 +72,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [scannedProductDetails, setScannedProductDetails] = useState<any | null>(null);
+  const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
@@ -78,6 +80,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     setToken(null);
     setCurrentUser(null);
+    setPermissions(new Set());
     localStorage.removeItem('stockhero_token');
     localStorage.removeItem('stockhero_user');
     setProduits([]);
@@ -92,7 +95,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const handleFetchError = useCallback((error: unknown, resourceName: string) => {
       const description = (error instanceof api.ApiError) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
-      if (!(error instanceof api.ApiError && error.status === 403)) { // Don't toast for 403
+      if (!(error instanceof api.ApiError && (error.status === 403 || error.status === 401))) {
         toast({ variant: 'destructive', title: 'Erreur de chargement', description });
       }
       if (error instanceof api.ApiError && error.status === 401) {
@@ -102,7 +105,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   const handleGenericError = useCallback((error: unknown, title: string = "Erreur") => {
     const description = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
-    toast({ variant: 'destructive', title, description });
+    if (!(error instanceof api.ApiError && error.status === 403)) {
+      toast({ variant: 'destructive', title, description });
+    }
     if (error instanceof api.ApiError && error.status === 401) {
       setTimeout(() => logout(), 1500);
     }
@@ -156,36 +161,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     fetchFactures();
   }, [handleFetchError, fetchFactures, currentUser]);
 
-  const updateUserFromToken = useCallback((newToken: string) => {
-    try {
-      const decoded: any = jwtDecode(newToken);
-      const user: CurrentUser = {
-        id: decoded.userId,
-        email: decoded.sub,
-        role: decoded.auth,
-        lieuId: decoded.lieuId,
-      };
-      localStorage.setItem('stockhero_token', newToken);
-      localStorage.setItem('stockhero_user', JSON.stringify(user));
-      setToken(newToken);
-      setCurrentUser(user);
-      return user;
-    } catch (e) {
-      console.error("Failed to decode token", e);
-      logout();
-      return null;
+  const updateUserFromStorage = useCallback(() => {
+    const storedToken = localStorage.getItem('stockhero_token');
+    const storedUser = localStorage.getItem('stockhero_user');
+    if (storedToken && storedUser) {
+        try {
+            const user: CurrentUser = JSON.parse(storedUser);
+            setCurrentUser(user);
+            setToken(storedToken);
+            const userPermissions = new Set(user.permissions.filter(p => p.autorise).map(p => p.action));
+            setPermissions(userPermissions);
+            return user;
+        } catch (e) {
+            console.error("Failed to parse user from storage", e);
+            logout();
+            return null;
+        }
     }
+    return null;
   }, [logout]);
   
   useEffect(() => {
-    const storedToken = localStorage.getItem('stockhero_token');
-    if (storedToken) {
-      updateUserFromToken(storedToken);
-    }
+    updateUserFromStorage();
     const storedThemeColors = localStorage.getItem('stockhero_themecolors');
     if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
     setIsMounted(true);
-  }, [updateUserFromToken]);
+  }, [updateUserFromStorage]);
 
   useEffect(() => {
     const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -204,9 +205,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [themeColors, isMounted]);
 
-  const login = (newToken: string) => {
-    updateUserFromToken(newToken);
+  const login = (newToken: string, profile: CurrentUser) => {
+    localStorage.setItem('stockhero_token', newToken);
+    localStorage.setItem('stockhero_user', JSON.stringify(profile));
+    setToken(newToken);
+    setCurrentUser(profile);
+    const userPermissions = new Set(profile.permissions.filter(p => p.autorise).map(p => p.action));
+    setPermissions(userPermissions);
   };
+  
+  const hasPermission = useCallback((action: string) => {
+    return permissions.has(action);
+  }, [permissions]);
   
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
     try {
@@ -365,7 +375,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createCommande, validerCommande, genererFacture, genererBonLivraison, validerLivraison,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, isAuthenticated: !!token, currentUser,
-    login, logout,
+    login, logout, hasPermission,
     scannedProductDetails, setScannedProductDetails,
   }), [
     produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, fetchFactures,
@@ -376,7 +386,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createInventaire, addReapprovisionnement,
     createCommande, validerCommande, genererFacture, genererBonLivraison, validerLivraison,
     shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails
+    isMounted, token, logout, currentUser, scannedProductDetails, hasPermission
   ]);
 
   return (

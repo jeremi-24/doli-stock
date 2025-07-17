@@ -76,6 +76,7 @@ const ALL_PERMISSIONS: { action: string, description: string }[] = [
     { action: 'REAPPRO_MANAGE', description: 'Gérer les réapprovisionnements' },
     { action: 'USER_MANAGE', description: 'Gérer les utilisateurs et rôles' },
     { action: 'REPORT_VIEW', description: 'Voir les rapports' },
+    { action: 'VENTE_CREATE', description: 'Créer des ventes (POS)'},
 ];
 
 
@@ -780,15 +781,19 @@ function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, o
 }
 
 export default function SettingsPage() {
-  const { addMultipleProduits } = useApp();
+  const { addMultipleProduits, hasPermission } = useApp();
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [isPrintRequestDialogOpen, setIsPrintRequestDialogOpen] = React.useState(false);
   const [produits, setProduits] = React.useState<Produit[]>([]);
 
+  const canImport = React.useMemo(() => hasPermission('PRODUIT_IMPORT'), [hasPermission]);
+
   React.useEffect(() => {
     // Fetch products for the print dialog
-    api.getProducts().then(setProduits);
-  }, []);
+    if (canImport) {
+        api.getProducts().then(setProduits);
+    }
+  }, [canImport]);
 
   const handleImportSuccess = (importedData: any[]) => {
     addMultipleProduits(importedData);
@@ -808,7 +813,7 @@ export default function SettingsPage() {
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
           <TabsTrigger value="users"><Users className="mr-2 h-4 w-4"/>Utilisateurs</TabsTrigger>
           <TabsTrigger value="roles"><ShieldCheck className="mr-2 h-4 w-4"/>Rôles & Permissions</TabsTrigger>
-          <TabsTrigger value="import"><Import className="mr-2 h-4 w-4"/>Import/Export</TabsTrigger>
+          {canImport && <TabsTrigger value="import"><Import className="mr-2 h-4 w-4"/>Import/Export</TabsTrigger>}
           <TabsTrigger value="organisation"><Store className="mr-2 h-4 w-4"/>Organisation</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4"/>Apparence</TabsTrigger>
         </TabsList>
@@ -821,6 +826,7 @@ export default function SettingsPage() {
           <RolesTab />
         </TabsContent>
 
+        {canImport && (
         <TabsContent value="import" className="mt-6">
             <Card>
               <CardHeader>
@@ -851,6 +857,7 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
         </TabsContent>
+        )}
           
         <TabsContent value="organisation" className="mt-6">
           <OrganisationForm />
