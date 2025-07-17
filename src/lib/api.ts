@@ -167,20 +167,20 @@ export async function deleteLieuxStock(ids: number[]): Promise<null> {
 
 // ========== Products API ==========
 export async function getProducts(): Promise<Produit[]> {
-    return apiFetch(`/produit`);
+    return apiFetch(`/produits`);
 }
 export async function getProductByBarcode(codeBarre: string): Promise<Produit | null> {
-    return apiFetch(`/produit/code/${codeBarre}`);
+    return apiFetch(`/produits/code/${codeBarre}`);
 }
 export async function createProduct(data: any): Promise<any> {
-  return apiFetch('/produit', { method: 'POST', body: JSON.stringify(data) });
+  return apiFetch('/produits', { method: 'POST', body: JSON.stringify(data) });
 }
 export async function updateProduct(id: number, data: Partial<any>): Promise<any> {
   const body = { ...data, id };
-  return apiFetch(`/produit/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+  return apiFetch(`/produits/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 }
 export async function deleteProducts(ids: number[]): Promise<null> {
-  return apiFetch(`/produit`, { method: 'DELETE', body: JSON.stringify(ids) });
+  return apiFetch(`/produits`, { method: 'DELETE', body: JSON.stringify(ids) });
 }
 export async function assignProducts(data: AssignationPayload): Promise<null> {
     const payload = {
@@ -188,7 +188,7 @@ export async function assignProducts(data: AssignationPayload): Promise<null> {
         ...(data.categorieId && { categorieId: data.categorieId }),
         ...(data.lieuStockId && { lieuStockId: data.lieuStockId }),
     };
-  return apiFetch(`/produit/assignation`, { method: 'PUT', body: JSON.stringify(payload) });
+  return apiFetch(`/produits/assignation`, { method: 'PUT', body: JSON.stringify(payload) });
 };
 
 export async function importProducts(file: File): Promise<Produit[]> {
@@ -202,7 +202,7 @@ export async function importProducts(file: File): Promise<Produit[]> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/produit/import`, {
+    const response = await fetch(`${API_BASE_URL}/produits/import`, {
       method: 'POST',
       headers: headers,
       body: formData,
