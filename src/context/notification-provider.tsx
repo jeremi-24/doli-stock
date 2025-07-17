@@ -43,7 +43,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           console.log('Connected to WebSocket:', frame);
 
           // Subscribe to user-specific notifications
-          client.subscribe(`/topic/${currentUser.id}`, (message) => {
+          console.log(currentUser);
+          client.subscribe(`/topic/${currentUser.role.nom.toLowerCase()}`, (message) => {
             const newNotif = JSON.parse(message.body);
             addNotification(newNotif);
           });
