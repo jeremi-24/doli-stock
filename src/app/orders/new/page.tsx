@@ -35,11 +35,10 @@ export default function NewOrderPage() {
     return produits.filter(p => !lignes.some(ligne => ligne.produitId === p.id));
   }, [produits, lignes]);
 
-  const meAsClient = useMemo(() => {
-    if (!currentUser || !clients) return null;
-    // Find a generic client to represent the current user for internal orders
+  const genericClient = useMemo(() => {
+    if (!clients) return null;
     return clients.find(c => c.nom.toUpperCase() === 'CLIENT GENERIQUE');
-  }, [currentUser, clients]);
+  }, [clients]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -102,7 +101,8 @@ export default function NewOrderPage() {
             router.push('/orders');
         }
     } catch (error) {
-        // error is handled by the context provider
+        const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
+        toast({ variant: "destructive", title: "Échec de la création", description: errorMessage });
     } finally {
         setIsSaving(false);
     }
@@ -127,10 +127,10 @@ export default function NewOrderPage() {
                   <SelectValue placeholder="Sélectionner un client" />
                 </SelectTrigger>
                 <SelectContent>
-                  {meAsClient && (
-                    <SelectItem key={meAsClient.id} value={String(meAsClient.id)}>Moi ({meAsClient.nom})</SelectItem>
+                  {genericClient && (
+                    <SelectItem key={genericClient.id} value={String(genericClient.id)}>Moi ({genericClient.nom})</SelectItem>
                   )}
-                  {clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
+                  {clients.filter(c => c.nom.toUpperCase() !== 'CLIENT GENERIQUE').map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
