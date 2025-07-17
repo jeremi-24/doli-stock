@@ -36,6 +36,7 @@ interface AppContextType {
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   createCommande: (payload: CommandePayload) => Promise<Commande | null>;
   validerCommande: (commandeId: number) => Promise<void>;
+  annulerCommande: (commandeId: number) => Promise<void>;
   genererFacture: (commandeId: number) => Promise<void>;
   genererBonLivraison: (commandeId: number) => Promise<void>;
   validerLivraison: (livraisonId: number) => Promise<void>;
@@ -344,6 +345,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast, handleGenericError]);
 
+  const annulerCommande = useCallback(async (commandeId: number) => {
+    try {
+      await api.annulerCommande(commandeId);
+      await fetchAllData();
+      toast({ title: "Commande annulée" });
+    } catch (error) {
+        handleGenericError(error, "Erreur d'annulation");
+    }
+  }, [fetchAllData, toast, handleGenericError]);
+
   const genererFacture = useCallback(async (commandeId: number) => {
     try {
       await api.genererFacture(commandeId);
@@ -382,7 +393,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addClient, updateClient, deleteClient,
     deleteFacture, 
     createInventaire, addReapprovisionnement,
-    createCommande, validerCommande, genererFacture, genererBonLivraison, validerLivraison,
+    createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, validerLivraison,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, isAuthenticated: !!token, currentUser,
     login, logout, hasPermission,
@@ -394,7 +405,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
-    createCommande, validerCommande, genererFacture, genererBonLivraison, validerLivraison,
+    createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, validerLivraison,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, token, logout, currentUser, scannedProductDetails, hasPermission, login
   ]);
