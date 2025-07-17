@@ -271,10 +271,15 @@ export async function createReapprovisionnement(data: ReapproPayload): Promise<R
 }
 
 // ========== Commandes API ==========
-export async function getCommandes(statut?: 'EN_ATTENTE' | 'VALIDEE' | 'ANNULEE'): Promise<Commande[]> {
+export async function getCommande(statut?: 'EN_ATTENTE' | 'VALIDEE' | 'ANNULEE'): Promise<Commande[]> {
     const endpoint = statut ? `/commandes?statut=${statut}` : '/commandes';
     return apiFetch(endpoint);
 }
+
+export async function getCommandes(): Promise<Commande[]> {
+  return apiFetch('/commandes');
+}
+
 export async function getCommandesByClientId(clientId: number): Promise<Commande[]> {
     return apiFetch(`/commandes/client/${clientId}`);
 }
