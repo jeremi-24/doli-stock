@@ -51,7 +51,7 @@ export default function OrdersPage() {
             <div className="flex items-center gap-4">
                 <h1 className="font-headline text-3xl font-semibold">Suivi des Commandes</h1>
                 <div className="ml-auto">
-                    {hasPermission('COMMANDE_CREATE') && (
+                    {isMounted && hasPermission('COMMANDE_CREATE') && (
                         <Button size="sm" onClick={() => router.push('/orders/new')}>
                             <PlusCircle className="h-4 w-4 mr-2" /> Nouvelle Commande
                         </Button>

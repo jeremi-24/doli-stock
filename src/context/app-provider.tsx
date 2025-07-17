@@ -183,18 +183,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [logout]);
   
   useEffect(() => {
-    updateUserFromStorage();
     const storedThemeColors = localStorage.getItem('stockhero_themecolors');
     if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
-    setIsMounted(true);
-  }, [updateUserFromStorage]);
-
-  useEffect(() => {
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
-    if (isMounted && token && !isAuthPage) {
-        fetchAllData();
+    
+    const user = updateUserFromStorage();
+    if (user) {
+        const isAuthPage = pathname === '/login' || pathname === '/signup';
+        if (!isAuthPage) {
+            fetchAllData();
+        }
     }
-  }, [isMounted, token, fetchAllData, pathname]);
+    setIsMounted(true);
+  }, [updateUserFromStorage, fetchAllData, pathname]);
+
   
   useEffect(() => {
     if (isMounted) {
@@ -216,6 +217,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser(userProfile);
         const userPermissions = new Set(userProfile.permissions?.filter(p => p.autorise).map(p => p.action) || []);
         setPermissions(userPermissions);
+        await fetchAllData();
     } catch (error) {
         handleGenericError(error, "Erreur de chargement du profil");
         logout(); // Logout if profile fetching fails
@@ -407,7 +409,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createInventaire, addReapprovisionnement,
     createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, validerLivraison,
     shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails, hasPermission, login
+    isMounted, token, logout, currentUser, scannedProductDetails, hasPermission, login, fetchAllData
   ]);
 
   return (
