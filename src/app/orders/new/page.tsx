@@ -22,7 +22,7 @@ type LignePanier = {
 };
 
 export default function NewOrderPage() {
-  const { produits, clients, createCommande } = useApp();
+  const { produits, clients, createCommande, currentUser } = useApp();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -126,8 +126,8 @@ export default function NewOrderPage() {
                   <SelectValue placeholder="Sélectionner un client" />
                 </SelectTrigger>
                 <SelectContent>
-                  {genericClient && (
-                    <SelectItem key={genericClient.id} value={String(genericClient.id)}>Moi ({genericClient.nom})</SelectItem>
+                  {genericClient && currentUser && (
+                    <SelectItem key={genericClient.id} value={String(genericClient.id)}>{currentUser.email}</SelectItem>
                   )}
                   {clients.filter(c => c.nom.toUpperCase() !== 'CLIENT GENERIQUE').map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
                 </SelectContent>
