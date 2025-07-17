@@ -289,8 +289,8 @@ const assignSchema = z.object({
                         />
                       </TableCell>
                       <TableCell className="font-medium">{produit.nom} {produit.qte <= produit.qteMin && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
-                      <TableCell>{categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
-                      <TableCell>{lieuxStockMap.get(produit.lieuStockId) || 'N/A'}</TableCell>
+                      <TableCell>{produit.categorieNom || categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
+                      <TableCell>{produit.lieuStockNom || lieuxStockMap.get(produit.lieuStockId) || 'N/A'}</TableCell>
                       <TableCell>{formatCurrency(produit.prix)}</TableCell>
                       <TableCell className="text-right">{produit.qte}</TableCell>
                       <TableCell className="text-right">
