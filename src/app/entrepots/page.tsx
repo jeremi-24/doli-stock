@@ -94,7 +94,7 @@ export default function LieuxStockPage() {
             }
             setIsDialogOpen(false);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue.' });
+            // Error is handled in context
         } finally {
             setIsLoading(false);
         }
@@ -107,7 +107,7 @@ export default function LieuxStockPage() {
             toast({ title: "Lieux de stock supprimés" });
             setSelectedLieux([]);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue lors de la suppression.' });
+            // Error is handled in context
         } finally {
             setIsLoading(false);
         }

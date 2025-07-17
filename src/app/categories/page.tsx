@@ -91,7 +91,7 @@ export default function CategoriesPage() {
             }
             setIsDialogOpen(false);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue.' });
+            // Error is handled in context
         } finally {
             setIsLoading(false);
         }
@@ -110,7 +110,7 @@ export default function CategoriesPage() {
             toast({ title: "Catégories supprimées" });
             setSelectedCategories([]);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue lors de la suppression.' });
+            // Error is handled in context
         } finally {
             setIsLoading(false);
         }

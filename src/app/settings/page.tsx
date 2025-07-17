@@ -76,7 +76,6 @@ const ALL_PERMISSIONS: { action: string, description: string }[] = [
 
 function OrganisationForm() {
   const { shopInfo, setShopInfo } = useApp();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   
   const form = useForm<z.infer<typeof organisationSchema>>({

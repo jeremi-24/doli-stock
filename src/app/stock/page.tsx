@@ -168,7 +168,7 @@ const assignSchema = z.object({
           }
           setIsDialogOpen(false);
       } catch (error) {
-          toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue.' });
+          // Error is handled in context
       } finally {
           setIsLoading(false);
       }
@@ -181,7 +181,7 @@ const assignSchema = z.object({
           toast({ title: "Produits supprimés" });
           setSelectedProduits([]);
       } catch (error) {
-          toast({ variant: 'destructive', title: 'Erreur', description: 'Une erreur est survenue lors de la suppression.' });
+          // Error is handled in context
       } finally {
           setIsLoading(false);
       }
@@ -203,8 +203,7 @@ const assignSchema = z.object({
             setSelectedProduits([]);
 
         } catch (error) {
-             const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'assignation.';
-             toast({ variant: 'destructive', title: 'Erreur d\'assignation', description: errorMessage });
+            // Error is handled in context
         } finally {
             setIsLoading(false);
         }

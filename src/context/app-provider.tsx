@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -97,6 +97,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (error instanceof api.ApiError && (error.status === 401 || error.status === 403)) {
         setTimeout(() => logout(), 1500); // Give user time to read toast
       }
+  }, [toast, logout]);
+  
+  const handleGenericError = useCallback((error: unknown, title: string = "Erreur") => {
+    const description = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
+    toast({ variant: 'destructive', title, description });
+    if (error instanceof api.ApiError && (error.status === 401 || error.status === 403)) {
+      setTimeout(() => logout(), 1500);
+    }
   }, [toast, logout]);
 
   const fetchFactures = useCallback(async () => {
@@ -205,39 +213,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await fetchAllData();
         toast({ title: "Informations de l'organisation mises à jour" });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: "Erreur de sauvegarde", description: errorMessage });
+        handleGenericError(error, "Erreur de sauvegarde");
         throw error;
     }
-  }, [fetchAllData, toast]);
+  }, [fetchAllData, toast, handleGenericError]);
 
-  const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => { await api.createCategory(data); await fetchAllData(); }, [fetchAllData]);
-  const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => { await api.updateCategory(id, data); await fetchAllData(); }, [fetchAllData]);
-  const deleteCategories = useCallback(async (ids: number[]) => { await api.deleteCategories(ids); await fetchAllData(); }, [fetchAllData]);
+  const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => {
+    try { await api.createCategory(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); throw error; }
+  }, [fetchAllData, handleGenericError]);
+  const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => {
+    try { await api.updateCategory(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); throw error; }
+  }, [fetchAllData, handleGenericError]);
+  const deleteCategories = useCallback(async (ids: number[]) => {
+    try { await api.deleteCategories(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); throw error; }
+  }, [fetchAllData, handleGenericError]);
 
-  const addLieuStock = useCallback(async (data: Omit<LieuStock, 'id'>) => { await api.createLieuStock(data); await fetchAllData(); }, [fetchAllData]);
-  const updateLieuStock = useCallback(async (id: number, data: Partial<LieuStock>) => { await api.updateLieuStock(id, data); await fetchAllData(); }, [fetchAllData]);
-  const deleteLieuxStock = useCallback(async (ids: number[]) => { await api.deleteLieuxStock(ids); await fetchAllData(); }, [fetchAllData]);
+  const addLieuStock = useCallback(async (data: Omit<LieuStock, 'id'>) => {
+    try { await api.createLieuStock(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); throw error; }
+  }, [fetchAllData, handleGenericError]);
+  const updateLieuStock = useCallback(async (id: number, data: Partial<LieuStock>) => {
+    try { await api.updateLieuStock(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); throw error; }
+  }, [fetchAllData, handleGenericError]);
+  const deleteLieuxStock = useCallback(async (ids: number[]) => {
+    try { await api.deleteLieuxStock(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); throw error; }
+  }, [fetchAllData, handleGenericError]);
 
-  const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => { await api.createProduct(data); await fetchAllData(); }, [fetchAllData]);
-  const updateProduit = useCallback(async (data: Produit) => { await api.updateProduct(data.id, data); await fetchAllData(); }, [fetchAllData]);
-  const deleteProduits = useCallback(async (ids: number[]) => { await api.deleteProducts(ids); await fetchAllData(); }, [fetchAllData]);
-  const assignProduits = useCallback(async (data: AssignationPayload) => { await api.assignProducts(data); await fetchAllData(); }, [fetchAllData]);
+  const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => {
+    try { await api.createProduct(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); throw error; }
+  }, [fetchAllData, handleGenericError]);
+  const updateProduit = useCallback(async (data: Produit) => {
+    try { await api.updateProduct(data.id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); throw error; }
+  }, [fetchAllData, handleGenericError]);
+  const deleteProduits = useCallback(async (ids: number[]) => {
+    try { await api.deleteProducts(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); throw error; }
+  }, [fetchAllData, handleGenericError]);
+  const assignProduits = useCallback(async (data: AssignationPayload) => {
+    try { await api.assignProducts(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'assignation"); throw error; }
+  }, [fetchAllData, handleGenericError]);
   const addMultipleProduits = useCallback(async () => { await fetchAllData(); }, [fetchAllData]);
   
-  const addClient = useCallback(async (data: Omit<Client, 'id'>) => { await api.createClient(data); await fetchAllData(); }, [fetchAllData]);
-  const updateClient = useCallback(async (id: number, data: Partial<Client>) => { await api.updateClient(id, data); await fetchAllData(); }, [fetchAllData]);
+  const addClient = useCallback(async (data: Omit<Client, 'id'>) => {
+    try { await api.createClient(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); throw error; }
+  }, [fetchAllData, handleGenericError]);
+  const updateClient = useCallback(async (id: number, data: Partial<Client>) => {
+    try { await api.updateClient(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); throw error; }
+  }, [fetchAllData, handleGenericError]);
   const deleteClient = useCallback(async (id: number) => {
     try {
         await api.deleteClient(id);
         await fetchAllData();
         toast({ title: "Client supprimé" });
     } catch(error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: 'Erreur de suppression', description: errorMessage});
+        handleGenericError(error, "Erreur de suppression");
         throw error;
     }
-  }, [fetchAllData, toast]);
+  }, [fetchAllData, toast, handleGenericError]);
 
   const deleteFacture = useCallback(async (factureId: number) => {
     try {
@@ -245,10 +275,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await fetchFactures();
         toast({ title: "Facture supprimée avec succès" });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: 'Erreur de suppression', description: errorMessage });
+        handleGenericError(error, "Erreur de suppression");
     }
-  }, [fetchFactures, toast]);
+  }, [fetchFactures, toast, handleGenericError]);
 
   const createInventaire = useCallback(async (payload: InventairePayload, isFirst: boolean): Promise<Inventaire | null> => {
     try {
@@ -257,11 +286,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast({ title: "Inventaire enregistré avec succès" });
       return newInventaire;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-      toast({ variant: 'destructive', title: 'Erreur d\'enregistrement', description: errorMessage });
+      handleGenericError(error, "Erreur d'enregistrement");
       return null;
     }
-  }, [fetchAllData, toast]);
+  }, [fetchAllData, toast, handleGenericError]);
 
   const addReapprovisionnement = useCallback(async (payload: ReapproPayload): Promise<Reapprovisionnement | null> => {
     try {
@@ -270,11 +298,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast({ title: "Réapprovisionnement enregistré avec succès" });
       return newReappro;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-      toast({ variant: 'destructive', title: 'Erreur d\'enregistrement', description: errorMessage });
+      handleGenericError(error, "Erreur d'enregistrement");
       return null;
     }
-  }, [fetchAllData, toast]);
+  }, [fetchAllData, toast, handleGenericError]);
 
   const createCommande = useCallback(async (payload: CommandePayload): Promise<Commande | null> => {
     try {
@@ -283,11 +310,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast({ title: "Commande créée avec succès" });
       return newCommande;
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: 'Erreur de création', description: errorMessage });
+        handleGenericError(error, "Erreur de création");
         throw error;
     }
-  }, [fetchAllData, toast]);
+  }, [fetchAllData, toast, handleGenericError]);
 
   const validerCommande = useCallback(async (commandeId: number) => {
     try {
@@ -295,10 +321,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await fetchAllData();
       toast({ title: "Commande validée" });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: 'Erreur de validation', description: errorMessage });
+        handleGenericError(error, "Erreur de validation");
     }
-  }, [fetchAllData, toast]);
+  }, [fetchAllData, toast, handleGenericError]);
 
   const genererFacture = useCallback(async (commandeId: number) => {
     try {
@@ -306,10 +331,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await fetchFactures();
       toast({ title: "Facture générée" });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: 'Erreur de génération', description: errorMessage });
+        handleGenericError(error, "Erreur de génération");
     }
-  }, [fetchFactures, toast]);
+  }, [fetchFactures, toast, handleGenericError]);
 
   const genererBonLivraison = useCallback(async (commandeId: number) => {
     try {
@@ -317,10 +341,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await fetchAllData();
       toast({ title: "Bon de livraison généré" });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: 'Erreur de génération', description: errorMessage });
+        handleGenericError(error, "Erreur de génération");
     }
-  }, [fetchAllData, toast]);
+  }, [fetchAllData, toast, handleGenericError]);
 
   const validerLivraison = useCallback(async (livraisonId: number) => {
     try {
@@ -328,10 +351,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await fetchAllData(); // Refreshes both products and delivery notes
       toast({ title: "Livraison validée et stock mis à jour" });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: 'Erreur de validation', description: errorMessage });
+        handleGenericError(error, "Erreur de validation");
     }
-  }, [fetchAllData, toast]);
+  }, [fetchAllData, toast, handleGenericError]);
 
   const value = useMemo(() => ({
     produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, fetchFactures,
