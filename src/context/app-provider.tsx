@@ -47,7 +47,7 @@ interface AppContextType {
   isMounted: boolean;
   isAuthenticated: boolean;
   currentUser: CurrentUser | null;
-  login: (token: string, profile: any) => Promise<void>;
+  login: (token: string) => Promise<void>;
   logout: () => void;
   hasPermission: (action: string) => boolean;
   scannedProductDetails: any | null;
@@ -97,7 +97,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const handleFetchError = useCallback((error: unknown, resourceName: string) => {
       const description = (error instanceof api.ApiError) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
       if (error instanceof api.ApiError && (error.status === 403)) {
-         // Don't show a toast for 403, as it's an expected access denial, not a system error
          console.warn(`Access denied for resource: ${resourceName}`);
       } else if (error instanceof api.ApiError && error.status === 401) {
         toast({ variant: 'destructive', title: 'Session expirée', description });
@@ -125,12 +124,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setFactures(data || []);
     } catch (error) {
         handleFetchError(error, 'Factures');
-        // Still throw so Promise.allSettled can see it as rejected
         throw error;
     }
   }, [handleFetchError]);
 
-  const fetchAllData = useCallback(async () => {
+  const fetchAllData = useCallback(async (user: CurrentUser | null) => {
     const dataFetchPromises = [
         api.getOrganisations().then(orgs => {
             if (orgs && orgs.length > 0) setShopInfoState(orgs[0]);
@@ -143,58 +141,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchFactures(),
     ];
 
-    try {
-        const user = JSON.parse(localStorage.getItem('stockhero_user') || 'null');
-        if (user && user.lieuId) {
-            dataFetchPromises.push(
-                api.getBonsLivraison(user.lieuId)
-                    .then(data => setBonLivraisons(data || []))
-                    .catch(err => handleFetchError(err, 'Bons de Livraison'))
-            );
-        } else {
-            setBonLivraisons([]);
-        }
-    } catch (error) {
-        handleFetchError(error, 'User Info for Deliveries');
+    if (user && user.lieuId) {
+        dataFetchPromises.push(
+            api.getBonsLivraison(user.lieuId)
+                .then(data => setBonLivraisons(data || []))
+                .catch(err => handleFetchError(err, 'Bons de Livraison'))
+        );
+    } else {
+        setBonLivraisons([]);
     }
 
     await Promise.allSettled(dataFetchPromises);
   }, [handleFetchError, fetchFactures]);
 
 
-  const updateUserFromStorage = useCallback(() => {
-    const storedToken = localStorage.getItem('stockhero_token');
-    const storedUser = localStorage.getItem('stockhero_user');
-    if (storedToken && storedUser) {
-        try {
-            const user: CurrentUser = JSON.parse(storedUser);
-            setCurrentUser(user);
-            setToken(storedToken);
-            const userPermissions = new Set(user.permissions?.filter(p => p.autorise).map(p => p.action) || []);
-            setPermissions(userPermissions);
-            return user;
-        } catch (e) {
-            console.error("Failed to parse user from storage", e);
-            logout();
-            return null;
-        }
+  const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
+    try {
+      const userProfile = await api.getUserProfile();
+      localStorage.setItem('stockhero_user', JSON.stringify(userProfile));
+      setCurrentUser(userProfile);
+      const userPermissions = new Set(userProfile.permissions?.filter(p => p.autorise).map(p => p.action) || []);
+      setPermissions(userPermissions);
+      await fetchAllData(userProfile);
+      return true;
+    } catch (error) {
+      handleGenericError(error, "Erreur de chargement de la session");
+      logout();
+      return false;
     }
-    return null;
-  }, [logout]);
+  }, [fetchAllData, handleGenericError, logout]);
+
   
   useEffect(() => {
-    const storedThemeColors = localStorage.getItem('stockhero_themecolors');
-    if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
-    
-    const user = updateUserFromStorage();
-    if (user) {
-        const isAuthPage = pathname === '/login' || pathname === '/signup';
-        if (!isAuthPage) {
-            fetchAllData();
-        }
-    }
-    setIsMounted(true);
-  }, [updateUserFromStorage, fetchAllData, pathname]);
+    const initializeApp = async () => {
+      const storedThemeColors = localStorage.getItem('stockhero_themecolors');
+      if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
+      
+      const storedToken = localStorage.getItem('stockhero_token');
+      if (storedToken) {
+        setToken(storedToken);
+        await loadUserAndData(storedToken);
+      }
+      setIsMounted(true);
+    };
+    initializeApp();
+  }, [loadUserAndData]);
 
   
   useEffect(() => {
@@ -207,89 +198,75 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [themeColors, isMounted]);
 
-  const login = async (newToken: string, profile: CurrentUser | null) => {
+  const login = async (newToken: string) => {
     localStorage.setItem('stockhero_token', newToken);
     setToken(newToken);
-    
-    try {
-        const userProfile = profile || await api.getUserProfile();
-        localStorage.setItem('stockhero_user', JSON.stringify(userProfile));
-        setCurrentUser(userProfile);
-        const userPermissions = new Set(userProfile.permissions?.filter(p => p.autorise).map(p => p.action) || []);
-        setPermissions(userPermissions);
-        await fetchAllData();
-    } catch (error) {
-        handleGenericError(error, "Erreur de chargement du profil");
-        logout(); // Logout if profile fetching fails
-    }
+    await loadUserAndData(newToken);
   };
   
   const hasPermission = useCallback((action: string) => {
-    if (currentUser?.role?.nom === 'ADMIN') {
-        return true;
-    }
     return permissions.has(action);
-  }, [permissions, currentUser]);
+  }, [permissions]);
   
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
     try {
         await api.saveOrganisation(orgData);
-        await fetchAllData();
+        await fetchAllData(currentUser);
         toast({ title: "Informations de l'organisation mises à jour" });
     } catch (error) {
         handleGenericError(error, "Erreur de sauvegarde");
     }
-  }, [fetchAllData, toast, handleGenericError]);
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
 
   const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => {
-    try { await api.createCategory(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.createCategory(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
   const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => {
-    try { await api.updateCategory(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.updateCategory(id, data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
   const deleteCategories = useCallback(async (ids: number[]) => {
-    try { await api.deleteCategories(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.deleteCategories(ids); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
 
   const addLieuStock = useCallback(async (data: Omit<LieuStock, 'id'>) => {
-    try { await api.createLieuStock(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.createLieuStock(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
   const updateLieuStock = useCallback(async (id: number, data: Partial<LieuStock>) => {
-    try { await api.updateLieuStock(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.updateLieuStock(id, data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
   const deleteLieuxStock = useCallback(async (ids: number[]) => {
-    try { await api.deleteLieuxStock(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.deleteLieuxStock(ids); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
 
   const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => {
-    try { await api.createProduct(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.createProduct(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
   const updateProduit = useCallback(async (data: Produit) => {
-    try { await api.updateProduct(data.id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.updateProduct(data.id, data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
   const deleteProduits = useCallback(async (ids: number[]) => {
-    try { await api.deleteProducts(ids); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.deleteProducts(ids); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
   const assignProduits = useCallback(async (data: AssignationPayload) => {
-    try { await api.assignProducts(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'assignation"); }
-  }, [fetchAllData, handleGenericError]);
-  const addMultipleProduits = useCallback(async () => { await fetchAllData(); }, [fetchAllData]);
+    try { await api.assignProducts(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'assignation"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
+  const addMultipleProduits = useCallback(async () => { await fetchAllData(currentUser); }, [fetchAllData, currentUser]);
   
   const addClient = useCallback(async (data: Omit<Client, 'id'>) => {
-    try { await api.createClient(data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.createClient(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
   const updateClient = useCallback(async (id: number, data: Partial<Client>) => {
-    try { await api.updateClient(id, data); await fetchAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
-  }, [fetchAllData, handleGenericError]);
+    try { await api.updateClient(id, data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+  }, [fetchAllData, handleGenericError, currentUser]);
   const deleteClient = useCallback(async (id: number) => {
     try {
         await api.deleteClient(id);
-        await fetchAllData();
+        await fetchAllData(currentUser);
         toast({ title: "Client supprimé" });
     } catch(error) {
         handleGenericError(error, "Erreur de suppression");
     }
-  }, [fetchAllData, toast, handleGenericError]);
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
 
   const deleteFacture = useCallback(async (factureId: number) => {
     try {
@@ -304,58 +281,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const createInventaire = useCallback(async (payload: InventairePayload, isFirst: boolean): Promise<Inventaire | null> => {
     try {
       const newInventaire = await api.createInventaire(payload, isFirst);
-      await fetchAllData();
+      await fetchAllData(currentUser);
       toast({ title: "Inventaire enregistré avec succès" });
       return newInventaire;
     } catch (error) {
       handleGenericError(error, "Erreur d'enregistrement");
       return null;
     }
-  }, [fetchAllData, toast, handleGenericError]);
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
 
   const addReapprovisionnement = useCallback(async (payload: ReapproPayload): Promise<Reapprovisionnement | null> => {
     try {
       const newReappro = await api.createReapprovisionnement(payload);
-      await fetchAllData();
+      await fetchAllData(currentUser);
       toast({ title: "Réapprovisionnement enregistré avec succès" });
       return newReappro;
     } catch (error) {
       handleGenericError(error, "Erreur d'enregistrement");
       return null;
     }
-  }, [fetchAllData, toast, handleGenericError]);
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
 
   const createCommande = useCallback(async (payload: CommandePayload): Promise<Commande | null> => {
     try {
       const newCommande = await api.createCommande(payload);
-      await fetchAllData();
+      await fetchAllData(currentUser);
       toast({ title: "Commande créée avec succès" });
       return newCommande;
     } catch (error) {
         handleGenericError(error, "Erreur de création");
         return null;
     }
-  }, [fetchAllData, toast, handleGenericError]);
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
 
   const validerCommande = useCallback(async (commandeId: number) => {
     try {
       await api.validerCommande(commandeId);
-      await fetchAllData();
+      await fetchAllData(currentUser);
       toast({ title: "Commande validée" });
     } catch (error) {
         handleGenericError(error, "Erreur de validation");
     }
-  }, [fetchAllData, toast, handleGenericError]);
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
 
   const annulerCommande = useCallback(async (commandeId: number) => {
     try {
       await api.annulerCommande(commandeId);
-      await fetchAllData();
+      await fetchAllData(currentUser);
       toast({ title: "Commande annulée" });
     } catch (error) {
         handleGenericError(error, "Erreur d'annulation");
     }
-  }, [fetchAllData, toast, handleGenericError]);
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
 
   const genererFacture = useCallback(async (commandeId: number) => {
     try {
@@ -370,22 +347,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const genererBonLivraison = useCallback(async (commandeId: number) => {
     try {
       await api.genererBonLivraison(commandeId);
-      await fetchAllData();
+      await fetchAllData(currentUser);
       toast({ title: "Bon de livraison généré" });
     } catch (error) {
         handleGenericError(error, "Erreur de génération");
     }
-  }, [fetchAllData, toast, handleGenericError]);
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
 
   const validerLivraison = useCallback(async (livraisonId: number) => {
     try {
       await api.validerLivraison(livraisonId);
-      await fetchAllData(); // Refreshes both products and delivery notes
+      await fetchAllData(currentUser);
       toast({ title: "Livraison validée et stock mis à jour" });
     } catch (error) {
         handleGenericError(error, "Erreur de validation");
     }
-  }, [fetchAllData, toast, handleGenericError]);
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
 
   const value = useMemo(() => ({
     produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, fetchFactures,
@@ -426,5 +403,3 @@ export function useApp() {
   }
   return context;
 }
-
-    

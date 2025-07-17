@@ -45,7 +45,7 @@ export default function LoginPage() {
             title: "Connexion réussie",
             description: "Vous allez être redirigé vers le tableau de bord.",
         });
-        await login(response.token, null); // Pass null for profile, it will be fetched
+        await login(response.token);
         router.push('/');
       } else {
         throw new Error("Réponse de connexion invalide, token ou succès manquant.");
