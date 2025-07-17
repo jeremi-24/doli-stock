@@ -139,9 +139,15 @@ export default function OrdersPage() {
                                                                             <Truck className="mr-2 h-4 w-4" /> Générer BL
                                                                         </DropdownMenuItem>
                                                                     )}
+                                                                    {(canGenerateInvoice || canGenerateBL) && <DropdownMenuSeparator />}
                                                                 </>
                                                             )}
-                                                            {(cmd.statut !== 'VALIDEE') && <DropdownMenuItem disabled>Aucune action</DropdownMenuItem>}
+                                                            <DropdownMenuItem disabled={cmd.statut !== 'ANNULEE'} onClick={() => {}}>
+                                                                Commande annulée
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem disabled={cmd.statut !== 'EN_ATTENTE'}>
+                                                                En attente de validation
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 )}
