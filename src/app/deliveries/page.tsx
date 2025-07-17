@@ -18,8 +18,11 @@ export default function DeliveriesPage() {
 
     const handleValidate = async (livraisonId: number) => {
         setLoadingStates(prev => ({ ...prev, [livraisonId]: true }));
-        await validerLivraison(livraisonId);
-        setLoadingStates(prev => ({ ...prev, [livraisonId]: false }));
+        try {
+            await validerLivraison(livraisonId);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, [livraisonId]: false }));
+        }
     };
 
     return (
@@ -69,7 +72,7 @@ export default function DeliveriesPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant={bl.statut === 'LIVREE' ? "default" : "secondary"}>
+                                                <Badge variant={bl.statut === 'LIVREE' ? 'default' : "secondary"}>
                                                     {bl.statut === 'LIVREE' ? 'Livré' : 'En attente de validation'}
                                                 </Badge>
                                             </TableCell>

@@ -149,17 +149,23 @@ export type LigneBonLivraison = {
     produitNom: string;
     qteLivre: number;
     produitPrix: number;
-    totalLivraison: number;
+    totalLigne: number;
 };
 
 export type BonLivraison = {
     id: number;
     dateLivraison: string;
     commandeId: number;
-    lignesLivraison: LigneBonLivraison[];
+    lignes: LigneBonLivraison[];
     statut: 'EN_ATTENTE_LIVRAISON' | 'LIVREE';
     lieu: LieuStock;
     client: Client;
+};
+
+export type ValidationCommandeResponse = {
+  commande: Commande;
+  facture: Facture;
+  bonLivraison: BonLivraison;
 };
 
 
