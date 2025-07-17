@@ -22,6 +22,7 @@ import {
 import { MoreHorizontal } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
+import { cn } from '@/lib/utils';
 
 
 export default function OrdersPage() {
@@ -105,7 +106,8 @@ export default function OrdersPage() {
                                             <TableCell>{cmd.lieuLivraison?.nom || 'N/A'}</TableCell>
                                             <TableCell className="font-medium">{formatCurrency(cmd.totalCommande)}</TableCell>
                                             <TableCell>
-                                                <Badge variant={cmd.statut === 'VALIDEE' ? 'default' : (cmd.statut === 'ANNULEE' ? 'destructive' : 'secondary')}>
+                                                <Badge variant={cmd.statut === 'VALIDEE' ? 'default' : (cmd.statut === 'ANNULEE' ? 'destructive' : 'secondary')}
+                                                       className={cn(cmd.statut === 'EN_ATTENTE' && 'bg-orange-500/80 text-white')}>
                                                     {cmd.statut.replace('_', ' ')}
                                                 </Badge>
                                             </TableCell>

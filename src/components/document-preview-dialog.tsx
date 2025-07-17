@@ -5,7 +5,7 @@ import React, { useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Facture, BonLivraison, ShopInfo } from '@/lib/types';
+import type { Facture, BonLivraison, ShopInfo, LigneBonLivraison } from '@/lib/types';
 import { useApp } from '@/context/app-provider';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -70,7 +70,6 @@ const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: Bon
 
     return (
         <div ref={ref} className="bg-white text-black p-6 font-mono text-[10px] w-full border border-gray-300">
-            {/* Header */}
             <div className="text-center mb-4">
                 <h1 className="text-xl font-bold">{shopInfo.nom || 'MEGA TRAM'}</h1>
                 <p>MECANIQUE GENERALE TRANSPORT ET MANUTENTION</p>
@@ -78,7 +77,6 @@ const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: Bon
                 <p>{shopInfo.adresse || 'Kégué Kélégougan Lomé - TOGO'}</p>
             </div>
 
-            {/* Title and Info */}
             <div className="text-center mb-2">
                 <h2 className="text-lg font-bold border-b-2 border-black inline-block px-4">BON DE LIVRAISON</h2>
             </div>
@@ -90,7 +88,6 @@ const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: Bon
                 <span>Nom du client: {facture.clientNom}</span>
             </div>
 
-            {/* Table */}
             <table className="w-full border-collapse border border-black text-[10px]">
                 <thead>
                     <tr className="border-b border-black">
@@ -109,7 +106,6 @@ const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: Bon
                             <td className="p-1 text-right">{formatCurrency(ligne.totalLigne)}</td>
                         </tr>
                     ))}
-                    {/* Empty rows for layout */}
                     {Array.from({ length: 15 - bonLivraison.lignesLivraison.length }).map((_, i) => (
                          <tr key={`empty-${i}`} className="border-b border-black h-5">
                             <td className="border-r border-black"></td>
@@ -125,7 +121,6 @@ const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: Bon
                 </tbody>
             </table>
 
-            {/* Footer */}
             <div className="mt-2 text-[9px]">
                 <p>Arrêté le présent BON DE LIVRAISON à la somme de: ....................................................................</p>
             </div>
@@ -167,7 +162,7 @@ export function DocumentPreviewDialog({ isOpen, onOpenChange, facture, bonLivrai
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 grid md:grid-cols-2 gap-6 overflow-hidden py-4">
+                <div className="flex-1 grid md:grid-cols-2 gap-6 py-4 min-h-0">
                     <div className="flex flex-col gap-4">
                         <div className="flex justify-between items-center px-4">
                             <h3 className="font-semibold">Aperçu Facture</h3>
