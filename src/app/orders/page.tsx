@@ -30,21 +30,24 @@ export default function OrdersPage() {
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
     const [validationData, setValidationData] = useState<ValidationCommandeResponse | null>(null);
 
-    const handleAction = async <T,>(action: (id: number) => Promise<T | void>, commandeId: number, callback?: (result: T) => void) => {
+    const handleAction = async (action: (id: number) => Promise<any>, commandeId: number) => {
         setLoadingStates(prev => ({ ...prev, [commandeId]: true }));
         try {
-            const result = await action(commandeId);
-            if (result && callback) {
-                callback(result as T);
-            }
+            await action(commandeId);
         } finally {
             setLoadingStates(prev => ({ ...prev, [commandeId]: false }));
         }
     };
     
-    const handleValidate = (result: ValidationCommandeResponse) => {
-        if(result){
-            setValidationData(result);
+    const handleValidation = async (commandeId: number) => {
+        setLoadingStates(prev => ({ ...prev, [commandeId]: true }));
+        try {
+            const result = await validerCommande(commandeId);
+            if (result) {
+                setValidationData(result);
+            }
+        } finally {
+            setLoadingStates(prev => ({ ...prev, [commandeId]: false }));
         }
     };
 
@@ -92,7 +95,7 @@ export default function OrdersPage() {
                                      <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                                 ) : sortedCommandes.length > 0 ? sortedCommandes.map(cmd => {
                                     const isLoading = loadingStates[cmd.id];
-                                    const isPendingSecretariatAction = ( currentUser?.role?.nom === 'SECRETARIAT'  || currentUser?.role?.nom === 'ADMIN') && cmd.statut === 'EN_ATTENTE';
+                                    const isPendingSecretariatAction = currentUser?.role?.nom === 'SECRETARIAT' && cmd.statut === 'EN_ATTENTE';
 
                                     return (
                                         <TableRow key={cmd.id}>
@@ -111,7 +114,7 @@ export default function OrdersPage() {
                                                     <Loader2 className="h-4 w-4 animate-spin ml-auto" />
                                                 ) : isPendingSecretariatAction ? (
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <Button size="sm" onClick={() => handleAction(validerCommande, cmd.id, handleValidate)} disabled={isLoading}>
+                                                        <Button size="sm" onClick={() => handleValidation(cmd.id)} disabled={isLoading}>
                                                             <Check className="mr-2 h-4 w-4" /> Valider
                                                         </Button>
                                                         <AlertDialog>
