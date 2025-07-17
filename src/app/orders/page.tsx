@@ -78,6 +78,8 @@ export default function OrdersPage() {
                                      <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                                 ) : sortedCommandes.length > 0 ? sortedCommandes.map(cmd => {
                                     const isLoading = loadingStates[cmd.id];
+                                    const isPendingSecretariatAction = currentUser?.role?.nom === 'SECRETARIAT' && cmd.statut === 'EN_ATTENTE';
+
                                     return (
                                         <TableRow key={cmd.id}>
                                             <TableCell className="font-mono text-xs">CMD-{String(cmd.id).padStart(5, '0')}</TableCell>
@@ -93,6 +95,29 @@ export default function OrdersPage() {
                                             <TableCell className="text-right">
                                                 {isLoading ? (
                                                     <Loader2 className="h-4 w-4 animate-spin ml-auto" />
+                                                ) : isPendingSecretariatAction ? (
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button size="sm" onClick={() => handleAction(validerCommande, cmd.id)} disabled={isLoading}>
+                                                            <Check className="mr-2 h-4 w-4" /> Valider
+                                                        </Button>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button size="sm" variant="destructive" disabled={isLoading}>
+                                                                    <XCircle className="mr-2 h-4 w-4" /> Rejeter
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Rejeter la commande ?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>Cette action est irréversible et annulera la commande.</AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Retour</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleAction(annulerCommande, cmd.id)}>Confirmer le rejet</AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </div>
                                                 ) : (
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
@@ -102,33 +127,6 @@ export default function OrdersPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            {currentUser?.role?.nom === 'SECRETARIAT' && cmd.statut === 'EN_ATTENTE' && (
-                                                                <>
-                                                                    <DropdownMenuItem onClick={() => handleAction(validerCommande, cmd.id)}>
-                                                                        <Check className="mr-2 h-4 w-4" /> Valider
-                                                                    </DropdownMenuItem>
-                                                                    <AlertDialog>
-                                                                        <AlertDialogTrigger asChild>
-                                                                            <Button variant="ghost" className="w-full justify-start text-sm font-normal text-destructive hover:text-destructive hover:bg-destructive/10 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
-                                                                                <XCircle className="mr-2 h-4 w-4" /> Rejeter
-                                                                            </Button>
-                                                                        </AlertDialogTrigger>
-                                                                        <AlertDialogContent>
-                                                                            <AlertDialogHeader>
-                                                                                <AlertDialogTitle>Rejeter la commande ?</AlertDialogTitle>
-                                                                                <AlertDialogDescription>
-                                                                                    Cette action est irréversible et annulera la commande.
-                                                                                </AlertDialogDescription>
-                                                                            </AlertDialogHeader>
-                                                                            <AlertDialogFooter>
-                                                                                <AlertDialogCancel>Retour</AlertDialogCancel>
-                                                                                <AlertDialogAction onClick={() => handleAction(annulerCommande, cmd.id)}>Confirmer le rejet</AlertDialogAction>
-                                                                            </AlertDialogFooter>
-                                                                        </AlertDialogContent>
-                                                                    </AlertDialog>
-                                                                    <DropdownMenuSeparator />
-                                                                </>
-                                                            )}
                                                             {cmd.statut === 'VALIDEE' && (
                                                                 <>
                                                                     {canGenerateInvoice && (
@@ -143,7 +141,7 @@ export default function OrdersPage() {
                                                                     )}
                                                                 </>
                                                             )}
-                                                            {(cmd.statut !== 'VALIDEE' && currentUser?.role?.nom !== 'SECRETARIAT') && <DropdownMenuItem disabled>Aucune action</DropdownMenuItem>}
+                                                            {(cmd.statut !== 'VALIDEE') && <DropdownMenuItem disabled>Aucune action</DropdownMenuItem>}
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 )}
