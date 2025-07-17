@@ -156,88 +156,74 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <LayoutDashboard />,
       label: 'Tableau de Bord',
       active: pathname === '/',
-      permission: 'PRODUIT_READ', // A basic permission to see the dashboard
     },
     {
       href: '/stock',
       icon: <Warehouse />,
       label: 'Stock',
       active: pathname === '/stock',
-      permission: 'PRODUIT_READ',
     },
     {
       href: '/orders',
       icon: <FileStack />,
       label: 'Commandes',
       active: pathname.startsWith('/orders'),
-      permission: 'COMMANDE_READ',
     },
     {
       href: '/deliveries',
       icon: <Truck />,
       label: 'Bons de Livraison',
       active: pathname.startsWith('/deliveries'),
-      permission: 'LIVRAISON_READ',
     },
     {
       href: '/sales',
       icon: <History />,
       label: 'Factures',
       active: pathname === '/sales',
-      permission: 'VENTE_READ',
     },
     {
       href: '/categories',
       icon: <Tag />,
       label: 'Catégories',
       active: pathname === '/categories',
-      permission: 'PRODUIT_READ', // Assumption: if you can see products, you can see categories
     },
     {
       href: '/entrepots',
       icon: <Building2 />,
       label: 'Lieux de Stock',
       active: pathname === '/entrepots',
-      permission: 'PRODUIT_READ', // Assumption: if you can see products, you can see stock locations
     },
     {
       href: '/clients',
       icon: <Users />,
       label: 'Clients',
       active: pathname === '/clients',
-      permission: 'COMMANDE_CREATE', // Assumption
     },
     {
       href: '/inventories',
       icon: <ClipboardList />,
       label: 'Inventaires',
       active: pathname.startsWith('/inventories'),
-      permission: 'INVENTAIRE_MANAGE',
     },
     {
       href: '/reapprovisionnements',
       icon: <PackagePlus />,
       label: 'Réapprovisionnement',
       active: pathname.startsWith('/reapprovisionnements'),
-      permission: 'REAPPRO_MANAGE',
     },
     {
       href: '/pos',
       icon: <ShoppingCart />,
       label: 'Point de Vente',
       active: pathname === '/pos',
-      permission: 'VENTE_CREATE', // Assuming a permission for this
     },
     {
       href: '/settings',
       icon: <Settings />,
       label: 'Paramètres',
       active: pathname === '/settings',
-      permission: 'USER_MANAGE',
     },
   ];
-
-  const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
 
   return (
     <>
@@ -262,7 +248,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {visibleNavItems.map((item) => (
+            {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <Link href={item.href}>
                     <SidebarMenuButton isActive={item.active} size="lg" tooltip={item.label}>
