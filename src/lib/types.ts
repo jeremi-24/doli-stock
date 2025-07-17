@@ -121,7 +121,7 @@ export type Commande = {
   date: string;
   statut: 'EN_ATTENTE' | 'VALIDEE' | 'ANNULEE' | 'LIVREE';
   client: Client;
-  lieuLivraison: LieuStock;
+  lieuLivraison: LieuStock | null;
   lignes: LigneCommande[];
   totalCommande: number;
 };
@@ -222,6 +222,7 @@ export type RoleCreationPayload = {
 }
 
 export type CurrentUser = {
+  id: number;
   email: string;
   role: string;
   lieuId?: number;

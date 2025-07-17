@@ -9,12 +9,35 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
-import type { Produit, VenteLigne, Categorie, VentePayload, Client } from '@/lib/types';
+import type { Produit, Categorie, Client } from '@/lib/types';
 import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import * as api from "@/lib/api";
+
+type VenteLigne = {
+    id: number;
+    produit: Produit;
+    quantite: number;
+    prix_unitaire: number;
+    prix_total: number;
+};
+
+type VentePayload = {
+    ref: string;
+    caissier: string;
+    clientId: number;
+    lignes: {
+        produitId: number;
+        produitNom: string;
+        qteVendu: number;
+        produitPrix: number;
+        total: number;
+    }[];
+};
+
 
 function CheckoutDialog({
   isOpen,
@@ -91,7 +114,7 @@ function CheckoutDialog({
 
 
 export default function POSPage() {
-  const { produits, categories, clients, addVente, currentUser } = useApp();
+  const { produits, categories, clients, currentUser } = useApp();
   const { toast } = useToast();
   const [cart, setCart] = useState<VenteLigne[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -185,12 +208,13 @@ export default function POSPage() {
     };
 
     try {
-        await addVente(payload);
+        await api.createVente(payload);
         toast({ title: "Vente finalisée !", description: `Le stock a été mis à jour.`});
         setCart([]);
         setIsCheckoutOpen(false);
     } catch (error) {
-        // Error toast is handled by the context provider
+         const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
+         toast({ variant: 'destructive', title: "Erreur de vente", description: errorMessage });
     } finally {
         setIsSaving(false);
     }

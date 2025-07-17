@@ -29,9 +29,55 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, Building2, ClipboardList, PackagePlus, Users, FileStack, Truck } from 'lucide-react';
+import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, Building2, ClipboardList, PackagePlus, Users, FileStack, Truck, Bell } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
+import { useNotifications } from '@/context/notification-provider';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
+
+function NotificationBell() {
+  const { notifications, markAsRead, unreadCount } = useNotifications();
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell />
+          {unreadCount > 0 && (
+            <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0">{unreadCount}</Badge>
+          )}
+          <span className="sr-only">Notifications</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0">
+        <div className="p-4 font-semibold border-b">Notifications</div>
+        <ScrollArea className="h-[300px]">
+            {notifications.length === 0 ? (
+                <p className="p-4 text-sm text-muted-foreground text-center">Aucune notification pour le moment.</p>
+            ) : (
+                <div className="divide-y">
+                    {notifications.map(notif => (
+                        <div key={notif.id} className={cn("p-4 text-sm", !notif.read && "bg-accent/50")}>
+                            <p className="font-semibold">{notif.title}</p>
+                            <p className="text-muted-foreground">{notif.message}</p>
+                            <p className="text-xs text-muted-foreground mt-2">{new Date(notif.date).toLocaleString()}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </ScrollArea>
+        {notifications.length > 0 && (
+          <div className="p-2 border-t">
+              <Button variant="link" size="sm" className="w-full" onClick={() => markAsRead()}>Marquer tout comme lu</Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 
 function AppShellContent({ children }: { children: React.ReactNode }) {
   const { isMounted, shopInfo, logout, isAuthenticated, currentUser } = useApp();
@@ -271,11 +317,14 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="md:hidden" />
             <div className="flex-1">
             </div>
-            <Button variant="ghost" size="icon" onClick={toggleTheme}>
-                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Changer de thème</span>
-            </Button>
+            <div className="flex items-center gap-2">
+                <NotificationBell />
+                <Button variant="ghost" size="icon" onClick={toggleTheme}>
+                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    <span className="sr-only">Changer de thème</span>
+                </Button>
+            </div>
         </header>
         {isPosPage && (
             <div className="absolute top-4 left-4 z-40">

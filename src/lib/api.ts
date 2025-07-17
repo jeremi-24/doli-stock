@@ -242,6 +242,11 @@ export async function printBarcodes(data: { produitNom: string, quantite: number
   }
 }
 
+// ========== Ventes (POS) API ==========
+export async function createVente(data: any): Promise<any> {
+    return apiFetch('/ventes', { method: 'POST', body: JSON.stringify(data) });
+}
+
 // ========== Inventaires API ==========
 export async function getInventaires(): Promise<Inventaire[]> {
   return apiFetch('/inventaire');

@@ -39,16 +39,15 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await api.loginUser(values);
-      if (response && response.token && response.role) {
+      if (response && response.token) {
         toast({
             title: "Connexion réussie",
             description: response.message || "Vous allez être redirigé vers le tableau de bord.",
         });
-        const user: CurrentUser = { email: values.email, role: response.role, lieuId: response.lieuId };
-        login(response.token, user);
+        login(response.token);
         router.push('/');
       } else {
-        throw new Error("Réponse de connexion invalide, token ou rôle manquant.");
+        throw new Error("Réponse de connexion invalide, token manquant.");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";

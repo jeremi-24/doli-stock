@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { jwtDecode } from 'jwt-decode';
 
 interface AppContextType {
   produits: Produit[];
@@ -45,7 +46,7 @@ interface AppContextType {
   isMounted: boolean;
   isAuthenticated: boolean;
   currentUser: CurrentUser | null;
-  login: (token: string, user: CurrentUser) => void;
+  login: (token: string) => void;
   logout: () => void;
   scannedProductDetails: any | null;
   setScannedProductDetails: (details: any | null) => void;
@@ -55,7 +56,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const initialShopInfo: ShopInfo = { nom: 'StockHero', adresse: '123 Rue Principale', ville: 'Lomé', telephone: '+228 90 00 00 00', email: 'contact@stockhero.dev' };
 const initialThemeColors: ThemeColors = { primary: '221 48% 48%', background: '220 13% 96%', accent: '262 52% 50%' };
-const ALLOWED_ROLES = ['ADMIN', 'USER', 'MAGASINIER', 'CONTROLEUR', 'DG'];
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
@@ -80,7 +80,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
     localStorage.removeItem('stockhero_token');
     localStorage.removeItem('stockhero_user');
-    // Clear data to avoid flashing old content
     setProduits([]);
     setCategories([]);
     setLieuxStock([]);
@@ -95,7 +94,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const description = (error instanceof api.ApiError) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
       toast({ variant: 'destructive', title: 'Erreur de chargement', description });
       if (error instanceof api.ApiError && (error.status === 401 || error.status === 403)) {
-        setTimeout(() => logout(), 1500); // Give user time to read toast
+        setTimeout(() => logout(), 1500);
       }
   }, [toast, logout]);
   
@@ -155,29 +154,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     fetchFactures();
   }, [handleFetchError, fetchFactures, currentUser]);
 
+  const updateUserFromToken = useCallback((newToken: string) => {
+    try {
+      const decoded: any = jwtDecode(newToken);
+      const user: CurrentUser = {
+        id: decoded.userId,
+        email: decoded.sub,
+        role: decoded.auth,
+        lieuId: decoded.lieuId,
+      };
+      localStorage.setItem('stockhero_token', newToken);
+      localStorage.setItem('stockhero_user', JSON.stringify(user));
+      setToken(newToken);
+      setCurrentUser(user);
+      return user;
+    } catch (e) {
+      console.error("Failed to decode token", e);
+      logout();
+      return null;
+    }
+  }, [logout]);
+  
   useEffect(() => {
     const storedToken = localStorage.getItem('stockhero_token');
-    const storedUser = localStorage.getItem('stockhero_user');
-    
-    if (storedToken && storedUser) {
-        try {
-            const user: CurrentUser = JSON.parse(storedUser);
-            if (user && user.role) {
-                setToken(storedToken);
-                setCurrentUser(user);
-            } else {
-                logout();
-            }
-        } catch (e) {
-            logout();
-        }
+    if (storedToken) {
+      updateUserFromToken(storedToken);
     }
-    
     const storedThemeColors = localStorage.getItem('stockhero_themecolors');
     if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
-    
     setIsMounted(true);
-  }, [logout]);
+  }, [updateUserFromToken]);
 
   useEffect(() => {
     const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -196,16 +202,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [themeColors, isMounted]);
 
-  const login = (newToken: string, user: CurrentUser) => {
-    if (!user || !user.role) {
-        toast({ variant: 'destructive', title: 'Rôle manquant', description: 'Votre rôle n\'est pas défini.' });
-        logout();
-        return;
-    }
-    localStorage.setItem('stockhero_token', newToken);
-    localStorage.setItem('stockhero_user', JSON.stringify(user));
-    setToken(newToken);
-    setCurrentUser(user);
+  const login = (newToken: string) => {
+    updateUserFromToken(newToken);
   };
   
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
