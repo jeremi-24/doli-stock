@@ -196,16 +196,17 @@ export type ThemeColors = {
 export type Utilisateur = {
   id: number;
   email: string;
+  roleId: number;
   roleNom: string;
   lieuNom: string;
+  permissions: Permission[];
 };
 
 export type Permission = {
     id: number;
     action: string;
     autorise: boolean;
-    role: string;
-}
+};
 
 export type Role = {
     id: number;

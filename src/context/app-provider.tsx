@@ -92,7 +92,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const handleFetchError = useCallback((error: unknown, resourceName: string) => {
       const description = (error instanceof api.ApiError) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
-      toast({ variant: 'destructive', title: 'Erreur de chargement', description });
+      if (!(error instanceof api.ApiError && error.status === 403)) { // Don't toast for 403
+        toast({ variant: 'destructive', title: 'Erreur de chargement', description });
+      }
       if (error instanceof api.ApiError && error.status === 401) {
         setTimeout(() => logout(), 1500);
       }
