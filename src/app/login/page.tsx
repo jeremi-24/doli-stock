@@ -40,15 +40,15 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await api.loginUser(values);
-      if (response && response.token && response.user) {
+      if (response && response.token && response.success) {
         toast({
             title: "Connexion réussie",
             description: "Vous allez être redirigé vers le tableau de bord.",
         });
-        login(response.token, response.user);
+        await login(response.token, null); // Pass null for profile, it will be fetched
         router.push('/');
       } else {
-        throw new Error("Réponse de connexion invalide, token ou profil manquant.");
+        throw new Error("Réponse de connexion invalide, token ou succès manquant.");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";

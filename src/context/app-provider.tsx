@@ -46,7 +46,7 @@ interface AppContextType {
   isMounted: boolean;
   isAuthenticated: boolean;
   currentUser: CurrentUser | null;
-  login: (token: string, profile: any) => void;
+  login: (token: string, profile: any) => Promise<void>;
   logout: () => void;
   hasPermission: (action: string) => boolean;
   scannedProductDetails: any | null;
@@ -97,6 +97,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const description = (error instanceof api.ApiError) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
       if (!(error instanceof api.ApiError && (error.status === 403 || error.status === 401))) {
         toast({ variant: 'destructive', title: 'Erreur de chargement', description });
+      } else if(error instanceof api.ApiError && error.status === 403) {
+        toast({ variant: 'destructive', title: 'Accès refusé', description });
       }
       if (error instanceof api.ApiError && error.status === 401) {
         setTimeout(() => logout(), 1500);
@@ -105,8 +107,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   const handleGenericError = useCallback((error: unknown, title: string = "Erreur") => {
     const description = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
-    if (!(error instanceof api.ApiError && error.status === 403)) {
+    if (!(error instanceof api.ApiError && (error.status === 403 || error.status === 401))) {
       toast({ variant: 'destructive', title, description });
+    } else if(error instanceof api.ApiError && error.status === 403) {
+        toast({ variant: 'destructive', title: 'Accès refusé', description });
     }
     if (error instanceof api.ApiError && error.status === 401) {
       setTimeout(() => logout(), 1500);
@@ -151,15 +155,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setCommandes(commandesData || []);
     } catch (error) { handleFetchError(error, 'Commandes'); }
      try {
-        if(currentUser?.lieuId) {
-            const livraisonsData = await api.getBonsLivraison(currentUser.lieuId);
+        const user = JSON.parse(localStorage.getItem('stockhero_user') || 'null');
+        if(user && user.lieuId) {
+            const livraisonsData = await api.getBonsLivraison(user.lieuId);
             setBonLivraisons(livraisonsData || []);
         } else {
              setBonLivraisons([]);
         }
     } catch (error) { handleFetchError(error, 'Bons de Livraison'); }
     fetchFactures();
-  }, [handleFetchError, fetchFactures, currentUser]);
+  }, [handleFetchError, fetchFactures]);
 
   const updateUserFromStorage = useCallback(() => {
     const storedToken = localStorage.getItem('stockhero_token');
@@ -169,7 +174,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const user: CurrentUser = JSON.parse(storedUser);
             setCurrentUser(user);
             setToken(storedToken);
-            const userPermissions = new Set(user.permissions.filter(p => p.autorise).map(p => p.action));
+            const userPermissions = new Set(user.permissions?.filter(p => p.autorise).map(p => p.action) || []);
             setPermissions(userPermissions);
             return user;
         } catch (e) {
@@ -205,18 +210,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [themeColors, isMounted]);
 
-  const login = (newToken: string, profile: CurrentUser) => {
+  const login = async (newToken: string, profile: CurrentUser | null) => {
     localStorage.setItem('stockhero_token', newToken);
-    localStorage.setItem('stockhero_user', JSON.stringify(profile));
     setToken(newToken);
-    setCurrentUser(profile);
-    const userPermissions = new Set(profile.permissions.filter(p => p.autorise).map(p => p.action));
-    setPermissions(userPermissions);
+    
+    try {
+        const userProfile = profile || await api.getUserProfile();
+        localStorage.setItem('stockhero_user', JSON.stringify(userProfile));
+        setCurrentUser(userProfile);
+        const userPermissions = new Set(userProfile.permissions?.filter(p => p.autorise).map(p => p.action) || []);
+        setPermissions(userPermissions);
+    } catch (error) {
+        handleGenericError(error, "Erreur de chargement du profil");
+        logout(); // Logout if profile fetching fails
+    }
   };
   
   const hasPermission = useCallback((action: string) => {
+    if (currentUser?.role === 'ADMIN') return true;
     return permissions.has(action);
-  }, [permissions]);
+  }, [permissions, currentUser]);
   
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
     try {
@@ -386,7 +399,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createInventaire, addReapprovisionnement,
     createCommande, validerCommande, genererFacture, genererBonLivraison, validerLivraison,
     shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, logout, currentUser, scannedProductDetails, hasPermission
+    isMounted, token, logout, currentUser, scannedProductDetails, hasPermission, login
   ]);
 
   return (
