@@ -267,9 +267,10 @@ function UsersTab() {
   async function onSubmit(values: z.infer<typeof userSchema>) {
     setFormIsLoading(true);
     const payload = {
-        ...values,
-        roleId: parseInt(values.roleId, 10),
-        lieuId: parseInt(values.lieuId, 10),
+      email: values.email,
+      password: values.password,
+      roleId: parseInt(values.roleId, 10),
+      lieuId: parseInt(values.lieuId, 10),
     };
     try {
         await api.createUser(payload);

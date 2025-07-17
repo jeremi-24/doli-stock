@@ -227,24 +227,20 @@ export async function importProducts(file: File): Promise<Produit[]> {
   }
 };
 export async function printBarcodes(data: { produitNom: string, quantite: number }): Promise<Blob> {
-  const url = `${API_BASE_URL}/barcode/print`;
-  
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      body: JSON.stringify(data),
-      headers: { 'Accept': 'application/pdf' } // We expect a blob back
+    const headers = buildHeaders();
+    headers['Accept'] = 'application/pdf';
+
+    const response = await fetch(`${API_BASE_URL}/barcode/print`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(data)
     });
 
-    if (!(response instanceof Blob)) {
-        throw new Error("La réponse n'est pas un fichier PDF valide.")
+    if (!response.ok) {
+        throw new ApiError('Failed to generate PDF', response.status);
     }
-    
-    return response;
-  } catch (error) {
-    console.error('Erreur de connexion API pour printBarcodes:', { url, error });
-    throw error;
-  }
+
+    return response.blob();
 }
 
 // ========== Ventes (POS) API ==========
