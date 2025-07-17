@@ -40,8 +40,6 @@ export default function OrdersPage() {
         [...commandes].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
     [commandes]);
     
-    const canValidate = React.useMemo(() => hasPermission('COMMANDE_VALIDATE'), [hasPermission]);
-    const canCancel = React.useMemo(() => hasPermission('COMMANDE_CANCEL'), [hasPermission]);
     const canGenerateInvoice = React.useMemo(() => hasPermission('FACTURE_GENERATE'), [hasPermission]);
     const canGenerateBL = React.useMemo(() => hasPermission('LIVRAISON_GENERATE'), [hasPermission]);
 
@@ -104,34 +102,31 @@ export default function OrdersPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            {cmd.statut === 'EN_ATTENTE' && (
+                                                            {currentUser?.role?.nom === 'SECRETARIAT' && cmd.statut === 'EN_ATTENTE' && (
                                                                 <>
-                                                                    {canValidate && (
-                                                                        <DropdownMenuItem onClick={() => handleAction(validerCommande, cmd.id)}>
-                                                                            <Check className="mr-2 h-4 w-4" /> Valider
-                                                                        </DropdownMenuItem>
-                                                                    )}
-                                                                    {canCancel && (
-                                                                        <AlertDialog>
-                                                                            <AlertDialogTrigger asChild>
-                                                                                <Button variant="ghost" className="w-full justify-start text-sm font-normal text-destructive hover:text-destructive hover:bg-destructive/10 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
-                                                                                    <XCircle className="mr-2 h-4 w-4" /> Annuler
-                                                                                </Button>
-                                                                            </AlertDialogTrigger>
-                                                                            <AlertDialogContent>
-                                                                                <AlertDialogHeader>
-                                                                                    <AlertDialogTitle>Annuler la commande ?</AlertDialogTitle>
-                                                                                    <AlertDialogDescription>
-                                                                                        Cette action est irréversible.
-                                                                                    </AlertDialogDescription>
-                                                                                </AlertDialogHeader>
-                                                                                <AlertDialogFooter>
-                                                                                    <AlertDialogCancel>Retour</AlertDialogCancel>
-                                                                                    <AlertDialogAction onClick={() => handleAction(annulerCommande, cmd.id)}>Annuler la commande</AlertDialogAction>
-                                                                                </AlertDialogFooter>
-                                                                            </AlertDialogContent>
-                                                                        </AlertDialog>
-                                                                    )}
+                                                                    <DropdownMenuItem onClick={() => handleAction(validerCommande, cmd.id)}>
+                                                                        <Check className="mr-2 h-4 w-4" /> Valider
+                                                                    </DropdownMenuItem>
+                                                                    <AlertDialog>
+                                                                        <AlertDialogTrigger asChild>
+                                                                            <Button variant="ghost" className="w-full justify-start text-sm font-normal text-destructive hover:text-destructive hover:bg-destructive/10 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
+                                                                                <XCircle className="mr-2 h-4 w-4" /> Rejeter
+                                                                            </Button>
+                                                                        </AlertDialogTrigger>
+                                                                        <AlertDialogContent>
+                                                                            <AlertDialogHeader>
+                                                                                <AlertDialogTitle>Rejeter la commande ?</AlertDialogTitle>
+                                                                                <AlertDialogDescription>
+                                                                                    Cette action est irréversible et annulera la commande.
+                                                                                </AlertDialogDescription>
+                                                                            </AlertDialogHeader>
+                                                                            <AlertDialogFooter>
+                                                                                <AlertDialogCancel>Retour</AlertDialogCancel>
+                                                                                <AlertDialogAction onClick={() => handleAction(annulerCommande, cmd.id)}>Confirmer le rejet</AlertDialogAction>
+                                                                            </AlertDialogFooter>
+                                                                        </AlertDialogContent>
+                                                                    </AlertDialog>
+                                                                    <DropdownMenuSeparator />
                                                                 </>
                                                             )}
                                                             {cmd.statut === 'VALIDEE' && (
@@ -148,7 +143,7 @@ export default function OrdersPage() {
                                                                     )}
                                                                 </>
                                                             )}
-                                                            {(cmd.statut !== 'EN_ATTENTE' && cmd.statut !== 'VALIDEE') && <DropdownMenuItem disabled>Aucune action</DropdownMenuItem>}
+                                                            {(cmd.statut !== 'VALIDEE' && currentUser?.role?.nom !== 'SECRETARIAT') && <DropdownMenuItem disabled>Aucune action</DropdownMenuItem>}
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 )}
