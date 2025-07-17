@@ -122,6 +122,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [handleFetchError]);
 
   const fetchAllData = useCallback(async (user: CurrentUser | null) => {
+    if (!user) return;
+    
+    const adminRoles = ['SECRETARIAT', 'ADMIN', 'DG'];
+    let fetchCommandesPromise;
+
+    if (adminRoles.includes(user.role.nom)) {
+        fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes'));
+    } else {
+        fetchCommandesPromise = api.getCommandesByClientId(user.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes client'));
+    }
+    
     const dataFetchPromises = [
       api.getOrganisations().then(orgs => {
           if (orgs && orgs.length > 0) setShopInfoState(orgs[0]);
@@ -130,7 +141,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       api.getCategories().then(data => setCategories(data || [])).catch(err => handleFetchError(err, 'Catégories')),
       api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
       api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients')),
-      api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes')),
+      fetchCommandesPromise,
       fetchFactures(),
     ];
 

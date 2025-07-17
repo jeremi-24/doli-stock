@@ -275,6 +275,9 @@ export async function getCommandes(statut?: 'EN_ATTENTE' | 'VALIDEE' | 'ANNULEE'
     const endpoint = statut ? `/commandes?statut=${statut}` : '/commandes';
     return apiFetch(endpoint);
 }
+export async function getCommandesByClientId(clientId: number): Promise<Commande[]> {
+    return apiFetch(`/commandes/client/${clientId}`);
+}
 export async function createCommande(data: CommandePayload): Promise<Commande> {
     return apiFetch('/commandes', { method: 'POST', body: JSON.stringify(data) });
 }

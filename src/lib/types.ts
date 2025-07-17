@@ -158,6 +158,7 @@ export type BonLivraison = {
     commandeId: number;
     lignesLivraison: LigneBonLivraison[];
     statut: 'EN_ATTENTE_LIVRAISON' | 'LIVREE';
+    client: Client;
 };
 
 export type ValidationCommandeResponse = {
@@ -229,6 +230,7 @@ export type RoleCreationPayload = {
 export type CurrentUser = {
   id: number;
   email: string;
+  clientId: number;
   role: Role;
   lieuId?: number;
   permissions: Permission[];
