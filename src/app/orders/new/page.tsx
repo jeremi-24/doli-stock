@@ -37,9 +37,8 @@ export default function NewOrderPage() {
 
   const meAsClient = useMemo(() => {
     if (!currentUser || !clients) return null;
-    // Assuming client name can be the user's email or another unique identifier.
-    // Here we check by name, which might need adjustment based on backend logic.
-    return clients.find(c => c.nom.toLowerCase() === currentUser.email.toLowerCase());
+    // Find a generic client to represent the current user for internal orders
+    return clients.find(c => c.nom.toUpperCase() === 'CLIENT GENERIQUE');
   }, [currentUser, clients]);
   
   const formatCurrency = (amount: number) => {
@@ -85,8 +84,8 @@ export default function NewOrderPage() {
   const total = useMemo(() => lignes.reduce((acc, item) => acc + (item.prix * item.qteVoulu), 0), [lignes]);
 
   const handleCreateOrder = async () => {
-    if (!clientId) { toast({ title: "Veuillez sélectionner un client", variant: "destructive" }); return; }
-    if (lignes.length === 0) { toast({ title: "Aucun article dans la commande", variant: "destructive" }); return; }
+    if (!clientId) { toast({ variant: "destructive", title: "Veuillez sélectionner un client" }); return; }
+    if (lignes.length === 0) { toast({ variant: "destructive", title: "Aucun article dans la commande" }); return; }
 
     setIsSaving(true);
     const payloadLignes: LigneCommandePayload[] = lignes.map(item => ({
