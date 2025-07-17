@@ -64,7 +64,7 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { facture: Facture, shop
 });
 InvoicePreview.displayName = 'InvoicePreview';
 
-const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: BonLivraison, shopInfo: ShopInfo }>(({ bonLivraison, shopInfo }, ref) => {
+const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: BonLivraison, facture: Facture, shopInfo: ShopInfo }>(({ bonLivraison, facture, shopInfo }, ref) => {
     return (
         <div ref={ref} className="bg-white text-black p-8 font-sans text-sm w-full">
             <header className="flex justify-between items-start pb-4 border-b">
@@ -81,7 +81,7 @@ const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: Bon
             </header>
             <section className="mt-6">
                 <h3 className="text-xs font-semibold uppercase text-gray-500">Client :</h3>
-                <p className="font-bold">{bonLivraison.client.nom}</p>
+                <p className="font-bold">{facture.clientNom}</p>
             </section>
             <section className="mt-6">
                 <table className="w-full text-left text-xs">
@@ -143,7 +143,7 @@ export function DocumentPreviewDialog({ isOpen, onOpenChange, facture, bonLivrai
                             <Button size="sm" variant="outline" onClick={handlePrintDeliverySlip}><Printer className="mr-2 h-4 w-4" />Imprimer</Button>
                         </div>
                         <ScrollArea className="flex-1 bg-muted/50 rounded-md border">
-                           <DeliverySlipPreview ref={deliverySlipRef} bonLivraison={bonLivraison} shopInfo={shopInfo} />
+                           <DeliverySlipPreview ref={deliverySlipRef} bonLivraison={bonLivraison} facture={facture} shopInfo={shopInfo} />
                         </ScrollArea>
                     </div>
                 </div>

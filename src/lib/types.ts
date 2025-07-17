@@ -156,8 +156,6 @@ export type BonLivraison = {
     commandeId: number;
     lignes: LigneBonLivraison[];
     statut: 'EN_ATTENTE_LIVRAISON' | 'LIVREE';
-    lieu: LieuStock;
-    client: Client;
 };
 
 export type ValidationCommandeResponse = {
