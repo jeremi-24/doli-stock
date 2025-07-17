@@ -43,13 +43,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           console.log('Connected to WebSocket:', frame);
 
           // Subscribe to user-specific notifications
-          client.subscribe(`/topic/notifications/${currentUser.id}`, (message) => {
+          client.subscribe(`/topic/${currentUser.id}`, (message) => {
             const newNotif = JSON.parse(message.body);
             addNotification(newNotif);
           });
           
           // Subscribe to global notifications
-          client.subscribe('/topic/notifications/all', (message) => {
+          client.subscribe('/app', (message) => {
             const newNotif = JSON.parse(message.body);
             addNotification(newNotif);
           });
