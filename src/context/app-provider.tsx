@@ -83,21 +83,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(null);
     setPermissions(new Set());
     localStorage.removeItem('stockhero_token');
-    localStorage.removeItem('stockhero_user');
-    setProduits([]);
-    setCategories([]);
-    setLieuxStock([]);
-    setClients([]);
-    setFactures([]);
-    setCommandes([]);
-    setBonLivraisons([]);
     router.push('/login');
   }, [router]);
 
   const handleFetchError = useCallback((error: unknown, resourceName: string) => {
       const description = (error instanceof api.ApiError) ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
       if (error instanceof api.ApiError && (error.status === 403)) {
-         console.warn(`Access denied for resource: ${resourceName}`);
+         console.warn(`Accès refusé pour la ressource: ${resourceName}. C'est peut-être normal.`);
       } else if (error instanceof api.ApiError && error.status === 401) {
         toast({ variant: 'destructive', title: 'Session expirée', description });
         setTimeout(() => logout(), 1500);
@@ -124,21 +116,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setFactures(data || []);
     } catch (error) {
         handleFetchError(error, 'Factures');
-        throw error;
+        // Do not re-throw, to avoid blocking other data fetches
     }
   }, [handleFetchError]);
 
   const fetchAllData = useCallback(async (user: CurrentUser | null) => {
     const dataFetchPromises = [
-        api.getOrganisations().then(orgs => {
-            if (orgs && orgs.length > 0) setShopInfoState(orgs[0]);
-        }).catch(err => handleFetchError(err, 'Organisation')),
-        api.getProducts().then(data => setProduits(data || [])).catch(err => handleFetchError(err, 'Produits')),
-        api.getCategories().then(data => setCategories(data || [])).catch(err => handleFetchError(err, 'Catégories')),
-        api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
-        api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients')),
-        api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes')),
-        fetchFactures(),
+      api.getOrganisations().then(orgs => {
+          if (orgs && orgs.length > 0) setShopInfoState(orgs[0]);
+      }).catch(err => handleFetchError(err, 'Organisation')),
+      api.getProducts().then(data => setProduits(data || [])).catch(err => handleFetchError(err, 'Produits')),
+      api.getCategories().then(data => setCategories(data || [])).catch(err => handleFetchError(err, 'Catégories')),
+      api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
+      api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients')),
+      api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes')),
+      fetchFactures(),
     ];
 
     if (user && user.lieuId) {
@@ -147,8 +139,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 .then(data => setBonLivraisons(data || []))
                 .catch(err => handleFetchError(err, 'Bons de Livraison'))
         );
-    } else {
-        setBonLivraisons([]);
     }
 
     await Promise.allSettled(dataFetchPromises);
@@ -158,7 +148,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
     try {
       const userProfile = await api.getUserProfile();
-      localStorage.setItem('stockhero_user', JSON.stringify(userProfile));
       setCurrentUser(userProfile);
       const userPermissions = new Set(userProfile.permissions?.filter(p => p.autorise).map(p => p.action) || []);
       setPermissions(userPermissions);
@@ -205,8 +194,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
   
   const hasPermission = useCallback((action: string) => {
+    if (!currentUser) return false;
+    if (currentUser.role?.nom === 'ADMIN') return true;
     return permissions.has(action);
-  }, [permissions]);
+  }, [permissions, currentUser]);
   
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
     try {
