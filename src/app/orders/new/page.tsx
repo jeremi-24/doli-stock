@@ -35,16 +35,17 @@ export default function NewOrderPage() {
     return produits.filter(p => !lignes.some(ligne => ligne.produitId === p.id));
   }, [produits, lignes]);
 
-  const genericClient = useMemo(() => {
-    if (!clients) return null;
-    return clients.find(c => c.nom.toUpperCase() === 'CLIENT GENERIQUE');
-  }, [clients]);
+  const canSelectClient = useMemo(() => {
+      if (!currentUser || !currentUser.role) return false;
+      const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
+      return adminRoles.includes(currentUser.role.nom);
+  }, [currentUser]);
 
   useEffect(() => {
-      if (currentUser && genericClient && currentUser.role?.nom !== 'ADMIN' && currentUser.role?.nom !== 'SECRETARIAT' && currentUser.role?.nom !== 'DG') {
-          setClientId(String(genericClient.id));
-      }
-  }, [currentUser, genericClient]);
+    if (currentUser && !canSelectClient && currentUser.clientId) {
+      setClientId(String(currentUser.clientId));
+    }
+  }, [currentUser, canSelectClient]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -113,8 +114,6 @@ export default function NewOrderPage() {
     }
   };
 
-  const canSelectClient = currentUser?.role?.nom === 'ADMIN' || currentUser?.role?.nom === 'SECRETARIAT' || currentUser?.role?.nom === 'DG';
-
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
@@ -137,7 +136,7 @@ export default function NewOrderPage() {
                     {canSelectClient ? (
                        clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)
                     ) : (
-                      <SelectItem value={clientId || ''}>{currentUser?.email}</SelectItem>
+                      <SelectItem value={clientId || ''}>{clients.find(c => c.id === Number(clientId))?.nom || currentUser?.email}</SelectItem>
                     )}
                   </SelectContent>
                 </Select>

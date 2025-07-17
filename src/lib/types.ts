@@ -156,7 +156,7 @@ export type BonLivraison = {
     id: number;
     dateLivraison: string;
     commandeId: number;
-    lignesLivraison: LigneBonLivraison[];
+    lignes: LigneBonLivraison[];
     statut: 'EN_ATTENTE_LIVRAISON' | 'LIVREE';
     client: Client;
 };
@@ -232,6 +232,7 @@ export type CurrentUser = {
   email: string;
   role: Role;
   lieuId?: number;
+  clientId?: number;
   permissions: Permission[];
 };
 

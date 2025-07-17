@@ -129,8 +129,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (adminRoles.includes(user.role.nom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes'));
-    } else {
+    } else if (user.clientId) {
         fetchCommandesPromise = api.getCommandesByClientId(user.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes client'));
+    } else {
+        fetchCommandesPromise = Promise.resolve(); // No client ID, do nothing
     }
     
     const dataFetchPromises = [
