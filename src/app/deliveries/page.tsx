@@ -51,6 +51,7 @@ export default function DeliveriesPage() {
                                 <TableRow>
                                     <TableHead>N° Commande</TableHead>
                                     <TableHead>Date</TableHead>
+                                    <TableHead>Magasinier</TableHead>
                                     <TableHead>Statut</TableHead>
                                     <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
@@ -72,11 +73,17 @@ export default function DeliveriesPage() {
                                                     {bl.dateLivraison ? format(new Date(bl.dateLivraison), 'd MMM yyyy', { locale: fr }) : 'N/A'}
                                                 </div>
                                             </TableCell>
+                                             <TableCell>
+                                                <div className={cn()}>
+                                                    {bl.email}
+                                                </div>
+                                            </TableCell>
                                             <TableCell>
                                                 <Badge variant={bl.statut === 'LIVREE' ? 'default' : "secondary"} className={cn(bl.statut === 'A_LIVRER' && 'bg-blue-100 text-blue-800')}>
                                                     {getStatusText(bl.statut)}
                                                 </Badge>
                                             </TableCell>
+                                           
                                             <TableCell className="text-right">
                                                 <Button
                                                     size="sm"

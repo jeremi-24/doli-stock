@@ -156,6 +156,7 @@ export type BonLivraison = {
     id: number;
     dateLivraison: string;
     commandeId: number;
+    email: string;
     lignesLivraison: LigneBonLivraison[];
     statut: 'A_LIVRER' | 'LIVREE';
 };
