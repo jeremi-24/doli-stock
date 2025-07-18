@@ -139,58 +139,89 @@ const DeliverySlipPreview = React.forwardRef<HTMLDivElement, { bonLivraison: Bon
 });
 DeliverySlipPreview.displayName = 'DeliverySlipPreview';
 
+export function DocumentPreviewDialog({
+  isOpen,
+  onOpenChange,
+  facture,
+  bonLivraison,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  facture: Facture;
+  bonLivraison: BonLivraison;
+}) {
+  const { shopInfo } = useApp();
+  const invoiceRef = useRef<HTMLDivElement>(null);
+  const deliverySlipRef = useRef<HTMLDivElement>(null);
 
-export function DocumentPreviewDialog({ isOpen, onOpenChange, facture, bonLivraison }: { isOpen: boolean, onOpenChange: (open: boolean) => void, facture: Facture, bonLivraison: BonLivraison }) {
-    const { shopInfo } = useApp();
-    const invoiceRef = useRef<HTMLDivElement>(null);
-    const deliverySlipRef = useRef<HTMLDivElement>(null);
-    
-    const handlePrintInvoice = useReactToPrint({
-        content: () => invoiceRef.current,
-    });
-    const handlePrintDeliverySlip = useReactToPrint({
-        content: () => deliverySlipRef.current,
-    });
+  const handlePrintInvoice = useReactToPrint({
+    content: () => invoiceRef.current,
+  });
 
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle className="font-headline">Commande Validée</DialogTitle>
-                    <DialogDescription>
-                        La facture et le bon de livraison ont été générés. Vous pouvez les imprimer.
-                    </DialogDescription>
-                </DialogHeader>
+  const handlePrintDeliverySlip = useReactToPrint({
+    content: () => deliverySlipRef.current,
+  });
 
-                <div className="flex-1 grid md:grid-cols-2 gap-6 py-4 min-h-0">
-                    <div className="flex flex-col gap-4">
-                        <div className="flex justify-between items-center px-4">
-                            <h3 className="font-semibold">Aperçu Facture</h3>
-                            <Button size="sm" variant="outline" onClick={handlePrintInvoice}><Printer className="mr-2 h-4 w-4" />Imprimer</Button>
-                        </div>
-                        <ScrollArea className="flex-1 bg-muted/50 rounded-md border">
-                            <InvoicePreview ref={invoiceRef} facture={facture} shopInfo={shopInfo} />
-                        </ScrollArea>
-                    </div>
-                    
-                    <div className="flex flex-col gap-4">
-                       <div className="flex justify-between items-center px-4">
-                            <h3 className="font-semibold">Aperçu Bon de Livraison</h3>
-                            <Button size="sm" variant="outline" onClick={handlePrintDeliverySlip}><Printer className="mr-2 h-4 w-4" />Imprimer</Button>
-                        </div>
-                        <ScrollArea className="flex-1 bg-muted/50 rounded-md border">
-                           <DeliverySlipPreview ref={deliverySlipRef} bonLivraison={bonLivraison} facture={facture} shopInfo={shopInfo} />
-                        </ScrollArea>
-                    </div>
-                </div>
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="font-headline">Commande Validée</DialogTitle>
+          <DialogDescription>
+            La facture et le bon de livraison ont été générés. Vous pouvez les imprimer.
+          </DialogDescription>
+        </DialogHeader>
 
-                <DialogFooter>
-                    <Button onClick={() => onOpenChange(false)}>
-                        <X className="mr-2 h-4 w-4" />
-                        Fermer
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
+        <div className="flex-1 grid md:grid-cols-2 gap-6 py-4 min-h-0">
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center px-4">
+              <h3 className="font-semibold">Aperçu Facture</h3>
+              <Button size="sm" variant="outline" onClick={handlePrintInvoice}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimer
+              </Button>
+            </div>
+            <ScrollArea className="flex-1 bg-muted/50 rounded-md border">
+              <div className="p-4">
+                <InvoicePreview facture={facture} shopInfo={shopInfo} />
+              </div>
+            </ScrollArea>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center px-4">
+              <h3 className="font-semibold">Aperçu Bon de Livraison</h3>
+              <Button size="sm" variant="outline" onClick={handlePrintDeliverySlip}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimer
+              </Button>
+            </div>
+            <ScrollArea className="flex-1 bg-muted/50 rounded-md border">
+              <div className="p-4">
+                <DeliverySlipPreview bonLivraison={bonLivraison} facture={facture} shopInfo={shopInfo} />
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+
+        {/* 🖨️ Hidden printable content */}
+        <div className="hidden">
+          <div ref={invoiceRef}>
+            <InvoicePreview facture={facture} shopInfo={shopInfo} />
+          </div>
+          <div ref={deliverySlipRef}>
+            <DeliverySlipPreview bonLivraison={bonLivraison} facture={facture} shopInfo={shopInfo} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)}>
+            <X className="mr-2 h-4 w-4" />
+            Fermer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
+
