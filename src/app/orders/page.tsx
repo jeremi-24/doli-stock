@@ -96,7 +96,7 @@ export default function OrdersPage() {
                                      <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                                 ) : sortedCommandes.length > 0 ? sortedCommandes.map(cmd => {
                                     const isLoading = loadingStates[cmd.id];
-                                    const isPendingSecretariatAction = (currentUser?.role?.nom === 'SECRETARIAT' || currentUser?.role?.nom === 'ADMIN' ) && cmd.statut === 'EN_ATTENTE';
+                                    const isPendingSecretariatAction = (currentUser?.roleNom === 'SECRETARIAT' || currentUser?.roleNom === 'ADMIN' ) && cmd.statut === 'EN_ATTENTE';
 
                                     return (
                                         <TableRow key={cmd.id}>
