@@ -136,6 +136,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } else {
         fetchLivraisonsPromise = api.getBonsLivraisonParLieu().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Bons de Livraison par Lieu'));
     }
+
+    let fetchClientsPromise;
+    if (adminOrControlRoles.includes(user.roleNom)) {
+        fetchClientsPromise = api.getAllClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Tous les clients'));
+    } else {
+        fetchClientsPromise = api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients'));
+    }
     
     const dataFetchPromises = [
       api.getOrganisations().then(orgs => {
@@ -144,7 +151,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       api.getProducts().then(data => setProduits(data || [])).catch(err => handleFetchError(err, 'Produits')),
       api.getCategories().then(data => setCategories(data || [])).catch(err => handleFetchError(err, 'Catégories')),
       api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
-      api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients')),
+      fetchClientsPromise,
       fetchCommandesPromise,
       fetchLivraisonsPromise,
       fetchFactures(),

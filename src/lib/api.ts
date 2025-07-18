@@ -35,13 +35,12 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     });
 
     if (!response.ok) {
-        let errorMessage = 'Une erreur est survenue.';
+        let errorMessage = `Erreur ${response.status}: ${response.statusText}`;
         try {
             const errorBody = await response.json();
             errorMessage = errorBody.error || errorBody.message || JSON.stringify(errorBody);
         } catch (e) {
-            const textBody = await response.text();
-            errorMessage = textBody || `Erreur ${response.status}: ${response.statusText}`;
+            // Pas de corps JSON, on utilise le statut textuel
         }
         throw new ApiError(errorMessage, response.status);
     }
@@ -118,6 +117,7 @@ export async function saveOrganisation(data: Partial<ShopInfo>): Promise<ShopInf
 
 // ========== Clients API ==========
 export async function getClients(): Promise<Client[]> { return apiFetch('/clients'); }
+export async function getAllClients(): Promise<Client[]> { return apiFetch('/clients/all'); }
 export async function createClient(data: Omit<Client, 'id'>): Promise<Client> {
   return apiFetch('/clients', { method: 'POST', body: JSON.stringify(data) });
 }
