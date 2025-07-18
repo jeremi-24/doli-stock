@@ -1,3 +1,4 @@
+
 import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, ValidationCommandeResponse } from './types';
 
 const API_BASE_URL = '/api'; 
@@ -35,12 +36,14 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     });
 
     if (!response.ok) {
-        let errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+        let errorMessage = `Erreur ${response.status}`;
         try {
             const errorBody = await response.json();
+            // Prioritize server's error message
             errorMessage = errorBody.message || errorBody.error || JSON.stringify(errorBody);
         } catch (e) {
-            // Pas de corps JSON, on utilise le statut textuel
+            // Fallback to status text if no JSON body
+             errorMessage = response.statusText;
         }
         throw new ApiError(errorMessage, response.status);
     }
@@ -251,15 +254,9 @@ export async function createReapprovisionnement(data: ReapproPayload): Promise<R
 }
 
 // ========== Commandes API ==========
-export async function getCommande(statut?: 'EN_ATTENTE' | 'VALIDEE' | 'ANNULEE'): Promise<Commande[]> {
-    const endpoint = statut ? `/commandes?statut=${statut}` : '/commandes';
-    return apiFetch(endpoint);
-}
-
 export async function getCommandes(): Promise<Commande[]> {
   return apiFetch('/commandes');
 }
-
 export async function getCommandesByClientId(clientId: number): Promise<Commande[]> {
     return apiFetch(`/commandes/client/${clientId}`);
 }
@@ -272,6 +269,10 @@ export async function validerCommande(id: number): Promise<ValidationCommandeRes
 export async function annulerCommande(id: number): Promise<Commande> {
     return apiFetch(`/commandes/${id}/annuler`, { method: 'PUT' });
 }
+export async function getDocumentsByCommandeId(id: number): Promise<ValidationCommandeResponse> {
+    return apiFetch(`/commandes/${id}/documents`);
+}
+
 
 // ========== Factures API ==========
 export async function getFactures(): Promise<Facture[]> {
@@ -283,7 +284,6 @@ export async function genererFacture(commandeId: number): Promise<Facture> {
 export async function deleteFacture(id: number): Promise<null> {
     return apiFetch(`/factures/${id}`, { method: 'DELETE' });
 }
-
 // ========== Bons de Livraison API ==========
 export async function getAllBonsLivraison(): Promise<BonLivraison[]> {
     return apiFetch(`/livraisons`);

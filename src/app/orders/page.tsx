@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/context/app-provider';
 import type { Commande, ValidationCommandeResponse } from '@/lib/types';
-import { PlusCircle, FileStack, Loader2, Check, FileSignature, Truck, XCircle } from 'lucide-react';
+import { PlusCircle, Loader2, Check, FileSignature, Truck, XCircle, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -29,8 +29,7 @@ export default function OrdersPage() {
     const { commandes, isMounted, currentUser, hasPermission, validerCommande, annulerCommande, genererFacture, genererBonLivraison } = useApp();
     const router = useRouter();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
-    const [validationData, setValidationData] = useState<ValidationCommandeResponse | null>(null);
-
+    
     const handleAction = async (action: (id: number) => Promise<any>, commandeId: number) => {
         setLoadingStates(prev => ({ ...prev, [commandeId]: true }));
         try {
@@ -45,7 +44,8 @@ export default function OrdersPage() {
         try {
             const result = await validerCommande(commandeId);
             if (result) {
-                setValidationData(result);
+                // Redirect to the new document view page after validation
+                router.push(`/orders/${commandeId}`);
             }
         } finally {
             setLoadingStates(prev => ({ ...prev, [commandeId]: false }));
@@ -104,6 +104,7 @@ export default function OrdersPage() {
                                 ) : sortedCommandes.length > 0 ? sortedCommandes.map(cmd => {
                                     const isLoading = loadingStates[cmd.id];
                                     const isPendingAction = cmd.statut === 'EN_ATTENTE';
+                                    const isValidated = cmd.statut === 'VALIDEE' || cmd.statut === 'LIVREE';
 
                                     return (
                                         <TableRow key={cmd.id}>
@@ -114,7 +115,7 @@ export default function OrdersPage() {
                                             <TableCell className="font-medium">{formatCurrency(cmd.totalCommande)}</TableCell>
                                             <TableCell>
                                                 <Badge variant={cmd.statut === 'VALIDEE' ? 'default' : (cmd.statut === 'ANNULEE' ? 'destructive' : 'secondary')}
-                                                       className={cn(cmd.statut === 'EN_ATTENTE' && 'bg-orange-500/80 text-white')}>
+                                                       className={cn(cmd.statut === 'EN_ATTENTE' && 'bg-orange-500/80 text-white', cmd.statut === 'LIVREE' && 'bg-green-600 text-white')}>
                                                     {cmd.statut.replace('_', ' ')}
                                                 </Badge>
                                             </TableCell>
@@ -148,35 +149,12 @@ export default function OrdersPage() {
                                                             </AlertDialog>
                                                         )}
                                                     </div>
+                                                ) : isValidated ? (
+                                                     <Button variant="outline" size="sm" onClick={() => router.push(`/orders/${cmd.id}`)}>
+                                                        <Eye className="h-4 w-4 mr-2" /> Voir Docs
+                                                    </Button>
                                                 ) : (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isLoading}>
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                                <span className="sr-only">Menu</span>
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            {cmd.statut === 'VALIDEE' && (
-                                                                <>
-                                                                    {canGenerateInvoice && (
-                                                                        <DropdownMenuItem onClick={() => handleAction(genererFacture, cmd.id)}>
-                                                                            <FileSignature className="mr-2 h-4 w-4" /> Générer Facture
-                                                                        </DropdownMenuItem>
-                                                                    )}
-                                                                    {canGenerateBL && (
-                                                                        <DropdownMenuItem onClick={() => handleAction(genererBonLivraison, cmd.id)}>
-                                                                            <Truck className="mr-2 h-4 w-4" /> Générer BL
-                                                                        </DropdownMenuItem>
-                                                                    )}
-                                                                    {(canGenerateInvoice || canGenerateBL) && <DropdownMenuSeparator />}
-                                                                </>
-                                                            )}
-                                                            <DropdownMenuItem disabled>
-                                                                {cmd.statut === 'EN_ATTENTE' ? 'En attente de validation' : `Commande ${cmd.statut.toLowerCase()}`}
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
+                                                    <span className="text-xs text-muted-foreground italic">Aucune action</span>
                                                 )}
                                             </TableCell>
                                         </TableRow>
@@ -189,14 +167,6 @@ export default function OrdersPage() {
                     </div>
                 </CardContent>
             </Card>
-            {validationData && (
-                <DocumentPreviewDialog 
-                    isOpen={!!validationData}
-                    onOpenChange={() => setValidationData(null)}
-                    facture={validationData.facture}
-                    bonLivraison={validationData.bonLivraison}
-                />
-            )}
         </div>
     )
 }
