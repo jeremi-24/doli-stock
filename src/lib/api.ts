@@ -38,7 +38,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
         let errorMessage = `Erreur ${response.status}: ${response.statusText}`;
         try {
             const errorBody = await response.json();
-            errorMessage = errorBody.error || errorBody.message || JSON.stringify(errorBody);
+            errorMessage = errorBody.message || errorBody.error || JSON.stringify(errorBody);
         } catch (e) {
             // Pas de corps JSON, on utilise le statut textuel
         }
@@ -51,6 +51,10 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('stockhero_token', newToken);
       }
+    }
+
+    if (options.headers?.['Accept'] === 'application/pdf' || response.headers.get('Content-Type')?.includes('application/pdf')) {
+        return response.blob();
     }
 
     const text = await response.text();
@@ -212,20 +216,11 @@ export async function importProducts(file: File): Promise<Produit[]> {
   }
 };
 export async function printBarcodes(data: { produitNom: string, quantite: number }): Promise<Blob> {
-    const headers = buildHeaders();
-    headers['Accept'] = 'application/pdf';
-
-    const response = await fetch(`${API_BASE_URL}/barcode/print`, {
+    return apiFetch('/barcode/print', {
         method: 'POST',
-        headers: headers,
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: { 'Accept': 'application/pdf' },
     });
-
-    if (!response.ok) {
-        throw new ApiError('Failed to generate PDF', response.status);
-    }
-
-    return response.blob();
 }
 
 // ========== Ventes (POS) API ==========
@@ -288,6 +283,12 @@ export async function genererFacture(commandeId: number): Promise<Facture> {
 export async function deleteFacture(id: number): Promise<null> {
     return apiFetch(`/factures/${id}`, { method: 'DELETE' });
 }
+export async function genererFacturePdf(id: number): Promise<Blob> {
+    return apiFetch(`/factures/${id}/pdf`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/pdf' }
+    });
+}
 
 // ========== Bons de Livraison API ==========
 export async function getAllBonsLivraison(): Promise<BonLivraison[]> {
@@ -301,4 +302,10 @@ export async function genererBonLivraison(commandeId: number): Promise<BonLivrai
 }
 export async function validerLivraison(id: number): Promise<BonLivraison> {
     return apiFetch(`/livraisons/${id}/valider`, { method: 'PUT' });
+}
+export async function genererBonLivraisonPdf(id: number): Promise<Blob> {
+    return apiFetch(`/livraisons/${id}/pdf`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/pdf' }
+    });
 }
