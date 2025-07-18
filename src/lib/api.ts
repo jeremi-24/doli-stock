@@ -35,32 +35,15 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     });
 
     if (!response.ok) {
-        const errorBody = await response.text();
         let errorMessage = 'Une erreur est survenue.';
-
         try {
-            // Essayer de parser le corps de la réponse comme du JSON
-            const errorJson = JSON.parse(errorBody);
-            // Utiliser le message d'erreur du backend s'il existe
-            errorMessage = errorJson.error || errorJson.message || errorBody;
+            const errorBody = await response.json();
+            errorMessage = errorBody.error || errorBody.message || JSON.stringify(errorBody);
         } catch (e) {
-            // Si le parsing échoue, utiliser le corps de la réponse comme texte brut
-            // à condition qu'il ne soit pas vide ou du HTML
-            if (errorBody && !errorBody.trim().startsWith('<')) {
-                errorMessage = errorBody;
-            } else {
-                 // Fallback pour les messages d'erreur génériques si le corps est vide/HTML
-                switch (response.status) {
-                    case 401: errorMessage = 'Session expirée. Veuillez vous reconnecter.'; break;
-                    case 403: errorMessage = 'Accès refusé. Vous n\'avez pas les droits nécessaires.'; break;
-                    case 404: errorMessage = 'La ressource demandée n\'a pas été trouvée.'; break;
-                    case 500: errorMessage = 'Une erreur interne est survenue sur le serveur.'; break;
-                    default: errorMessage = `Erreur ${response.status}: ${response.statusText}`;
-                }
-            }
+            const textBody = await response.text();
+            errorMessage = textBody || `Erreur ${response.status}: ${response.statusText}`;
         }
-      
-      throw new ApiError(errorMessage, response.status);
+        throw new ApiError(errorMessage, response.status);
     }
     
     const newTokenHeader = response.headers.get('Authorization');
@@ -307,8 +290,11 @@ export async function deleteFacture(id: number): Promise<null> {
 }
 
 // ========== Bons de Livraison API ==========
-export async function getBonsLivraison(): Promise<BonLivraison[]> {
+export async function getAllBonsLivraison(): Promise<BonLivraison[]> {
     return apiFetch(`/livraisons`);
+}
+export async function getBonsLivraisonParLieu(): Promise<BonLivraison[]> {
+    return apiFetch(`/livraisons/bons`);
 }
 export async function genererBonLivraison(commandeId: number): Promise<BonLivraison> {
     return apiFetch(`/livraisons?commandeId=${commandeId}`, { method: 'POST' });

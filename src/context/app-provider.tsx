@@ -91,14 +91,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   const handleFetchError = useCallback((error: unknown, resourceName: string) => {
       const description = error instanceof Error ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
-      if (error instanceof api.ApiError && (error.status === 403)) {
-         console.warn(`Accès refusé pour la ressource: ${resourceName}. C'est peut-être normal.`);
-          toast({ variant: 'destructive', title: "Accès refusé", description: `Vous n'avez pas les droits pour voir: ${resourceName}.` });
-      } else if (error instanceof api.ApiError && error.status === 401) {
-        toast({ variant: 'destructive', title: 'Session expirée', description });
-        setTimeout(() => logout(), 1500);
+      if (error instanceof api.ApiError && (error.status === 401 || error.status === 403)) {
+        toast({ variant: 'destructive', title: 'Accès non autorisé', description });
+        if (error.status === 401) setTimeout(() => logout(), 1500);
       } else {
-        toast({ variant: 'destructive', title: 'Erreur de chargement', description: `Impossible de charger: ${resourceName}.` });
+        toast({ variant: 'destructive', title: `Erreur: ${resourceName}`, description });
       }
   }, [toast, logout]);
   
@@ -117,7 +114,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setFactures(data || []);
     } catch (error) {
         handleFetchError(error, 'Factures');
-        // Do not re-throw, to avoid blocking other data fetches
     }
   }, [handleFetchError]);
 
@@ -125,12 +121,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     
     const adminRoles = ['SECRETARIAT', 'ADMIN', 'DG'];
-    let fetchCommandesPromise;
+    const adminOrControlRoles = ['ADMIN', 'SECRETARIAT', 'DG', 'CONTROLLEUR'];
 
+    let fetchCommandesPromise;
     if (adminRoles.includes(user.roleNom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
     } else if (user.clientId) {
         fetchCommandesPromise = api.getCommandesByClientId(user.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes Client'));
+    }
+
+    let fetchLivraisonsPromise;
+    if (adminOrControlRoles.includes(user.roleNom)) {
+        fetchLivraisonsPromise = api.getAllBonsLivraison().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Tous les Bons de Livraison'));
+    } else {
+        fetchLivraisonsPromise = api.getBonsLivraisonParLieu().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Bons de Livraison par Lieu'));
     }
     
     const dataFetchPromises = [
@@ -142,10 +146,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
       api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients')),
       fetchCommandesPromise,
+      fetchLivraisonsPromise,
       fetchFactures(),
-      api.getBonsLivraison()
-          .then(data => setBonLivraisons(data || []))
-          .catch(err => handleFetchError(err, 'Bons de Livraison')),
     ];
 
     await Promise.allSettled(dataFetchPromises);
@@ -372,8 +374,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
-    addClient, updateClient, deleteClient,
-    deleteFacture, 
+    addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
     createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, validerLivraison,
     shopInfo, setShopInfo, themeColors, setThemeColors,
