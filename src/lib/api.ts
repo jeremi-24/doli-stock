@@ -306,7 +306,7 @@ export async function deleteFacture(id: number): Promise<null> {
 
 // ========== Bons de Livraison API ==========
 export async function getBonsLivraison(): Promise<BonLivraison[]> {
-    return apiFetch(`/livraisons`);
+    return apiFetch(`/livraisons/bons`);
 }
 export async function genererBonLivraison(commandeId: number): Promise<BonLivraison> {
     return apiFetch(`/livraisons?commandeId=${commandeId}`, { method: 'POST' });

@@ -65,7 +65,10 @@ export default function OrdersPage() {
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center gap-4">
-                <h1 className="font-headline text-3xl font-semibold">Suivi des Commandes</h1>
+                <h1 className="font-headline text-3xl font-semibold"> {['ADMIN', 'DG', 'SECRETARIAT', 'CONTROLLEUR'].includes(currentUser?.roleNom!) 
+        ? "Toutes les commandes" 
+        : "Vos commandes"
+    }</h1>
                 <div className="ml-auto">
                     <Button size="sm" onClick={() => router.push('/orders/new')}>
                         <PlusCircle className="h-4 w-4 mr-2" /> Nouvelle Commande
@@ -74,7 +77,7 @@ export default function OrdersPage() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><FileStack /> Toutes les commandes</CardTitle>
+                  
                     <CardDescription>Liste de toutes les commandes internes.</CardDescription>
                 </CardHeader>
                 <CardContent>
