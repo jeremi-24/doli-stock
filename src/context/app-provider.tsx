@@ -133,7 +133,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (adminRoles.includes(user.roleNom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
     }else {
-        fetchCommandesPromise = Promise.resolve(setCommandes([])); // No client ID, so no commands to fetch
+           fetchCommandesPromise = api.getCommandesByClientId(user.clientId!).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
     }
     
     const dataFetchPromises = [
