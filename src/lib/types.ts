@@ -149,7 +149,7 @@ export type LigneBonLivraison = {
     produitNom: string;
     qteLivre: number;
     produitPrix: number;
-    totalLivraison: number;
+    totalLigne: number;
 };
 
 export type BonLivraison = {
@@ -160,12 +160,6 @@ export type BonLivraison = {
     lignesLivraison: LigneBonLivraison[];
     statut: 'A_LIVRER' | 'LIVREE';
     lieuStock: LieuStock;
-};
-
-export type ValidationCommandeResponse = {
-  commande: Commande;
-  facture: Facture;
-  bonLivraison: BonLivraison;
 };
 
 
@@ -231,6 +225,7 @@ export type RoleCreationPayload = {
 export type CurrentUser = {
   id: number;
   email: string;
+  role: Role;
   roleNom: string;
   lieuId?: number;
   clientId?: number;

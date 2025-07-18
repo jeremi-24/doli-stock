@@ -1,5 +1,5 @@
 
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, ValidationCommandeResponse } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser } from './types';
 
 const API_BASE_URL = '/api'; 
 
@@ -263,14 +263,11 @@ export async function getCommandesByClientId(clientId: number): Promise<Commande
 export async function createCommande(data: CommandePayload): Promise<Commande> {
     return apiFetch('/commandes', { method: 'POST', body: JSON.stringify(data) });
 }
-export async function validerCommande(id: number): Promise<ValidationCommandeResponse> {
+export async function validerCommande(id: number): Promise<Commande> {
     return apiFetch(`/commandes/${id}/valider`, { method: 'POST' });
 }
 export async function annulerCommande(id: number): Promise<Commande> {
     return apiFetch(`/commandes/${id}/annuler`, { method: 'PUT' });
-}
-export async function getDocumentsByCommandeId(id: number): Promise<ValidationCommandeResponse> {
-    return apiFetch(`/commandes/${id}/documents`);
 }
 
 
