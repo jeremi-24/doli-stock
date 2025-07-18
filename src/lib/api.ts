@@ -36,29 +36,31 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
     if (!response.ok) {
         const errorBody = await response.text();
-        let serverMessage = '';
+        let errorMessage = 'Une erreur est survenue.';
 
         try {
+            // Essayer de parser le corps de la réponse comme du JSON
             const errorJson = JSON.parse(errorBody);
-            serverMessage = errorJson.error || errorJson.message || errorBody;
+            // Utiliser le message d'erreur du backend s'il existe
+            errorMessage = errorJson.error || errorJson.message || errorBody;
         } catch (e) {
-            serverMessage = errorBody;
-        }
-        
-        let userMessage = serverMessage;
-        if (!userMessage || typeof userMessage !== 'string' || userMessage.trim().startsWith('<') || userMessage.trim() === 'OK') {
-            switch (response.status) {
-                case 400: userMessage = 'La requête est incorrecte. Veuillez vérifier les informations soumises.'; break;
-                case 401: userMessage = 'Session expirée. Veuillez vous reconnecter.'; break;
-                case 403: userMessage = 'Accès refusé. Vous n\'avez pas les droits nécessaires pour effectuer cette action.'; break;
-                case 404: userMessage = 'La ressource demandée n\'a pas été trouvée sur le serveur.'; break;
-                case 500: userMessage = 'Une erreur interne est survenue sur le serveur. Veuillez réessayer plus tard.'; break;
-                case 503: case 504: userMessage = 'Le service est temporairement indisponible. Veuillez réessayer dans quelques instants.'; break;
-                default: userMessage = `Une erreur inattendue est survenue (Code: ${response.status}).`;
+            // Si le parsing échoue, utiliser le corps de la réponse comme texte brut
+            // à condition qu'il ne soit pas vide ou du HTML
+            if (errorBody && !errorBody.trim().startsWith('<')) {
+                errorMessage = errorBody;
+            } else {
+                 // Fallback pour les messages d'erreur génériques si le corps est vide/HTML
+                switch (response.status) {
+                    case 401: errorMessage = 'Session expirée. Veuillez vous reconnecter.'; break;
+                    case 403: errorMessage = 'Accès refusé. Vous n\'avez pas les droits nécessaires.'; break;
+                    case 404: errorMessage = 'La ressource demandée n\'a pas été trouvée.'; break;
+                    case 500: errorMessage = 'Une erreur interne est survenue sur le serveur.'; break;
+                    default: errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+                }
             }
         }
       
-      throw new ApiError(userMessage, response.status);
+      throw new ApiError(errorMessage, response.status);
     }
     
     const newTokenHeader = response.headers.get('Authorization');
@@ -306,7 +308,7 @@ export async function deleteFacture(id: number): Promise<null> {
 
 // ========== Bons de Livraison API ==========
 export async function getBonsLivraison(): Promise<BonLivraison[]> {
-    return apiFetch(`/livraisons/bons`);
+    return apiFetch(`/livraisons`);
 }
 export async function genererBonLivraison(commandeId: number): Promise<BonLivraison> {
     return apiFetch(`/livraisons?commandeId=${commandeId}`, { method: 'POST' });
