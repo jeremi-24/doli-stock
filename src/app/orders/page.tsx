@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/context/app-provider';
 import type { Commande, ValidationCommandeResponse } from '@/lib/types';
-import { PlusCircle, Loader2, Check, FileSignature, Truck, XCircle, Eye } from 'lucide-react';
+import { PlusCircle, Loader2, Check, FileSignature, Truck, XCircle, Eye, FileSearch } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
+import { OrderPreviewDialog } from '@/components/order-preview-dialog';
 import { cn } from '@/lib/utils';
 
 
@@ -29,6 +29,7 @@ export default function OrdersPage() {
     const { commandes, isMounted, currentUser, hasPermission, validerCommande, annulerCommande, genererFacture, genererBonLivraison } = useApp();
     const router = useRouter();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
+    const [previewingOrder, setPreviewingOrder] = useState<Commande | null>(null);
     
     const handleAction = async (action: (id: number) => Promise<any>, commandeId: number) => {
         setLoadingStates(prev => ({ ...prev, [commandeId]: true }));
@@ -120,19 +121,43 @@ export default function OrdersPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                {isLoading ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin ml-auto" />
-                                                ) : isPendingAction && (canValidateOrder || canCancelOrder) ? (
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        {canValidateOrder && (
-                                                            <Button size="sm" onClick={() => handleValidation(cmd.id)} disabled={isLoading}>
-                                                                <Check className="mr-2 h-4 w-4" /> Valider
-                                                            </Button>
+                                                 <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            aria-haspopup="true"
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            disabled={isLoading}
+                                                        >
+                                                            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                                                            <span className="sr-only">Ouvrir le menu</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => setPreviewingOrder(cmd)}>
+                                                            <FileSearch className="mr-2 h-4 w-4" />
+                                                            Voir la commande
+                                                        </DropdownMenuItem>
+
+                                                        {isValidated && (
+                                                            <DropdownMenuItem onClick={() => router.push(`/orders/${cmd.id}`)}>
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                Voir les documents
+                                                            </DropdownMenuItem>
                                                         )}
-                                                        {canCancelOrder && (
+                                                        
+                                                        {isPendingAction && (canValidateOrder || canCancelOrder) && <DropdownMenuSeparator />}
+                                                        
+                                                        {isPendingAction && canValidateOrder && (
+                                                            <DropdownMenuItem onClick={() => handleValidation(cmd.id)}>
+                                                                <Check className="mr-2 h-4 w-4" />
+                                                                Valider
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {isPendingAction && canCancelOrder && (
                                                             <AlertDialog>
                                                                 <AlertDialogTrigger asChild>
-                                                                    <Button size="sm" variant="destructive" disabled={isLoading}>
+                                                                     <Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
                                                                         <XCircle className="mr-2 h-4 w-4" /> Rejeter
                                                                     </Button>
                                                                 </AlertDialogTrigger>
@@ -148,14 +173,8 @@ export default function OrdersPage() {
                                                                 </AlertDialogContent>
                                                             </AlertDialog>
                                                         )}
-                                                    </div>
-                                                ) : isValidated ? (
-                                                     <Button variant="outline" size="sm" onClick={() => router.push(`/orders/${cmd.id}`)}>
-                                                        <Eye className="h-4 w-4 mr-2" /> Voir Docs
-                                                    </Button>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground italic">Aucune action</span>
-                                                )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
                                     )
@@ -167,6 +186,13 @@ export default function OrdersPage() {
                     </div>
                 </CardContent>
             </Card>
+             <OrderPreviewDialog
+                isOpen={!!previewingOrder}
+                onOpenChange={(open) => {
+                    if (!open) setPreviewingOrder(null);
+                }}
+                commande={previewingOrder}
+            />
         </div>
     )
 }
