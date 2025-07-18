@@ -89,9 +89,13 @@ function InvoicePreviewDialog({ facture, shopInfo, isOpen, onOpenChange }: { fac
 }
 
 function DeleteSaleButton({ factureId, onDeleted }: { factureId: number, onDeleted: () => void }) {
-    const { deleteFacture } = useApp();
+    const { deleteFacture, hasPermission } = useApp();
     const [isLoading, setIsLoading] = useState(false);
     
+    if (!hasPermission('FACTURE_DELETE')) {
+        return null;
+    }
+
     const handleDelete = async () => {
         setIsLoading(true);
         await deleteFacture(factureId);

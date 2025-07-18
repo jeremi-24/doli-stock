@@ -149,7 +149,7 @@ export type LigneBonLivraison = {
     produitNom: string;
     qteLivre: number;
     produitPrix: number;
-    totalLivraison: number;
+    totalLigne: number;
 };
 
 export type BonLivraison = {

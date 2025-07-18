@@ -58,9 +58,11 @@ export default function OrdersPage() {
         [...commandes].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
     [commandes]);
     
+    const canValidateOrder = React.useMemo(() => hasPermission('COMMANDE_VALIDATE'), [hasPermission]);
+    const canCancelOrder = React.useMemo(() => hasPermission('COMMANDE_CANCEL'), [hasPermission]);
     const canGenerateInvoice = React.useMemo(() => hasPermission('FACTURE_GENERATE'), [hasPermission]);
     const canGenerateBL = React.useMemo(() => hasPermission('LIVRAISON_GENERATE'), [hasPermission]);
-
+    const canCreateOrder = React.useMemo(() => hasPermission('COMMANDE_CREATE'), [hasPermission]);
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -70,9 +72,11 @@ export default function OrdersPage() {
         : "Vos commandes"
     }</h1>
                 <div className="ml-auto">
-                    <Button size="sm" onClick={() => router.push('/orders/new')}>
-                        <PlusCircle className="h-4 w-4 mr-2" /> Nouvelle Commande
-                    </Button>
+                    {canCreateOrder && (
+                        <Button size="sm" onClick={() => router.push('/orders/new')}>
+                            <PlusCircle className="h-4 w-4 mr-2" /> Nouvelle Commande
+                        </Button>
+                    )}
                 </div>
             </div>
             <Card>
@@ -99,7 +103,7 @@ export default function OrdersPage() {
                                      <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                                 ) : sortedCommandes.length > 0 ? sortedCommandes.map(cmd => {
                                     const isLoading = loadingStates[cmd.id];
-                                    const isPendingSecretariatAction = (currentUser?.roleNom === 'SECRETARIAT' || currentUser?.roleNom === 'ADMIN' ) && cmd.statut === 'EN_ATTENTE';
+                                    const isPendingAction = cmd.statut === 'EN_ATTENTE';
 
                                     return (
                                         <TableRow key={cmd.id}>
@@ -117,28 +121,32 @@ export default function OrdersPage() {
                                             <TableCell className="text-right">
                                                 {isLoading ? (
                                                     <Loader2 className="h-4 w-4 animate-spin ml-auto" />
-                                                ) : isPendingSecretariatAction ? (
+                                                ) : isPendingAction && (canValidateOrder || canCancelOrder) ? (
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <Button size="sm" onClick={() => handleValidation(cmd.id)} disabled={isLoading}>
-                                                            <Check className="mr-2 h-4 w-4" /> Valider
-                                                        </Button>
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button size="sm" variant="destructive" disabled={isLoading}>
-                                                                    <XCircle className="mr-2 h-4 w-4" /> Rejeter
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Rejeter la commande ?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>Cette action est irréversible et annulera la commande.</AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Retour</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleAction(annulerCommande, cmd.id)}>Confirmer le rejet</AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
+                                                        {canValidateOrder && (
+                                                            <Button size="sm" onClick={() => handleValidation(cmd.id)} disabled={isLoading}>
+                                                                <Check className="mr-2 h-4 w-4" /> Valider
+                                                            </Button>
+                                                        )}
+                                                        {canCancelOrder && (
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button size="sm" variant="destructive" disabled={isLoading}>
+                                                                        <XCircle className="mr-2 h-4 w-4" /> Rejeter
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Rejeter la commande ?</AlertDialogTitle>
+                                                                        <AlertDialogDescription>Cette action est irréversible et annulera la commande.</AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel>Retour</AlertDialogCancel>
+                                                                        <AlertDialogAction onClick={() => handleAction(annulerCommande, cmd.id)}>Confirmer le rejet</AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <DropdownMenu>

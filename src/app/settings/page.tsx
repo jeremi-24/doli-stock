@@ -71,6 +71,7 @@ const ALL_PERMISSIONS: { action: string, description: string }[] = [
     { action: 'LIVRAISON_READ', description: 'Consulter des bons de livraison' },
     { action: 'LIVRAISON_VALIDATE', description: 'Valider des livraisons' },
     { action: 'FACTURE_GENERATE', description: 'Générer des factures' },
+    { action: 'FACTURE_DELETE', description: 'Supprimer des factures' },
     { action: 'VENTE_READ', description: 'Consulter l\'historique des ventes' },
     { action: 'INVENTAIRE_MANAGE', description: 'Gérer les inventaires' },
     { action: 'REAPPRO_MANAGE', description: 'Gérer les réapprovisionnements' },
@@ -790,7 +791,6 @@ export default function SettingsPage() {
   const canImport = React.useMemo(() => hasPermission('PRODUIT_IMPORT'), [hasPermission]);
 
   React.useEffect(() => {
-    // Fetch products for the print dialog
     if (canImport) {
         api.getProducts().then(setProduits);
     }
