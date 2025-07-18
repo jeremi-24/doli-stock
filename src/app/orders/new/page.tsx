@@ -133,11 +133,20 @@ export default function NewOrderPage() {
                     <SelectValue placeholder="Sélectionner un client" />
                   </SelectTrigger>
                   <SelectContent>
-                    {canSelectClient ? (
-                       clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)
-                    ) : (
-                      <SelectItem value={clientId || ''}>{clients.find(c => c.id === Number(clientId))?.nom || currentUser?.email}</SelectItem>
-                    )}
+                   {canSelectClient ? (
+  clients.map(c => (
+    <SelectItem key={c.id} value={String(c.id)}>
+      {c.nom}
+    </SelectItem>
+  ))
+) : (
+  clientId && (
+    <SelectItem value={String(clientId)}>
+      {clients.find(c => c.id === Number(clientId))?.nom || currentUser?.email}
+    </SelectItem>
+  )
+)}
+
                   </SelectContent>
                 </Select>
             </div>
