@@ -124,7 +124,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [handleFetchError]);
 
   const fetchAllData = useCallback(async (user: CurrentUser | null) => {
-    console.log(user);
     if (!user) return;
     
     const adminRoles = ['SECRETARIAT', 'ADMIN', 'DG'];
@@ -132,8 +131,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (adminRoles.includes(user.roleNom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
-    }else {
-           fetchCommandesPromise = api.getCommandesByClientId(user.clientId!).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
+    } else if (user.clientId) {
+        fetchCommandesPromise = api.getCommandesByClientId(user.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes Client'));
     }
     
     const dataFetchPromises = [
@@ -146,15 +145,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients')),
       fetchCommandesPromise,
       fetchFactures(),
+      api.getBonsLivraison()
+          .then(data => setBonLivraisons(data || []))
+          .catch(err => handleFetchError(err, 'Bons de Livraison')),
     ];
-
-    if (user && user.lieuId) {
-        dataFetchPromises.push(
-            api.getBonsLivraison(user.lieuId)
-                .then(data => setBonLivraisons(data || []))
-                .catch(err => handleFetchError(err, 'Bons de Livraison'))
-        );
-    }
 
     await Promise.allSettled(dataFetchPromises);
   }, [handleFetchError, fetchFactures]);

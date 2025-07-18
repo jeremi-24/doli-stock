@@ -1,16 +1,16 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/context/app-provider';
-import type { BonLivraison } from '@/lib/types';
-import { Truck, CheckCircle, Loader2, Calendar, User } from 'lucide-react';
+import { Truck, CheckCircle, Loader2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export default function DeliveriesPage() {
     const { bonLivraisons, isMounted, validerLivraison } = useApp();
@@ -22,6 +22,14 @@ export default function DeliveriesPage() {
             await validerLivraison(livraisonId);
         } finally {
             setLoadingStates(prev => ({ ...prev, [livraisonId]: false }));
+        }
+    };
+
+    const getStatusText = (status: 'A_LIVRER' | 'LIVREE') => {
+        switch (status) {
+            case 'A_LIVRER': return 'À livrer';
+            case 'LIVREE': return 'Livré';
+            default: return status;
         }
     };
 
@@ -43,7 +51,6 @@ export default function DeliveriesPage() {
                                 <TableRow>
                                     <TableHead>N° Commande</TableHead>
                                     <TableHead>Date</TableHead>
-                                    <TableHead>Client</TableHead>
                                     <TableHead>Statut</TableHead>
                                     <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
@@ -52,7 +59,7 @@ export default function DeliveriesPage() {
                                 {!isMounted ? (
                                     Array.from({ length: 3 }).map((_, i) => (
                                         <TableRow key={i}>
-                                            <TableCell colSpan={5} className="py-4"><Loader2 className="animate-spin mx-auto" /></TableCell>
+                                            <TableCell colSpan={4} className="py-4"><Loader2 className="animate-spin mx-auto" /></TableCell>
                                         </TableRow>
                                     ))
                                 ) : bonLivraisons.length > 0 ? (
@@ -66,14 +73,8 @@ export default function DeliveriesPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <User className="h-4 w-4 text-muted-foreground" />
-                                                    {bl.client.nom}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={bl.statut === 'LIVREE' ? 'default' : "secondary"}>
-                                                    {bl.statut === 'LIVREE' ? 'Livré' : 'En attente de validation'}
+                                                <Badge variant={bl.statut === 'LIVREE' ? 'default' : "secondary"} className={cn(bl.statut === 'A_LIVRER' && 'bg-blue-100 text-blue-800')}>
+                                                    {getStatusText(bl.statut)}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
@@ -94,7 +95,7 @@ export default function DeliveriesPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">Aucun bon de livraison à valider.</TableCell>
+                                        <TableCell colSpan={4} className="h-24 text-center">Aucun bon de livraison à valider.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
