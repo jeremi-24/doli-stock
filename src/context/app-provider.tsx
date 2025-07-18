@@ -7,6 +7,7 @@ import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, S
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
+import { Console } from 'console';
 
 interface AppContextType {
   produits: Produit[];
@@ -122,6 +123,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [handleFetchError]);
 
   const fetchAllData = useCallback(async (user: CurrentUser | null) => {
+    console.log(user);
     if (!user) return;
     
     const adminRoles = ['SECRETARIAT', 'ADMIN', 'DG'];
@@ -129,10 +131,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (adminRoles.includes(user.role.nom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
-    } else if (user.clientId) {
-        // This covers MAGASINIER, CONTROLLEUR, and any other role with an associated clientId
-        fetchCommandesPromise = api.getCommandesByClientId(user.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes du client'));
-    } else {
+    }else {
         fetchCommandesPromise = Promise.resolve(setCommandes([])); // No client ID, so no commands to fetch
     }
     
