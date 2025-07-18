@@ -10,7 +10,7 @@ import { useApp } from '@/context/app-provider';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Printer, X, Loader2 } from 'lucide-react';
-import * as api from '@/lib/api';
+import { useReactToPrint } from 'react-to-print';
 import { useToast } from '@/hooks/use-toast';
 
 const InvoicePreview = React.forwardRef<HTMLDivElement, { facture: Facture, shopInfo: ShopInfo }>(({ facture, shopInfo }, ref) => {
@@ -153,31 +153,23 @@ export function DocumentPreviewDialog({
 }) {
   const { shopInfo } = useApp();
   const { toast } = useToast();
-  const [isPrintingInvoice, setIsPrintingInvoice] = useState(false);
-  const [isPrintingSlip, setIsPrintingSlip] = useState(false);
+  
+  const invoiceRef = useRef<HTMLDivElement>(null);
+  const slipRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = async (type: 'invoice' | 'delivery') => {
-      if (type === 'invoice') setIsPrintingInvoice(true);
-      if (type === 'delivery') setIsPrintingSlip(true);
-
-      try {
-          const id = type === 'invoice' ? facture.idFacture : bonLivraison.id;
-          const pdfBlob = type === 'invoice' 
-              ? await api.genererFacturePdf(id) 
-              : await api.genererBonLivraisonPdf(id);
-          
-          const url = window.URL.createObjectURL(pdfBlob);
-          window.open(url, '_blank');
-          window.URL.revokeObjectURL(url);
-
-      } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-          toast({ variant: 'destructive', title: `Erreur d'impression`, description: errorMessage });
-      } finally {
-          if (type === 'invoice') setIsPrintingInvoice(false);
-          if (type === 'delivery') setIsPrintingSlip(false);
-      }
-  };
+  const handlePrintInvoice = useReactToPrint({
+    content: () => invoiceRef.current,
+    documentTitle: `Facture-${facture.idFacture}`,
+    onPrintError: () => toast({ variant: 'destructive', title: `Erreur d'impression`}),
+    pageStyle: "@page { size: A4; margin: 0mm; } @media print { body { -webkit-print-color-adjust: exact; } }",
+  });
+  
+  const handlePrintSlip = useReactToPrint({
+    content: () => slipRef.current,
+    documentTitle: `BL-${bonLivraison.id}`,
+    onPrintError: () => toast({ variant: 'destructive', title: `Erreur d'impression`}),
+    pageStyle: "@page { size: A4; margin: 0mm; } @media print { body { -webkit-print-color-adjust: exact; } }",
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -193,14 +185,14 @@ export function DocumentPreviewDialog({
           <div className="flex flex-col gap-4">
             <div className="flex justify-between items-center px-4">
               <h3 className="font-semibold">Aperçu Facture</h3>
-              <Button size="sm" variant="outline" onClick={() => handlePrint('invoice')} disabled={isPrintingInvoice}>
-                {isPrintingInvoice ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                {isPrintingInvoice ? 'Génération...' : 'Imprimer'}
+              <Button size="sm" variant="outline" onClick={handlePrintInvoice}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimer
               </Button>
             </div>
             <ScrollArea className="flex-1 bg-muted/50 rounded-md border">
               <div className="p-4">
-                <InvoicePreview facture={facture} shopInfo={shopInfo} />
+                <InvoicePreview ref={invoiceRef} facture={facture} shopInfo={shopInfo} />
               </div>
             </ScrollArea>
           </div>
@@ -208,14 +200,14 @@ export function DocumentPreviewDialog({
           <div className="flex flex-col gap-4">
             <div className="flex justify-between items-center px-4">
               <h3 className="font-semibold">Aperçu Bon de Livraison</h3>
-              <Button size="sm" variant="outline" onClick={() => handlePrint('delivery')} disabled={isPrintingSlip}>
-                {isPrintingSlip ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                {isPrintingSlip ? 'Génération...' : 'Imprimer'}
+              <Button size="sm" variant="outline" onClick={handlePrintSlip}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimer
               </Button>
             </div>
             <ScrollArea className="flex-1 bg-muted/50 rounded-md border">
               <div className="p-4">
-                <DeliverySlipPreview bonLivraison={bonLivraison} facture={facture} shopInfo={shopInfo} />
+                <DeliverySlipPreview ref={slipRef} bonLivraison={bonLivraison} facture={facture} shopInfo={shopInfo} />
               </div>
             </ScrollArea>
           </div>

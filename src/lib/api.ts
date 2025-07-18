@@ -283,12 +283,6 @@ export async function genererFacture(commandeId: number): Promise<Facture> {
 export async function deleteFacture(id: number): Promise<null> {
     return apiFetch(`/factures/${id}`, { method: 'DELETE' });
 }
-export async function genererFacturePdf(id: number): Promise<Blob> {
-    return apiFetch(`/factures/${id}/pdf`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/pdf' }
-    });
-}
 
 // ========== Bons de Livraison API ==========
 export async function getAllBonsLivraison(): Promise<BonLivraison[]> {
@@ -302,10 +296,4 @@ export async function genererBonLivraison(commandeId: number): Promise<BonLivrai
 }
 export async function validerLivraison(id: number): Promise<BonLivraison> {
     return apiFetch(`/livraisons/${id}/valider`, { method: 'PUT' });
-}
-export async function genererBonLivraisonPdf(id: number): Promise<Blob> {
-    return apiFetch(`/livraisons/${id}/pdf`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/pdf' }
-    });
 }
