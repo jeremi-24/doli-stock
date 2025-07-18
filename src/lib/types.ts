@@ -158,7 +158,7 @@ export type BonLivraison = {
     commandeId: number;
     email: string;
     lignesLivraison: LigneBonLivraison[];
-    statut: 'A_LIVRER' | 'LIVREE';
+    statut: 'A_LIVRER' | 'VALIDE_SECRETARIAT' | 'LIVREE';
     lieuStock: LieuStock;
 };
 

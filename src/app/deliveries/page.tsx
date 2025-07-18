@@ -13,23 +13,27 @@ import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 export default function DeliveriesPage() {
-    const { bonLivraisons, isMounted, validerLivraison } = useApp();
+    const { bonLivraisons, isMounted, validerLivraisonEtape1, validerLivraisonEtape2, hasPermission } = useApp();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
 
-    const handleValidate = async (livraisonId: number) => {
+    const handleAction = async (action: (id: number) => Promise<void>, livraisonId: number) => {
         setLoadingStates(prev => ({ ...prev, [livraisonId]: true }));
         try {
-            await validerLivraison(livraisonId);
+            await action(livraisonId);
         } finally {
             setLoadingStates(prev => ({ ...prev, [livraisonId]: false }));
         }
     };
+    
+    const canValidateEtape1 = React.useMemo(() => hasPermission('LIVRAISON_VALIDATE_ETAPE1'), [hasPermission]);
+    const canValidateEtape2 = React.useMemo(() => hasPermission('LIVRAISON_VALIDATE_ETAPE2'), [hasPermission]);
 
-    const getStatusText = (status: 'A_LIVRER' | 'LIVREE') => {
+    const getStatusInfo = (status: 'A_LIVRER' | 'VALIDE_SECRETARIAT' | 'LIVREE') => {
         switch (status) {
-            case 'A_LIVRER': return 'À livrer';
-            case 'LIVREE': return 'Livré';
-            default: return status;
+            case 'A_LIVRER': return { text: 'À livrer', className: 'bg-blue-100 text-blue-800'};
+            case 'VALIDE_SECRETARIAT': return { text: 'Validé (secrétariat)', className: 'bg-yellow-100 text-yellow-800'};
+            case 'LIVREE': return { text: 'Livré', className: 'bg-green-100 text-green-800'};
+            default: return { text: status, className: ''};
         }
     };
 
@@ -42,7 +46,7 @@ export default function DeliveriesPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2"><Truck /> Livraisons à Valider</CardTitle>
-                    <CardDescription>Liste des bons de livraison en attente de validation dans votre lieu de stock.</CardDescription>
+                    <CardDescription>Liste des bons de livraison en attente de validation.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="border rounded-lg">
@@ -60,49 +64,61 @@ export default function DeliveriesPage() {
                                 {!isMounted ? (
                                     Array.from({ length: 3 }).map((_, i) => (
                                         <TableRow key={i}>
-                                            <TableCell colSpan={4} className="py-4"><Loader2 className="animate-spin mx-auto" /></TableCell>
+                                            <TableCell colSpan={5} className="py-4"><Loader2 className="animate-spin mx-auto" /></TableCell>
                                         </TableRow>
                                     ))
                                 ) : bonLivraisons.length > 0 ? (
-                                    bonLivraisons.map((bl) => (
-                                        <TableRow key={bl.id}>
-                                            <TableCell className="font-mono">CMD-{String(bl.commandeId).padStart(5, '0')}</TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                    {bl.dateLivraison ? format(new Date(bl.dateLivraison), 'd MMM yyyy', { locale: fr }) : 'N/A'}
-                                                </div>
-                                            </TableCell>
-                                             <TableCell>
-                                                <div className={cn()}>
-                                                    {bl.email}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={bl.statut === 'LIVREE' ? 'default' : "secondary"} className={cn(bl.statut === 'A_LIVRER' && 'bg-blue-100 text-blue-800')}>
-                                                    {getStatusText(bl.statut)}
-                                                </Badge>
-                                            </TableCell>
-                                           
-                                            <TableCell className="text-right">
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => handleValidate(bl.id)}
-                                                    disabled={bl.statut === 'LIVREE' || loadingStates[bl.id]}
-                                                >
-                                                    {loadingStates[bl.id] ? (
-                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    bonLivraisons.map((bl) => {
+                                        const isLoading = loadingStates[bl.id];
+                                        const statusInfo = getStatusInfo(bl.statut);
+                                        const isDone = bl.statut === 'LIVREE';
+                                        
+                                        const showValidateEtape1 = canValidateEtape1 && bl.statut === 'A_LIVRER';
+                                        const showValidateEtape2 = canValidateEtape2 && bl.statut === 'VALIDE_SECRETARIAT';
+
+                                        return (
+                                            <TableRow key={bl.id}>
+                                                <TableCell className="font-mono">CMD-{String(bl.commandeId).padStart(5, '0')}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                        {bl.dateLivraison ? format(new Date(bl.dateLivraison), 'd MMM yyyy', { locale: fr }) : 'N/A'}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className={cn()}>{bl.email}</div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={isDone ? 'default' : "secondary"} className={cn(statusInfo.className)}>
+                                                        {statusInfo.text}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {isDone ? (
+                                                        <Button size="sm" disabled>
+                                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                                            Validé
+                                                        </Button>
+                                                    ) : showValidateEtape1 ? (
+                                                        <Button size="sm" onClick={() => handleAction(validerLivraisonEtape1, bl.id)} disabled={isLoading}>
+                                                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                            Valider BL
+                                                        </Button>
+                                                    ) : showValidateEtape2 ? (
+                                                        <Button size="sm" onClick={() => handleAction(validerLivraisonEtape2, bl.id)} disabled={isLoading}>
+                                                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                            Confirmer Réception
+                                                        </Button>
                                                     ) : (
-                                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                                         <span className="text-xs text-muted-foreground">En attente...</span>
                                                     )}
-                                                    {bl.statut === 'LIVREE' ? 'Validé' : 'Valider la réception'}
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">Aucun bon de livraison à valider.</TableCell>
+                                        <TableCell colSpan={5} className="h-24 text-center">Aucun bon de livraison à traiter.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

@@ -38,8 +38,8 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     if (!response.ok) {
         let errorMessage = `Erreur ${response.status}`;
         try {
-            const errorBody = await response.json();
             // Prioritize server's error message
+            const errorBody = await response.json();
             errorMessage = errorBody.message || errorBody.error || JSON.stringify(errorBody);
         } catch (e) {
             // Fallback to status text if no JSON body
@@ -291,6 +291,9 @@ export async function getBonsLivraisonParLieu(): Promise<BonLivraison[]> {
 export async function genererBonLivraison(commandeId: number): Promise<BonLivraison> {
     return apiFetch(`/livraisons?commandeId=${commandeId}`, { method: 'POST' });
 }
-export async function validerLivraison(id: number): Promise<BonLivraison> {
-    return apiFetch(`/livraisons/${id}/valider`, { method: 'PUT' });
+export async function validerLivraisonEtape1(id: number): Promise<BonLivraison> {
+    return apiFetch(`/livraisons/${id}/valider1`, { method: 'PUT' });
+}
+export async function validerLivraisonEtape2(id: number): Promise<BonLivraison> {
+    return apiFetch(`/livraisons/${id}/valider2`, { method: 'PUT' });
 }

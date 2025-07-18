@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, ValidationCommandeResponse, LigneBonLivraison } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -37,11 +37,12 @@ interface AppContextType {
   createInventaire: (payload: InventairePayload, isFirst: boolean) => Promise<Inventaire | null>;
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   createCommande: (payload: CommandePayload) => Promise<Commande | null>;
-  validerCommande: (commandeId: number) => Promise<ValidationCommandeResponse | null>;
+  validerCommande: (commandeId: number) => Promise<Commande | null>;
   annulerCommande: (commandeId: number) => Promise<void>;
   genererFacture: (commandeId: number) => Promise<void>;
   genererBonLivraison: (commandeId: number) => Promise<void>;
-  validerLivraison: (livraisonId: number) => Promise<void>;
+  validerLivraisonEtape1: (livraisonId: number) => Promise<void>;
+  validerLivraisonEtape2: (livraisonId: number) => Promise<void>;
   shopInfo: ShopInfo;
   setShopInfo: (org: ShopInfo) => Promise<void>;
   themeColors: ThemeColors;
@@ -92,8 +93,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const handleFetchError = useCallback((error: unknown, resourceName: string) => {
       const description = error instanceof Error ? error.message : `Erreur inconnue lors du chargement: ${resourceName}`;
       if (error instanceof api.ApiError && (error.status === 401 || error.status === 403)) {
-        toast({ variant: 'destructive', title: 'Accès non autorisé', description });
-        if (error.status === 401) setTimeout(() => logout(), 1500);
+        if (error.status === 401) {
+            toast({ variant: 'destructive', title: 'Session expirée', description: 'Veuillez vous reconnecter.' });
+            setTimeout(() => logout(), 1500);
+        } else {
+             toast({ variant: 'destructive', title: `Accès refusé: ${resourceName}`, description });
+        }
       } else {
         toast({ variant: 'destructive', title: `Erreur: ${resourceName}`, description });
       }
@@ -324,7 +329,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast, handleGenericError, currentUser]);
 
-  const validerCommande = useCallback(async (commandeId: number): Promise<ValidationCommandeResponse | null> => {
+  const validerCommande = useCallback(async (commandeId: number): Promise<Commande | null> => {
     try {
       const validationData = await api.validerCommande(commandeId);
       await fetchAllData(currentUser);
@@ -366,13 +371,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast, handleGenericError, currentUser]);
 
-  const validerLivraison = useCallback(async (livraisonId: number) => {
+ const validerLivraisonEtape1 = useCallback(async (livraisonId: number) => {
     try {
-      await api.validerLivraison(livraisonId);
+      await api.validerLivraisonEtape1(livraisonId);
       await fetchAllData(currentUser);
-      toast({ title: "Livraison validée et stock mis à jour" });
+      toast({ title: "Bon de livraison validé" });
     } catch (error) {
-        handleGenericError(error, "Erreur de validation");
+        handleGenericError(error, "Erreur de validation (Étape 1)");
+    }
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
+
+  const validerLivraisonEtape2 = useCallback(async (livraisonId: number) => {
+    try {
+      await api.validerLivraisonEtape2(livraisonId);
+      await fetchAllData(currentUser);
+      toast({ title: "Livraison confirmée et stock mis à jour" });
+    } catch (error) {
+        handleGenericError(error, "Erreur de validation (Étape 2)");
     }
   }, [fetchAllData, toast, handleGenericError, currentUser]);
 
@@ -383,7 +398,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
-    createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, validerLivraison,
+    createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
+    validerLivraisonEtape1, validerLivraisonEtape2,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, isAuthenticated: !!token, currentUser,
     login, logout, hasPermission,
@@ -395,7 +411,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
-    createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, validerLivraison,
+    createCommande, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
+    validerLivraisonEtape1, validerLivraisonEtape2,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout
   ]);
