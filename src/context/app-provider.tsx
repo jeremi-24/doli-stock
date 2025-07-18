@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
@@ -127,10 +128,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const adminRoles = ['SECRETARIAT', 'ADMIN', 'DG'];
     let fetchCommandesPromise;
 
-    if (adminRoles.includes(user.role.nom)) {
+    if (adminRoles.includes(user.roleNom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
     } else if (user.clientId) {
-        // This covers MAGASINIER, CONTROLLEUR, and any other role with an associated clientId
         fetchCommandesPromise = api.getCommandesByClientId(user.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes du client'));
     } else {
         fetchCommandesPromise = Promise.resolve(setCommandes([])); // No client ID, so no commands to fetch
@@ -213,7 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   const hasPermission = useCallback((action: string) => {
     if (!currentUser || !isMounted) return false;
-    if (currentUser.role?.nom === 'ADMIN') return true;
+    if (currentUser.roleNom === 'ADMIN') return true;
     return permissions.has(action);
   }, [permissions, currentUser, isMounted]);
   
