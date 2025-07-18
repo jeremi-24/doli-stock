@@ -36,9 +36,9 @@ export default function NewOrderPage() {
   }, [produits, lignes]);
 
   const canSelectClient = useMemo(() => {
-      if (!currentUser || !currentUser.role) return false;
+      if (!currentUser || !currentUser.roleNom) return false;
       const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
-      return adminRoles.includes(currentUser.role.nom);
+      return adminRoles.includes(currentUser.roleNom);
   }, [currentUser]);
 
   useEffect(() => {
