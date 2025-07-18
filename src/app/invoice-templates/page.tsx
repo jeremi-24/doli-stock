@@ -249,16 +249,16 @@ export default function InvoiceTemplatesPage() {
                                     <FormItem><FormLabel>Nom du modèle</FormLabel><FormControl><Input placeholder="ex: Facture Proforma" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                  <FormField control={form.control} name="logoUrl" render={({ field }) => (
-                                    <FormItem><FormLabel>URL du logo</FormLabel><FormControl><Input placeholder="https://votresite.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>URL du logo</FormLabel><FormControl><Input placeholder="https://votresite.com/logo.png" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="header" render={({ field }) => (
-                                    <FormItem><FormLabel>Entête</FormLabel><FormControl><Input placeholder="ex: FACTURE" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Entête</FormLabel><FormControl><Input placeholder="ex: FACTURE" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="footer" render={({ field }) => (
-                                    <FormItem><FormLabel>Pied de page</FormLabel><FormControl><Textarea placeholder="ex: Conditions de paiement..." {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Pied de page</FormLabel><FormControl><Textarea placeholder="ex: Conditions de paiement..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="color" render={({ field }) => (
-                                    <FormItem><FormLabel>Couleur</FormLabel><FormControl><Input placeholder="ex: 231 48% 48%" {...field} /></FormControl><FormDescription>Entrez une couleur au format HSL (ex: 231 48% 48%).</FormDescription><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Couleur</FormLabel><FormControl><Input placeholder="ex: 231 48% 48%" {...field} value={field.value ?? ''} /></FormControl><FormDescription>Entrez une couleur au format HSL (ex: 231 48% 48%).</FormDescription><FormMessage /></FormItem>
                                 )}/>
                             </form>
                         </Form>
@@ -283,5 +283,4 @@ export default function InvoiceTemplatesPage() {
         </div>
     );
 }
-
     

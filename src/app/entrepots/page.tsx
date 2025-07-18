@@ -43,7 +43,11 @@ export default function LieuxStockPage() {
 
     useEffect(() => {
         if (editingLieuStock) {
-            form.reset({ nom: editingLieuStock.nom, type: editingLieuStock.type, localisation: editingLieuStock.localisation || "" });
+            form.reset({
+                nom: editingLieuStock.nom,
+                type: editingLieuStock.type,
+                localisation: editingLieuStock.localisation || ""
+            });
         } else {
             form.reset({ nom: "", type: "", localisation: "" });
         }
