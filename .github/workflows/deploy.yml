@@ -1,0 +1,32 @@
+name: Auto Deploy
+
+on:
+  push:
+    branches:
+      - main # Trigger deployment when changes are pushed to the 'main' branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # Use the latest Ubuntu for the runner
+    steps:
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }} # The server IP
+          username: ${{ secrets.SSH_USER }} # The deployment user
+          key: ${{ secrets.SSH_PRIVATE_KEY }} # SSH private key stored in GitHub secrets
+          script: |
+            # Navigate to the app directory
+            cd /var/www/your-nextjs-app
+
+            # Pull the latest changes from the repository
+            git pull origin main
+
+            # Install any new dependencies
+            npm install
+
+            # Build the app for production
+            npm run build
+
+            # Restart the app with PM2
+            pm2 restart next-app
