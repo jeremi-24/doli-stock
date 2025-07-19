@@ -65,16 +65,16 @@ export default function LoginPage() {
   return (
     <div className="w-full h-screen flex lg:flex-row">
       
-      <div className="hidden lg:flex flex-col lg:w-[500px] items-center justify-center bg-primary text-primary-foreground p-12 text-center">
-       <Logo className="w-24 h-24 text-primary-foreground" />
-       <h1 className="mt-4 text-3xl font-bold font-headline">StockHero</h1>
-       <p className="mt-2 text-lg">Votre gestion de stock, simplifiée.</p>
+      <div className="hidden lg:flex flex-col lg:w-[500px] items-center justify-center bg-black text-primary-foreground p-12 text-center">
+      <img src="/logosta.jpg" alt="Logo" className="w-24 h-24" />
+
+       <h1 className="mt-4 text-3xl font-bold font-headline">STA</h1>
+       <p className="mt-2 text-lg">Votre gestion de stock,  et suivi simplifiée.</p>
       </div>
       
       <div className="items-center justify-center flex w-full p-6 bg-background">
         <Card className="mx-auto max-w-sm w-full">
           <CardHeader className="text-center">
-            <Logo className="w-12 h-12 mx-auto mb-4 lg:hidden" />
             <CardTitle className="text-2xl font-headline">Connexion</CardTitle>
             <CardDescription>
               Entrez vos identifiants pour accéder à votre espace
