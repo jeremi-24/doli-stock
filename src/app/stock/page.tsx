@@ -91,8 +91,10 @@ const assignSchema = z.object({
     const { toast } = useToast();
 
     React.useEffect(() => {
+      if (!searchTerm) {
         setDisplayedProduits(produits);
-    }, [produits]);
+      }
+    }, [produits, searchTerm]);
 
     React.useEffect(() => {
         const debounceTimeout = setTimeout(async () => {
@@ -461,5 +463,3 @@ const assignSchema = z.object({
     </div>
   );
 }
-
-    
