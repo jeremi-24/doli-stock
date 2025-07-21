@@ -38,11 +38,9 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     if (!response.ok) {
         let errorMessage = `Erreur ${response.status}`;
         try {
-            // Prioritize server's error message
             const errorBody = await response.json();
-            errorMessage = errorBody.message || errorBody.error || JSON.stringify(errorBody);
+            errorMessage = errorBody.message || errorBody.error || response.statusText;
         } catch (e) {
-            // Fallback to status text if no JSON body
              errorMessage = response.statusText;
         }
         throw new ApiError(errorMessage, response.status);
@@ -167,6 +165,9 @@ export async function deleteLieuxStock(ids: number[]): Promise<null> {
 // ========== Products API ==========
 export async function getProducts(): Promise<Produit[]> {
     return apiFetch(`/produits`);
+}
+export async function searchProducts(query: string): Promise<Produit[]> {
+    return apiFetch(`/produits/search?q=${encodeURIComponent(query)}`);
 }
 export async function getProductByBarcode(codeBarre: string): Promise<Produit | null> {
     return apiFetch(`/produits/code/${codeBarre}`);
