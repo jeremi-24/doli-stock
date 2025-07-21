@@ -14,7 +14,7 @@
   } from "@/components/ui/table";
   import { Button } from "@/components/ui/button";
   import { useApp } from "@/context/app-provider";
-  import { PlusCircle, MoreHorizontal, Pencil, Trash2, AlertCircle, Shuffle, Building2 as Warehouse } from "lucide-react";
+  import { PlusCircle, MoreHorizontal, Pencil, Trash2, AlertCircle, Shuffle, Building2 as Warehouse, Search, Loader2 } from "lucide-react";
   import {
     DropdownMenu,
     DropdownMenuContent,
@@ -85,7 +85,34 @@ const assignSchema = z.object({
     const [isAssignDialogOpen, setIsAssignDialogOpen] = React.useState(false);
     const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
     const [isLoading, setIsLoading] = React.useState(false);
+    const [isSearching, setIsSearching] = React.useState(false);
+    const [searchTerm, setSearchTerm] = React.useState("");
+    const [displayedProduits, setDisplayedProduits] = React.useState<Produit[]>([]);
     const { toast } = useToast();
+
+    React.useEffect(() => {
+        setDisplayedProduits(produits);
+    }, [produits]);
+
+    React.useEffect(() => {
+        const debounceTimeout = setTimeout(async () => {
+            if (searchTerm.trim() !== '') {
+                setIsSearching(true);
+                try {
+                    const results = await api.searchProducts(searchTerm);
+                    setDisplayedProduits(results);
+                } catch (error) {
+                    toast({ variant: 'destructive', title: 'Erreur de recherche', description: "Impossible de récupérer les résultats de la recherche." });
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                setDisplayedProduits(produits);
+            }
+        }, 300);
+
+        return () => clearTimeout(debounceTimeout);
+    }, [searchTerm, produits, toast]);
 
     const canCreate = React.useMemo(() => hasPermission('PRODUIT_CREATE'), [hasPermission]);
     const canUpdate = React.useMemo(() => hasPermission('PRODUIT_UPDATE'), [hasPermission]);
@@ -115,7 +142,7 @@ const assignSchema = z.object({
 
     const handleSelectAll = (checked: boolean | string) => {
         if (checked) {
-          setSelectedProduits(produits.map((p) => p.id));
+          setSelectedProduits(displayedProduits.map((p) => p.id));
         } else {
           setSelectedProduits([]);
         }
@@ -164,8 +191,6 @@ const assignSchema = z.object({
               let finalCategorieId = parseInt(values.categorieId, 10);
               let finalLieuStockId = parseInt(values.lieuStockId, 10);
 
-              // If the value is a string and hasn't changed, it might be the old ID.
-              // A better approach is to fetch ID by name if the value didn't change in the dropdown
               const formState = form.getValues();
               
               if(String(editingProduit.categorieId) === formState.categorieId && editingProduit.categorieNom) {
@@ -238,13 +263,23 @@ const assignSchema = z.object({
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
-  const isAllSelected = produits.length > 0 && selectedProduits.length === produits.length;
+  const isAllSelected = displayedProduits.length > 0 && selectedProduits.length === displayedProduits.length;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="flex items-center">
+      <div className="flex items-center gap-4">
         <h1 className="font-headline text-3xl font-semibold">Gestion du Stock</h1>
         <div className="ml-auto flex items-center gap-2">
+            <div className="relative">
+                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                 <Input 
+                    type="search" 
+                    placeholder="Rechercher un produit..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 sm:w-[300px]"
+                 />
+            </div>
           {selectedProduits.length > 0 && (
             <>
             {canUpdate && (
@@ -285,7 +320,7 @@ const assignSchema = z.object({
         </div>
       </div>
       <Card>
-        <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Vos Produits ( {produits.length} )</CardTitle><CardDescription>La liste de tous les produits de votre inventaire.</CardDescription></CardHeader>
+        <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Vos Produits ( {displayedProduits.length} )</CardTitle><CardDescription>La liste de tous les produits de votre inventaire.</CardDescription></CardHeader>
         <CardContent>
           <div className="rounded-lg border">
             <Table>
@@ -301,20 +336,14 @@ const assignSchema = z.object({
                 {(canUpdate || canDelete) && <TableHead><span className="sr-only">Actions</span></TableHead>}
                 </TableRow></TableHeader>
               <TableBody>
-                {!isMounted ? (
-                    Array.from({ length: 10 }).map((_, i) => (
-                        <TableRow key={i}>
-                            <TableCell><Skeleton className="h-5 w-5" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-1/4" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-1/4 ml-auto" /></TableCell>
-                            <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                        </TableRow>
-                    ))
-                ) : produits.length > 0 ? (
-                  produits.map((produit) => (
+                {!isMounted || isSearching ? (
+                    <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center">
+                            {isSearching ? <Loader2 className="animate-spin mx-auto"/> : <Skeleton className="h-5 w-full" />}
+                        </TableCell>
+                    </TableRow>
+                ) : displayedProduits.length > 0 ? (
+                  displayedProduits.map((produit) => (
                     <TableRow key={produit.id} data-state={selectedProduits.includes(produit.id) ? "selected" : undefined} className={produit.qte <= produit.qteMin ? 'bg-red-50 dark:bg-red-900/20' : ''}>
                       <TableCell>
                         <Checkbox
@@ -347,7 +376,7 @@ const assignSchema = z.object({
         </CardContent>
         <CardFooter className="pt-4">
           <div className="text-sm text-muted-foreground">
-            {selectedProduits.length} sur {produits.length} produit(s) sélectionné(s). Total: {produits.length} produits.
+            {selectedProduits.length} sur {displayedProduits.length} produit(s) sélectionné(s). Total: {produits.length} produits.
           </div>
         </CardFooter>
       </Card>
