@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -28,12 +27,13 @@ export default function DeliveriesPage() {
     const canValidateEtape1 = React.useMemo(() => hasPermission('LIVRAISON_VALIDATE_ETAPE1'), [hasPermission]);
     const canValidateEtape2 = React.useMemo(() => hasPermission('LIVRAISON_VALIDATE_ETAPE2'), [hasPermission]);
 
-    const getStatusInfo = (status: 'A_LIVRER' | 'VALIDE_SECRETARIAT' | 'LIVREE') => {
+    // Mise à jour des statuts ici
+    const getStatusInfo = (status: 'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE') => {
         switch (status) {
-            case 'A_LIVRER': return { text: 'À livrer', className: 'bg-blue-100 text-blue-800'};
-            case 'VALIDE_SECRETARIAT': return { text: 'Validé (secrétariat)', className: 'bg-yellow-100 text-yellow-800'};
-            case 'LIVREE': return { text: 'Livré', className: 'bg-green-100 text-green-800'};
-            default: return { text: status, className: ''};
+            case 'EN_ATTENTE': return { text: 'En attente', className: 'bg-gray-100 text-gray-800' };
+            case 'A_LIVRER': return { text: 'À livrer', className: 'bg-blue-100 text-blue-800' };
+            case 'LIVRE': return { text: 'Livré', className: 'bg-green-100 text-green-800' };
+            default: return { text: status, className: '' };
         }
     };
 
@@ -64,17 +64,22 @@ export default function DeliveriesPage() {
                                 {!isMounted ? (
                                     Array.from({ length: 3 }).map((_, i) => (
                                         <TableRow key={i}>
-                                            <TableCell colSpan={5} className="py-4"><Loader2 className="animate-spin mx-auto" /></TableCell>
+                                            <TableCell colSpan={5} className="py-4">
+                                                <Loader2 className="animate-spin mx-auto" />
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 ) : bonLivraisons.length > 0 ? (
                                     bonLivraisons.map((bl) => {
                                         const isLoading = loadingStates[bl.id];
-                                        const statusInfo = getStatusInfo(bl.statut);
-                                        const isDone = bl.statut === 'LIVREE';
-                                        
-                                        const showValidateEtape1 = canValidateEtape1 && bl.statut === 'A_LIVRER';
-                                        const showValidateEtape2 = canValidateEtape2 && bl.statut === 'VALIDE_SECRETARIAT';
+                                        const statusInfo = getStatusInfo(bl.statut as 'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE');
+                                        const isDone = bl.statut === 'LIVRE';
+
+                                        // On affiche bouton Valider BL si on a la permission et statut EN_ATTENTE
+                                        const showValidateEtape1 = canValidateEtape1 && bl.statut === 'EN_ATTENTE';
+
+                                        // On affiche bouton Confirmer Réception si permission et statut A_LIVRER
+                                        const showValidateEtape2 = canValidateEtape2 && bl.statut === 'A_LIVRER';
 
                                         return (
                                             <TableRow key={bl.id}>
@@ -86,10 +91,10 @@ export default function DeliveriesPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className={cn()}>{bl.email}</div>
+                                                    <div>{bl.email}</div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant={isDone ? 'default' : "secondary"} className={cn(statusInfo.className)}>
+                                                    <Badge variant={isDone ? 'default' : 'secondary'} className={cn(statusInfo.className)}>
                                                         {statusInfo.text}
                                                     </Badge>
                                                 </TableCell>
@@ -106,15 +111,15 @@ export default function DeliveriesPage() {
                                                         </Button>
                                                     ) : showValidateEtape2 ? (
                                                         <Button size="sm" onClick={() => handleAction(validerLivraisonEtape2, bl.id)} disabled={isLoading}>
-                                                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                             Confirmer Réception
                                                         </Button>
                                                     ) : (
-                                                         <span className="text-xs text-muted-foreground">En attente...</span>
+                                                        <span className="text-xs text-muted-foreground">En attente...</span>
                                                     )}
                                                 </TableCell>
                                             </TableRow>
-                                        )
+                                        );
                                     })
                                 ) : (
                                     <TableRow>
