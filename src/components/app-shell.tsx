@@ -163,24 +163,29 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <Warehouse />,
       label: 'Stock',
       active: pathname === '/stock',
+      permission: 'PRODUIT_READ',
+
     },
     {
       href: '/orders',
       icon: <FileStack />,
       label: 'Commandes',
       active: pathname.startsWith('/orders'),
+      permission: 'COMMANDE_READ',
     },
     {
       href: '/deliveries',
       icon: <Truck />,
       label: 'Bons de Livraison',
       active: pathname.startsWith('/deliveries'),
+      permission: 'LIVRAISON_READ',
     },
     {
       href: '/sales',
       icon: <History />,
       label: 'Factures',
       active: pathname === '/sales',
+      permission: 'FACTURE_GENERATE ',
     },
     {
       href: '/categories',
@@ -205,18 +210,22 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <ClipboardList />,
       label: 'Inventaires',
       active: pathname.startsWith('/inventories'),
+      permission: 'INVENTAIRE_MANAGE',
     },
     {
       href: '/reapprovisionnements',
       icon: <PackagePlus />,
       label: 'Réapprovisionnement',
       active: pathname.startsWith('/reapprovisionnements'),
+      permission: 'REAPPROVISIONNEMENT_MANAGE',
     },
     {
       href: '/pos',
       icon: <ShoppingCart />,
       label: 'Point de Vente',
       active: pathname === '/pos',
+      permission: 'VENTE_CREATE',
+
     },
     {
       href: '/settings',
