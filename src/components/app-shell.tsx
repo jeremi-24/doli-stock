@@ -185,7 +185,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <History />,
       label: 'Factures',
       active: pathname === '/sales',
-     
+      permission: 'FACTURE_GENERATE',
     },
     {
       href: '/categories',
