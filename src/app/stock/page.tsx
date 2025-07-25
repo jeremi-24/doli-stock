@@ -343,13 +343,15 @@ const assignSchema = z.object({
                 <TableHead>Catégorie</TableHead>
                 <TableHead>Lieu de Stock</TableHead>
                 <TableHead>Prix Vente</TableHead>
+                <TableHead>Qté/Carton</TableHead>
+                <TableHead>Prix Carton</TableHead>
                 <TableHead className="text-right">Quantité</TableHead>
                 {(canUpdate || canDelete) && <TableHead><span className="sr-only">Actions</span></TableHead>}
                 </TableRow></TableHeader>
               <TableBody>
                 {!isMounted || isSearching ? (
                     <TableRow>
-                        <TableCell colSpan={8} className="h-24 text-center">
+                        <TableCell colSpan={10} className="h-24 text-center">
                             {isSearching ? <Loader2 className="animate-spin mx-auto"/> : <Skeleton className="h-5 w-full" />}
                         </TableCell>
                     </TableRow>
@@ -368,6 +370,8 @@ const assignSchema = z.object({
                       <TableCell>{produit.categorieNom || categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
                       <TableCell>{produit.lieuStockNom || lieuxStockMap.get(produit.lieuStockId) || 'N/A'}</TableCell>
                       <TableCell>{formatCurrency(produit.prix)}</TableCell>
+                      <TableCell>{produit.qteParCarton}</TableCell>
+                      <TableCell>{formatCurrency(produit.prixCarton)}</TableCell>
                       <TableCell className="text-right">{produit.qte}</TableCell>
                       {(canUpdate || canDelete) && (
                         <TableCell className="text-right">
@@ -381,7 +385,7 @@ const assignSchema = z.object({
                       )}
                     </TableRow>
                   ))
-                ) : ( <TableRow><TableCell colSpan={8} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
+                ) : ( <TableRow><TableCell colSpan={10} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
               </TableBody>
             </Table>
           </div>
