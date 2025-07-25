@@ -6,10 +6,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Calendar, Check, X } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Check, X, Minus, MoveRight, Package as UnitIcon, Box } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import type { Inventaire } from '@/lib/types';
+import type { Inventaire, InventaireLigne } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -43,17 +43,30 @@ export default function InventoryDetailPage() {
     }
   }, [id, router, toast]);
 
-  const EcartBadge = ({ ecart }: { ecart: number }) => {
-    if (ecart === 0) {
-      return <Badge variant="secondary" className="flex items-center gap-1.5"><Check className="h-3 w-3 text-green-500" />OK</Badge>;
-    }
-    const isPositive = ecart > 0;
-    return (
-      <Badge variant={isPositive ? 'default' : 'destructive'} className={cn(!isPositive && "bg-red-100 text-red-700 border-red-200", isPositive && "bg-green-100 text-green-700 border-green-200")}>
-        {isPositive ? `+${ecart}` : ecart}
-      </Badge>
-    );
+  const EcartBadge = ({ ecart, type }: { ecart: number, type: 'carton' | 'unite' | 'total' }) => {
+    let text = "";
+    if (ecart > 0) text = `+${ecart}`;
+    else text = `${ecart}`;
+
+    let className = "font-semibold ";
+    if (ecart === 0) className += "text-gray-500";
+    else if (ecart > 0) className += "text-green-600";
+    else className += "text-red-600";
+
+    if (type === 'carton') return <span className={className}>{text} C</span>;
+    if (type === 'unite') return <span className={className}>{text} U</span>;
+
+    return <Badge variant={ecart === 0 ? "secondary" : (ecart > 0 ? "default" : "destructive")} className={cn(ecart > 0 && "bg-green-100 text-green-700", "font-bold")}>{text} Unités</Badge>;
   };
+  
+  const QteDisplay = ({ cartons, unites }: { cartons: number, unites: number }) => (
+    <div className="flex items-center justify-center gap-2 text-xs">
+        {cartons > 0 && <span className="flex items-center gap-1"><Box className="h-3 w-3" />{cartons} C</span>}
+        {unites > 0 && <span className="flex items-center gap-1"><UnitIcon className="h-3 w-3" />{unites} U</span>}
+        {(cartons === 0 && unites === 0) && '0'}
+    </div>
+  )
+
 
   if (isLoading || !inventory) {
     return (
@@ -100,11 +113,20 @@ export default function InventoryDetailPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Produit</TableHead>
-                            <TableHead>Lieu de Stock</TableHead>
-                            <TableHead className="text-center">Qté Avant</TableHead>
-                            <TableHead className="text-center">Qté Scannée</TableHead>
-                            <TableHead className="text-center">Écart</TableHead>
+                            <TableHead rowSpan={2} className="align-middle">Produit</TableHead>
+                            <TableHead rowSpan={2} className="align-middle">Lieu de Stock</TableHead>
+                            <TableHead colSpan={2} className="text-center border-b border-l">Quantité Avant Scan</TableHead>
+                            <TableHead colSpan={2} className="text-center border-b border-l">Quantité Scannée</TableHead>
+                            <TableHead colSpan={2} className="text-center border-b border-l">Écart</TableHead>
+                            <TableHead rowSpan={2} className="text-center align-middle border-l">Écart Total</TableHead>
+                        </TableRow>
+                        <TableRow>
+                            <TableHead className="text-center">Total (U)</TableHead>
+                            <TableHead className="text-center border-l">Détail</TableHead>
+                            <TableHead className="text-center border-l">Total (U)</TableHead>
+                            <TableHead className="text-center border-l">Détail</TableHead>
+                            <TableHead className="text-center border-l">Carton</TableHead>
+                            <TableHead className="text-center border-l">Unité</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -112,9 +134,19 @@ export default function InventoryDetailPage() {
                              <TableRow key={`${ligne.produitId}-${index}`}>
                                 <TableCell className="font-medium">{ligne.nomProduit}</TableCell>
                                 <TableCell>{ligne.lieuStockNom}</TableCell>
-                                <TableCell className="text-center">{ligne.qteAvantScan}</TableCell>
-                                <TableCell className="text-center font-semibold">{ligne.qteScanne}</TableCell>
-                                <TableCell className="text-center"><EcartBadge ecart={ligne.ecart} /></TableCell>
+                                
+                                {/* Avant Scan */}
+                                <TableCell className="text-center font-mono">{ligne.qteAvantScanTotaleUnites}</TableCell>
+                                <TableCell className="text-center border-l"><QteDisplay cartons={ligne.qteAvantScanCartons} unites={ligne.qteAvantScanUnitesRestantes} /></TableCell>
+
+                                 {/* Scanné */}
+                                <TableCell className="text-center font-mono border-l">{ligne.qteScanneTotaleUnites}</TableCell>
+                                <TableCell className="text-center border-l"><QteDisplay cartons={ligne.qteScanneCartons} unites={ligne.qteScanneUnitesRestantes} /></TableCell>
+
+                                {/* Écart */}
+                                <TableCell className="text-center border-l"><EcartBadge ecart={ligne.ecartCartons} type="carton"/></TableCell>
+                                <TableCell className="text-center border-l"><EcartBadge ecart={ligne.ecartUnites} type="unite"/></TableCell>
+                                <TableCell className="text-center border-l"><EcartBadge ecart={ligne.ecartTotalUnites} type="total"/></TableCell>
                              </TableRow>
                         ))}
                     </TableBody>

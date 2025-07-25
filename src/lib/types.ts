@@ -43,12 +43,19 @@ export type AssignationPayload = {
 
 // ----- Inventory Types -----
 export type InventaireLigne = {
-  produitId: number;
-  nomProduit: string;
-  qteScanne: number;
-  qteAvantScan: number;
-  ecart: number;
-  lieuStockNom: string;
+    produitId: number;
+    nomProduit: string;
+    lieuStockNom: string;
+    qteAvantScanTotaleUnites: number;
+    qteScanneTotaleUnites: number;
+    ecartTotalUnites: number;
+    typeQuantiteScanne: string;
+    qteAvantScanCartons: number;
+    qteAvantScanUnitesRestantes: number;
+    qteScanneCartons: number;
+    qteScanneUnitesRestantes: number;
+    ecartCartons: number;
+    ecartUnites: number;
 };
 export type Inventaire = {
   inventaireId: number;
@@ -62,11 +69,13 @@ export type ScannedProduit = {
   qteScanne: number;
   lieuStockNom: string;
   barcode: string;
+  typeQuantiteScanne: 'UNITE' | 'CARTON';
 };
 export type InventaireProduitPayload = {
     produitId: number;
     qteScanne: number;
     lieuStockNom: string;
+    typeQuantiteScanne: 'UNITE' | 'CARTON';
 };
 export type InventairePayload = {
   charge: string;
