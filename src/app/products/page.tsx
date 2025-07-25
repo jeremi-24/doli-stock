@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/app-provider";
@@ -40,6 +40,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 const produitSchema = z.object({
     nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -52,14 +53,43 @@ const produitSchema = z.object({
     prixCarton: z.coerce.number().min(0, "Le prix doit être positif."),
 });
 
+function ProductDetailsDialog({ product, onClose }: { product: Produit | null, onClose: () => void }) {
+    if (!product) return null;
+    const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+    
+    return (
+        <Dialog open={!!product} onOpenChange={(isOpen) => !isOpen && onClose()}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="font-headline">{product.nom}</DialogTitle>
+                    <DialogDescription>Référence: {product.ref || 'N/A'}</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4 text-sm">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Catégorie</span><Badge variant="outline">{product.categorieNom}</Badge></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Lieu de Stock</span><Badge variant="outline">{product.lieuStockNom}</Badge></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Prix Unitaire</span><span>{formatCurrency(product.prix)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Prix Carton</span><span>{formatCurrency(product.prixCarton)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Unités par Carton</span><span>{product.qteParCarton}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Quantité en Stock</span><span className="font-bold">{product.qte}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Seuil d'Alerte</span><span>{product.qteMin}</span></div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={onClose}>Fermer</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export default function ProductsPage() {
     const { produits, categories, lieuxStock, addProduit, updateProduit, deleteProduits, isMounted, hasPermission } = useApp();
     const { toast } = useToast();
     const [filteredProduits, setFilteredProduits] = React.useState<Produit[]>([]);
     const [searchTerm, setSearchTerm] = React.useState("");
+    const [categoryFilter, setCategoryFilter] = React.useState("all");
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
+    const [viewingProduct, setViewingProduct] = React.useState<Produit | null>(null);
     const [isLoading, setIsLoading] = React.useState(false);
     const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
 
@@ -69,20 +99,14 @@ export default function ProductsPage() {
     });
 
     React.useEffect(() => {
-        setFilteredProduits(produits);
-    }, [produits]);
-
-    React.useEffect(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
         const filteredData = produits.filter(item => {
-            return (
-                item.nom.toLowerCase().includes(lowercasedFilter) ||
-                (item.ref && item.ref.toLowerCase().includes(lowercasedFilter)) ||
-                (item.categorieNom && item.categorieNom.toLowerCase().includes(lowercasedFilter))
-            );
+            const matchesSearch = item.nom.toLowerCase().includes(lowercasedFilter) || (item.ref && item.ref.toLowerCase().includes(lowercasedFilter));
+            const matchesCategory = categoryFilter === 'all' || String(item.categorieId) === categoryFilter;
+            return matchesSearch && matchesCategory;
         });
         setFilteredProduits(filteredData);
-    }, [searchTerm, produits]);
+    }, [searchTerm, categoryFilter, produits]);
 
     React.useEffect(() => {
         if (editingProduit) {
@@ -121,12 +145,11 @@ export default function ProductsPage() {
         }
     };
     
-    const handleDeleteSelected = async () => {
+    const handleDeleteSelected = async (id: number) => {
         setIsLoading(true);
         try {
-            await deleteProduits(selectedProduits);
-            toast({ title: "Produits supprimés" });
-            setSelectedProduits([]);
+            await deleteProduits([id]);
+            toast({ title: "Produit supprimé" });
         } finally {
             setIsLoading(false);
         }
@@ -145,15 +168,24 @@ export default function ProductsPage() {
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
-                            placeholder="Rechercher..."
+                            placeholder="Rechercher par nom/réf..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-8 sm:w-[300px]"
+                            className="pl-8 sm:w-[250px]"
                         />
                     </div>
+                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filtrer par catégorie" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Toutes les catégories</SelectItem>
+                            {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                      {canCreate && (
                         <Button size="sm" onClick={handleAddNew}>
-                            <PlusCircle className="h-4 w-4 mr-2" /> Ajouter un produit
+                            <PlusCircle className="h-4 w-4 mr-2" /> Ajouter
                         </Button>
                     )}
                 </div>
@@ -164,7 +196,7 @@ export default function ProductsPage() {
                         <Package /> Catalogue Produits ({filteredProduits.length})
                     </CardTitle>
                     <CardDescription>
-                        Liste de tous les produits de votre catalogue.
+                        Liste de tous les produits de votre catalogue. Cliquez sur une ligne pour voir les détails.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -174,11 +206,7 @@ export default function ProductsPage() {
                                 <TableRow>
                                     <TableHead>Nom du Produit</TableHead>
                                     <TableHead>Référence</TableHead>
-                                    <TableHead>Catégorie</TableHead>
-                                    <TableHead>Lieu de Stock</TableHead>
                                     <TableHead className="text-right">Prix (Unité)</TableHead>
-                                    <TableHead className="text-right">Qté/Carton</TableHead>
-                                    <TableHead className="text-right">Prix (Carton)</TableHead>
                                     <TableHead className="text-right">Stock Total</TableHead>
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
                                 </TableRow>
@@ -186,22 +214,18 @@ export default function ProductsPage() {
                             <TableBody>
                                 {!isMounted ? (
                                     <TableRow>
-                                        <TableCell colSpan={9} className="h-24 text-center">
+                                        <TableCell colSpan={5} className="h-24 text-center">
                                             <Loader2 className="animate-spin mx-auto" />
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredProduits.length > 0 ? (
                                     filteredProduits.map((produit) => (
-                                        <TableRow key={produit.id}>
+                                        <TableRow key={produit.id} onClick={() => setViewingProduct(produit)} className="cursor-pointer">
                                             <TableCell className="font-medium">{produit.nom}</TableCell>
                                             <TableCell>{produit.ref}</TableCell>
-                                            <TableCell>{produit.categorieNom}</TableCell>
-                                            <TableCell>{produit.lieuStockNom}</TableCell>
                                             <TableCell className="text-right">{produit.prix.toLocaleString()}</TableCell>
-                                            <TableCell className="text-right">{produit.qteParCarton}</TableCell>
-                                            <TableCell className="text-right">{produit.prixCarton.toLocaleString()}</TableCell>
                                             <TableCell className="text-right font-bold">{produit.qte}</TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                                  <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -228,7 +252,7 @@ export default function ProductsPage() {
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
                                                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleDeleteSelected()} disabled={isLoading}>
+                                                                <AlertDialogAction onClick={() => handleDeleteSelected(produit.id)} disabled={isLoading}>
                                                                     {isLoading ? "Suppression..." : "Supprimer"}
                                                                 </AlertDialogAction>
                                                                 </AlertDialogFooter>
@@ -241,8 +265,8 @@ export default function ProductsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={9} className="h-24 text-center">
-                                            {searchTerm ? "Aucun produit ne correspond à votre recherche." : "Aucun produit trouvé."}
+                                        <TableCell colSpan={5} className="h-24 text-center">
+                                            {searchTerm || categoryFilter !== 'all' ? "Aucun produit ne correspond à vos filtres." : "Aucun produit trouvé."}
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -301,7 +325,7 @@ export default function ProductsPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
+            <ProductDetailsDialog product={viewingProduct} onClose={() => setViewingProduct(null)} />
         </div>
     );
 }
-
