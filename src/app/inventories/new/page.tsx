@@ -12,7 +12,7 @@ import { useApp } from '@/context/app-provider';
 import type { ScannedProduit, Produit } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Search, Package, Save, Loader2, Minus, Plus, Box, Package as UnitIcon } from 'lucide-react';
+import { ScanLine, Search, Package, Save, Loader2, Minus, Plus, Box, Package as UnitIcon, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -248,5 +248,3 @@ export default function NewInventoryPage() {
         </div>
     )
 }
-
-    
