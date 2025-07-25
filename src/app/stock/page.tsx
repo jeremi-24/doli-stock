@@ -334,7 +334,7 @@ const assignSchema = z.object({
                         aria-label="Select all"
                     />
                 </TableHead>
-                <TableHead>Nom</TableHead><TableHead>Catégorie</TableHead><TableHead>Lieu de Stock</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead>
+                <TableHead>Nom</TableHead><TableHead>Reférence</TableHead><TableHead>Catégorie</TableHead><TableHead>Lieu de Stock</TableHead><TableHead>Prix Vente</TableHead><TableHead className="text-right">Quantité</TableHead>
                 {(canUpdate || canDelete) && <TableHead><span className="sr-only">Actions</span></TableHead>}
                 </TableRow></TableHeader>
               <TableBody>
@@ -355,6 +355,8 @@ const assignSchema = z.object({
                         />
                       </TableCell>
                       <TableCell className="font-medium">{produit.nom} {produit.qte <= produit.qteMin && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
+                                            <TableCell>{produit.ref || 'N/A'}</TableCell>
+
                       <TableCell>{produit.categorieNom || categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
                       <TableCell>{produit.lieuStockNom || lieuxStockMap.get(produit.lieuStockId) || 'N/A'}</TableCell>
                       <TableCell>{formatCurrency(produit.prix)}</TableCell>
