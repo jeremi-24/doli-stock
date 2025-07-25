@@ -24,11 +24,11 @@ export type Produit = {
   nom:string;
   ref: string;
   qte: number;
-  qteMin: number;
   prix: number;
   codeBarre: string;
   categorieId: number;
   lieuStockId: number;
+  qteMin: number;
   qteParCarton: number;
   prixCarton: number;
   categorieNom?: string | null;
