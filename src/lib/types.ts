@@ -178,13 +178,15 @@ export type LigneBonLivraison = {
     totalLigne: number;
 };
 
+export type BonLivraisonStatus = 'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE' | 'VALIDE_SECRETARIAT';
+
 export type BonLivraison = {
     id: number;
     dateLivraison: string;
     commandeId: number;
     agent: string;
     lignesLivraison: LigneBonLivraison[];
-    statut: 'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE' | 'VALIDE_SECRETARIAT';
+    status: BonLivraisonStatus;
     lieuStockNom: string;
 };
 

@@ -11,6 +11,7 @@ import { Truck, CheckCircle, Loader2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import type { BonLivraisonStatus } from '@/lib/types';
 
 export default function DeliveriesPage() {
     const { bonLivraisons, isMounted, validerLivraisonEtape1, validerLivraisonEtape2, hasPermission } = useApp();
@@ -28,10 +29,10 @@ export default function DeliveriesPage() {
     const canValidateEtape1 = React.useMemo(() => hasPermission('LIVRAISON_VALIDATE_ETAPE1'), [hasPermission]);
     const canValidateEtape2 = React.useMemo(() => hasPermission('LIVRAISON_VALIDATE_ETAPE2'), [hasPermission]);
 
-    // Mise à jour des statuts ici
-    const getStatusInfo = (status: 'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE') => {
+    const getStatusInfo = (status: BonLivraisonStatus) => {
         switch (status) {
             case 'EN_ATTENTE': return { text: 'En attente', className: 'bg-orange-100 text-orange-800' };
+            case 'VALIDE_SECRETARIAT': return { text: 'Validé (Sec.)', className: 'bg-yellow-100 text-yellow-800'};
             case 'A_LIVRER': return { text: 'À livrer', className: 'bg-blue-100 text-blue-800' };
             case 'LIVRE': return { text: 'Livré', className: 'bg-green-100 text-green-800' };
             default: return { text: status, className: 'bg-gray-100 text-gray-800' };
@@ -74,14 +75,11 @@ export default function DeliveriesPage() {
                                 ) : bonLivraisons.length > 0 ? (
                                     bonLivraisons.map((bl) => {
                                         const isLoading = loadingStates[bl.id];
-                                        const statusInfo = getStatusInfo(bl.statut as 'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE');
-                                        const isDone = bl.statut === 'LIVRE';
+                                        const statusInfo = getStatusInfo(bl.status);
+                                        const isDone = bl.status === 'LIVRE';
 
-                                        // On affiche bouton Valider BL si on a la permission et statut EN_ATTENTE
-                                        const showValidateEtape1 = canValidateEtape1 && bl.statut === 'EN_ATTENTE';
-
-                                        // On affiche bouton Confirmer Réception si permission et statut A_LIVRER
-                                        const showValidateEtape2 = canValidateEtape2 && bl.statut === 'A_LIVRER';
+                                        const showValidateEtape1 = canValidateEtape1 && bl.status === 'EN_ATTENTE';
+                                        const showValidateEtape2 = canValidateEtape2 && bl.status === 'A_LIVRER';
 
                                         return (
                                             <TableRow key={bl.id}>
