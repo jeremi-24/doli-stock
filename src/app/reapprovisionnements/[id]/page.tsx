@@ -6,13 +6,21 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, ChevronsRight, Truck, Calendar } from 'lucide-react';
+import { ArrowLeft, User, ChevronsRight, Truck, Calendar, Box, Package as UnitIcon } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Reapprovisionnement } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+
+const QteDisplay = ({ cartons, unites }: { cartons: number, unites: number }) => (
+    <div className="flex items-center justify-end gap-2 text-xs">
+        {cartons > 0 && <span className="flex items-center gap-1"><Box className="h-3 w-3" />{cartons} C</span>}
+        {unites > 0 && <span className="flex items-center gap-1"><UnitIcon className="h-3 w-3" />{unites} U</span>}
+        {(cartons === 0 && unites === 0) && '0'}
+    </div>
+)
 
 export default function ReapprovisionnementDetailPage() {
   const { id } = useParams();
@@ -90,7 +98,8 @@ export default function ReapprovisionnementDetailPage() {
                         <TableRow>
                             <TableHead>Produit</TableHead>
                             <TableHead>Lieu de Stock</TableHead>
-                            <TableHead className="text-right">Quantité Ajoutée</TableHead>
+                            <TableHead className="text-right">Total (Unités)</TableHead>
+                            <TableHead className="text-right">Détail Ajouté</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -98,7 +107,8 @@ export default function ReapprovisionnementDetailPage() {
                              <TableRow key={ligne.id}>
                                 <TableCell className="font-medium">{ligne.produitNom}</TableCell>
                                 <TableCell>{ligne.lieuStockNom}</TableCell>
-                                <TableCell className="text-right font-semibold text-green-600">+{ligne.qteAjoutee}</TableCell>
+                                <TableCell className="text-right font-semibold text-green-600 font-mono">+{ligne.qteAjouteeTotaleUnites}</TableCell>
+                                <TableCell className="text-right"><QteDisplay cartons={ligne.qteAjouteeCartons} unites={ligne.qteAjouteeUnites} /></TableCell>
                              </TableRow>
                         ))}
                     </TableBody>

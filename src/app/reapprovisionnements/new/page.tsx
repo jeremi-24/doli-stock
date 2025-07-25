@@ -12,8 +12,9 @@ import { useApp } from '@/context/app-provider';
 import type { ScannedReapproProduit, Produit } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Search, PackagePlus, Save, Loader2, Minus, Plus, Truck } from 'lucide-react';
+import { ScanLine, Search, PackagePlus, Save, Loader2, Minus, Plus, Truck, Box, Package as UnitIcon } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function NewReapproPage() {
     const { addReapprovisionnement, currentUser } = useApp();
@@ -23,6 +24,8 @@ export default function NewReapproPage() {
     const [scannedItems, setScannedItems] = useState<ScannedReapproProduit[]>([]);
     const [barcode, setBarcode] = useState("");
     const [source, setSource] = useState("");
+    const [quantity, setQuantity] = useState(1);
+    const [scanType, setScanType] = useState<'UNITE' | 'CARTON'>('UNITE');
     const [isScanning, setIsScanning] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [productCache, setProductCache] = useState<Map<string, Produit>>(new Map());
@@ -30,14 +33,13 @@ export default function NewReapproPage() {
     const handleScan = async () => {
         if (!barcode.trim()) return;
 
-        const addOrIncrementProduct = (product: Produit) => {
-            const existingItemIndex = scannedItems.findIndex(item => item.produitId === product.id);
+        const addOrUpdateProduct = (product: Produit) => {
+            const existingItemIndex = scannedItems.findIndex(item => item.produitId === product.id && item.typeQuantite === scanType);
 
             if (existingItemIndex > -1) {
                 const newItems = [...scannedItems];
-                newItems[existingItemIndex].qteAjoutee += 1;
+                newItems[existingItemIndex].qteAjoutee += quantity;
                 setScannedItems(newItems);
-                toast({ title: "Quantité incrémentée", description: product.nom });
             } else {
                 setScannedItems(prevItems => [
                     ...prevItems,
@@ -45,18 +47,21 @@ export default function NewReapproPage() {
                         produitId: product.id,
                         nomProduit: product.nom,
                         lieuStockNom: product.lieuStockNom || 'N/A',
-                        qteAjoutee: 1,
+                        qteAjoutee: quantity,
                         barcode: product.codeBarre,
+                        typeQuantite: scanType,
                     }
                 ]);
-                toast({ title: "Produit ajouté", description: product.nom });
             }
+            toast({ title: "Produit ajouté/mis à jour", description: `${quantity} x ${product.nom} (${scanType})` });
         };
+
 
         if (productCache.has(barcode)) {
             const cachedProduct = productCache.get(barcode)!;
-            addOrIncrementProduct(cachedProduct);
+            addOrUpdateProduct(cachedProduct);
             setBarcode("");
+            setQuantity(1);
             return;
         }
 
@@ -65,7 +70,7 @@ export default function NewReapproPage() {
             const product = await api.getProductByBarcode(barcode);
             if (product && product.id) {
                 setProductCache(prevCache => new Map(prevCache).set(barcode, product));
-                addOrIncrementProduct(product);
+                addOrUpdateProduct(product);
             } else {
                 toast({ variant: 'destructive', title: 'Erreur', description: 'Produit non trouvé.' });
             }
@@ -75,20 +80,14 @@ export default function NewReapproPage() {
         } finally {
             setIsScanning(false);
             setBarcode("");
+            setQuantity(1);
         }
     };
 
-    const handleQuantityChange = (produitId: number, newQuantity: number) => {
-        if (newQuantity < 1) {
-            setScannedItems(currentItems => currentItems.filter(item => item.produitId !== produitId));
-            return;
-        }
-        setScannedItems(currentItems =>
-            currentItems.map(item =>
-                item.produitId === produitId ? { ...item, qteAjoutee: newQuantity } : item
-            )
-        );
+    const handleRemoveItem = (produitId: number, type: 'UNITE' | 'CARTON') => {
+        setScannedItems(currentItems => currentItems.filter(item => !(item.produitId === produitId && item.typeQuantite === type)));
     };
+
 
     const handleSave = async () => {
         if (scannedItems.length === 0) {
@@ -149,23 +148,46 @@ export default function NewReapproPage() {
                         <CardHeader>
                             <CardTitle className="font-headline flex items-center gap-2"><ScanLine />Scanner un produit</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-4">
                              <div className="space-y-2">
                                 <Label htmlFor="barcode">Code-barres</Label>
-                                <div className="flex space-x-2">
+                                <Input
+                                    id="barcode"
+                                    placeholder="Entrez un code-barres..."
+                                    value={barcode}
+                                    onChange={(e) => setBarcode(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleScan()}
+                                    disabled={isScanning || isSaving}
+                                />
+                            </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="quantity">Quantité</Label>
                                     <Input
-                                        id="barcode"
-                                        placeholder="Entrez un code-barres..."
-                                        value={barcode}
-                                        onChange={(e) => setBarcode(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleScan()}
+                                        id="quantity"
+                                        type="number"
+                                        value={quantity}
+                                        onChange={(e) => setQuantity(Number(e.target.value))}
+                                        min="1"
                                         disabled={isScanning || isSaving}
                                     />
-                                    <Button onClick={handleScan} disabled={!barcode || isScanning || isSaving} size="icon">
-                                        {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                                    </Button>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="scanType">Type</Label>
+                                    <Select value={scanType} onValueChange={(value: 'UNITE' | 'CARTON') => setScanType(value)} disabled={isScanning || isSaving}>
+                                        <SelectTrigger id="scanType">
+                                            <SelectValue placeholder="Type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="UNITE">Unité</SelectItem>
+                                            <SelectItem value="CARTON">Carton</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
+                            <Button onClick={handleScan} disabled={!barcode || isScanning || isSaving || quantity < 1} className="w-full">
+                                {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Ajouter'}
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>
@@ -183,24 +205,29 @@ export default function NewReapproPage() {
                                     <TableRow>
                                       <TableHead>Produit</TableHead>
                                       <TableHead>Lieu de Stock</TableHead>
-                                      <TableHead className="w-[150px] text-center">Quantité Ajoutée</TableHead>
+                                      <TableHead className="w-[180px] text-center">Quantité Ajoutée</TableHead>
+                                      <TableHead className="w-[50px]"></TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
                                     {scannedItems.length > 0 ? scannedItems.map(item => (
-                                      <TableRow key={item.produitId}>
+                                      <TableRow key={`${item.produitId}-${item.typeQuantite}`}>
                                         <TableCell className="font-medium">{item.nomProduit}</TableCell>
                                         <TableCell>{item.lieuStockNom}</TableCell>
-                                        <TableCell className="text-center">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(item.produitId, item.qteAjoutee - 1)} disabled={isSaving}><Minus className="h-3 w-3"/></Button>
-                                                <Input readOnly value={item.qteAjoutee} className="h-7 w-12 text-center p-0 border-0 bg-transparent focus-visible:ring-0" />
-                                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(item.produitId, item.qteAjoutee + 1)} disabled={isSaving}><Plus className="h-3 w-3"/></Button>
+                                        <TableCell className="text-center font-semibold">
+                                            <div className="flex items-center justify-center gap-2">
+                                                {item.typeQuantite === 'CARTON' ? <Box className="h-4 w-4" /> : <UnitIcon className="h-4 w-4" />}
+                                                {item.qteAjoutee} {item.typeQuantite}
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.produitId, item.typeQuantite)} disabled={isSaving}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
                                         </TableCell>
                                       </TableRow>
                                     )) : (
-                                      <TableRow><TableCell colSpan={3} className="h-24 text-center">Aucun produit ajouté.</TableCell></TableRow>
+                                      <TableRow><TableCell colSpan={4} className="h-24 text-center">Aucun produit ajouté.</TableCell></TableRow>
                                     )}
                                   </TableBody>
                                 </Table>

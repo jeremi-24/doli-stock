@@ -87,8 +87,12 @@ export type ReapproLigne = {
   id: number;
   produitId: number;
   produitNom: string;
-  qteAjoutee: number;
+  qteAjouteeDansLigne: number;
+  typeQuantite: string;
   lieuStockNom: string;
+  qteAjouteeCartons: number;
+  qteAjouteeUnites: number;
+  qteAjouteeTotaleUnites: number;
 };
 export type Reapprovisionnement = {
   id: number;
@@ -103,11 +107,12 @@ export type ScannedReapproProduit = {
   qteAjoutee: number;
   lieuStockNom: string;
   barcode: string;
+  typeQuantite: 'UNITE' | 'CARTON';
 };
 export type ReapproPayloadLigne = {
     produitId: number;
     qteAjoutee: number;
-    lieuStockNom: string;
+    typeQuantite: 'UNITE' | 'CARTON';
 };
 export type ReapproPayload = {
   source: string;
@@ -169,7 +174,7 @@ export type BonLivraison = {
     commandeId: number;
     email: string;
     lignesLivraison: LigneBonLivraison[];
-    statut:  'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE';
+    statut:  'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE' | 'VALIDE_SECRETARIAT';
     lieuStock: LieuStock;
 };
 
