@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -30,10 +31,10 @@ export default function DeliveriesPage() {
     // Mise à jour des statuts ici
     const getStatusInfo = (status: 'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE') => {
         switch (status) {
-            case 'EN_ATTENTE': return { text: 'En attente', className: 'bg-gray-100 text-gray-800' };
+            case 'EN_ATTENTE': return { text: 'En attente', className: 'bg-orange-100 text-orange-800' };
             case 'A_LIVRER': return { text: 'À livrer', className: 'bg-blue-100 text-blue-800' };
             case 'LIVRE': return { text: 'Livré', className: 'bg-green-100 text-green-800' };
-            default: return { text: status, className: '' };
+            default: return { text: status, className: 'bg-gray-100 text-gray-800' };
         }
     };
 
@@ -55,7 +56,8 @@ export default function DeliveriesPage() {
                                 <TableRow>
                                     <TableHead>N° Commande</TableHead>
                                     <TableHead>Date</TableHead>
-                                    <TableHead>Magasinier</TableHead>
+                                    <TableHead>Agent</TableHead>
+                                    <TableHead>Lieu Stock</TableHead>
                                     <TableHead>Statut</TableHead>
                                     <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
@@ -64,7 +66,7 @@ export default function DeliveriesPage() {
                                 {!isMounted ? (
                                     Array.from({ length: 3 }).map((_, i) => (
                                         <TableRow key={i}>
-                                            <TableCell colSpan={5} className="py-4">
+                                            <TableCell colSpan={6} className="py-4">
                                                 <Loader2 className="animate-spin mx-auto" />
                                             </TableCell>
                                         </TableRow>
@@ -91,7 +93,10 @@ export default function DeliveriesPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div>{bl.email}</div>
+                                                    <div>{bl.agent}</div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div>{bl.lieuStockNom}</div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant={isDone ? 'default' : 'secondary'} className={cn(statusInfo.className)}>
@@ -123,7 +128,7 @@ export default function DeliveriesPage() {
                                     })
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">Aucun bon de livraison à traiter.</TableCell>
+                                        <TableCell colSpan={6} className="h-24 text-center">Aucun bon de livraison à traiter.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

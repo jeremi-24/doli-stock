@@ -182,10 +182,10 @@ export type BonLivraison = {
     id: number;
     dateLivraison: string;
     commandeId: number;
-    email: string;
+    agent: string;
     lignesLivraison: LigneBonLivraison[];
-    statut:  'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE' | 'VALIDE_SECRETARIAT';
-    lieuStock: LieuStock;
+    statut: 'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE' | 'VALIDE_SECRETARIAT';
+    lieuStockNom: string;
 };
 
 
