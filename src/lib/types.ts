@@ -140,6 +140,7 @@ export type Commande = {
   lieuLivraison: LieuStock | null;
   lignes: LigneCommande[];
   totalCommande: number;
+  statutBonLivraison: string;
 };
 
 export type LigneFacture = {

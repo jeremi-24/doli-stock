@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/context/app-provider';
-import type { Commande, ValidationCommandeResponse } from '@/lib/types';
+import type { Commande } from '@/lib/types';
 import { PlusCircle, Loader2, Check, FileSignature, Truck, XCircle, Eye, FileSearch } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -95,13 +96,14 @@ export default function OrdersPage() {
                                     <TableHead>Client</TableHead>
                                     <TableHead>Lieu Livraison</TableHead>
                                     <TableHead>Total</TableHead>
-                                    <TableHead>Statut</TableHead>
+                                    <TableHead>Statut CDE</TableHead>
+                                    <TableHead>Statut BL</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {!isMounted ? (
-                                     <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+                                     <TableRow><TableCell colSpan={8} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                                 ) : sortedCommandes.length > 0 ? sortedCommandes.map(cmd => {
                                     const isLoading = loadingStates[cmd.id];
                                     const isPendingAction = cmd.statut === 'EN_ATTENTE';
@@ -119,6 +121,9 @@ export default function OrdersPage() {
                                                        className={cn(cmd.statut === 'EN_ATTENTE' && 'bg-orange-500/80 text-white', cmd.statut === 'LIVREE' && 'bg-green-600 text-white')}>
                                                     {cmd.statut.replace('_', ' ')}
                                                 </Badge>
+                                            </TableCell>
+                                             <TableCell>
+                                                <Badge variant="outline">{cmd.statutBonLivraison?.replace('_', ' ') || 'N/A'}</Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                  <DropdownMenu>
@@ -179,7 +184,7 @@ export default function OrdersPage() {
                                         </TableRow>
                                     )
                                 }) : (
-                                    <TableRow><TableCell colSpan={7} className="h-24 text-center">Aucune commande trouvée.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={8} className="h-24 text-center">Aucune commande trouvée.</TableCell></TableRow>
                                 )}
                             </TableBody>
                         </Table>
