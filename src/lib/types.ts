@@ -35,6 +35,15 @@ export type Produit = {
   lieuStockNom?: string | null;
 };
 
+export type Stock = {
+    id: number;
+    produitNom: string;
+    lieuStockNom: string;
+    qteCartons: number;
+    qteUnitesRestantes: number;
+};
+
+
 export type AssignationPayload = {
     produitIds: number[];
     categorieId?: number;

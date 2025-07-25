@@ -1,483 +1,125 @@
 
-  "use client";
-  import * as React from "react";
-  import * as z from "zod";
-  import { useForm } from "react-hook-form";
-  import { zodResolver } from "@hookform/resolvers/zod";
-  import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-  } from "@/components/ui/table";
-  import { Button } from "@/components/ui/button";
-  import { useApp } from "@/context/app-provider";
-  import { PlusCircle, MoreHorizontal, Pencil, Trash2, AlertCircle, Shuffle, Building2 as Warehouse, Search, Loader2 } from "lucide-react";
-  import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-  } from "@/components/ui/dropdown-menu";
-  import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-    DialogClose,
-    DialogDescription,
-  } from "@/components/ui/dialog";
-  import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-  } from "@/components/ui/alert-dialog";
-  import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-  } from "@/components/ui/form";
-  import { Input } from "@/components/ui/input";
-  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-  import type { Produit } from "@/lib/types";
-  import { useToast } from "@/hooks/use-toast";
-  import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-  import { Skeleton } from "@/components/ui/skeleton";
-  import { Checkbox } from "@/components/ui/checkbox";
-  import * as api from "@/lib/api";
 
-const produitSchema = z.object({
-  nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
-  ref: z.string().min(2, "La référence doit contenir au moins 2 caractères."),
-  codeBarre: z.string().optional(),
-  categorieId: z.string().min(1, "Veuillez sélectionner une catégorie."),
-  lieuStockId: z.string().min(1, "Veuillez sélectionner un lieu de stock."),
-  prix: z.coerce.number().min(0, "Le prix doit être un nombre positif."),
-  qte: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
-  qteMin: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
-  qteParCarton: z.coerce.number().int().min(0, "La quantité par carton doit être un entier positif."),
-  prixCarton: z.coerce.number().min(0, "Le prix du carton doit être un nombre positif."),
-});
+"use client";
+import * as React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { useApp } from "@/context/app-provider";
+import { Warehouse, Search, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import type { Stock } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import * as api from "@/lib/api";
 
-const assignSchema = z.object({
-    categorieId: z.string().optional(),
-    lieuStockId: z.string().optional(),
-}).refine(data => !!data.categorieId || !!data.lieuStockId, {
-    message: "Veuillez sélectionner au moins une catégorie ou un lieu.",
-    path: ["categorieId"], 
-});
-
-
-  export default function StockPage() {
-    const { produits, categories, lieuxStock, addProduit, updateProduit, deleteProduits, assignProduits, isMounted, hasPermission } = useApp();
-    const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
-    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-    const [isAssignDialogOpen, setIsAssignDialogOpen] = React.useState(false);
-    const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
-    const [isLoading, setIsLoading] = React.useState(false);
-    const [isSearching, setIsSearching] = React.useState(false);
+export default function StockPage() {
+    const { hasPermission } = useApp();
+    const [stocks, setStocks] = React.useState<Stock[]>([]);
+    const [filteredStocks, setFilteredStocks] = React.useState<Stock[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState("");
-    const [displayedProduits, setDisplayedProduits] = React.useState<Produit[]>([]);
     const { toast } = useToast();
 
     React.useEffect(() => {
-      if (searchTerm.trim() === '') {
-        setDisplayedProduits(produits);
-      }
-    }, [produits, searchTerm]);
-
-    React.useEffect(() => {
-        const debounceTimeout = setTimeout(async () => {
-            if (searchTerm.trim() !== '') {
-                setIsSearching(true);
-                try {
-                    const results = await api.searchProducts(searchTerm);
-                    setDisplayedProduits(results);
-                } catch (error) {
-                    toast({ variant: 'destructive', title: 'Erreur de recherche', description: "Impossible de récupérer les résultats de la recherche." });
-                } finally {
-                    setIsSearching(false);
-                }
-            } else {
-                setDisplayedProduits(produits);
+        async function fetchStocks() {
+            try {
+                setIsLoading(true);
+                const data = await api.getStocks();
+                setStocks(data || []);
+                setFilteredStocks(data || []);
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+                toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
+            } finally {
+                setIsLoading(false);
             }
-        }, 300);
-
-        return () => clearTimeout(debounceTimeout);
-    }, [searchTerm, produits, toast]);
-
-    const canCreate = React.useMemo(() => hasPermission('PRODUIT_CREATE'), [hasPermission]);
-    const canUpdate = React.useMemo(() => hasPermission('PRODUIT_UPDATE'), [hasPermission]);
-    const canDelete = React.useMemo(() => hasPermission('PRODUIT_DELETE'), [hasPermission]);
-
-    const categoriesMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.nom])), [categories]);
-    const lieuxStockMap = React.useMemo(() => new Map(lieuxStock.map(e => [e.id, e.nom])), [lieuxStock]);
-    
-    const form = useForm<z.infer<typeof produitSchema>>({
-      resolver: zodResolver(produitSchema),
-      defaultValues: {
-        nom: "", ref: "", codeBarre: "", categorieId: "", lieuStockId: "",
-        prix: 0, qte: 0, qteMin: 0, qteParCarton: 0, prixCarton: 0
-      },
-    });
-
-    const assignForm = useForm<z.infer<typeof assignSchema>>({
-        resolver: zodResolver(assignSchema),
-        defaultValues: { categorieId: "", lieuStockId: "" },
-    });
+        }
+        fetchStocks();
+    }, [toast]);
 
     React.useEffect(() => {
-        if (!isAssignDialogOpen) {
-            assignForm.reset({ categorieId: "", lieuStockId: "" });
-        }
-    }, [isAssignDialogOpen, assignForm]);
-
-    const handleSelectAll = (checked: boolean | string) => {
-        if (checked) {
-          setSelectedProduits(displayedProduits.map((p) => p.id));
-        } else {
-          setSelectedProduits([]);
-        }
-    };
-
-    const handleSelectOne = (id: number, checked: boolean) => {
-        if (checked) {
-            setSelectedProduits((prev) => [...prev, id]);
-        } else {
-            setSelectedProduits((prev) => prev.filter((pId) => pId !== id));
-        }
-    };
-
-    const handleAddNew = () => {
-      setEditingProduit(null);
-      form.reset({
-        nom: "", ref: "", codeBarre: `BC-${Date.now().toString().slice(-8)}`,
-        categorieId: "", lieuStockId: "",
-        prix: 0, qte: 0, qteMin: 0, qteParCarton: 0, prixCarton: 0,
-      });
-      setIsDialogOpen(true);
-    };
-
-    const handleEdit = (produit: Produit) => {
-        setEditingProduit(produit);
-        form.reset({
-            nom: produit.nom,
-            ref: produit.ref,
-            prix: produit.prix,
-            qte: produit.qte,
-            qteMin: produit.qteMin,
-            codeBarre: produit.codeBarre || "",
-            categorieId: String(produit.categorieId),
-            lieuStockId: String(produit.lieuStockId),
-            qteParCarton: produit.qteParCarton,
-            prixCarton: produit.prixCarton,
+        const lowercasedFilter = searchTerm.toLowerCase();
+        const filteredData = stocks.filter(item => {
+            return (
+                item.produitNom.toLowerCase().includes(lowercasedFilter) ||
+                item.lieuStockNom.toLowerCase().includes(lowercasedFilter)
+            );
         });
-        setIsDialogOpen(true);
-    };
-    
-    const onSubmit = async (values: z.infer<typeof produitSchema>) => {
-      setIsLoading(true);
-      try {
-          if (editingProduit) {
-              const categorieIdIsString = typeof values.categorieId === 'string';
-              const lieuStockIdIsString = typeof values.lieuStockId === 'string';
+        setFilteredStocks(filteredData);
+    }, [searchTerm, stocks]);
 
-              let finalCategorieId = parseInt(values.categorieId, 10);
-              let finalLieuStockId = parseInt(values.lieuStockId, 10);
-
-              const formState = form.getValues();
-              
-              if(String(editingProduit.categorieId) === formState.categorieId && editingProduit.categorieNom) {
-                 finalCategorieId = await api.getCategoryIdByName(editingProduit.categorieNom);
-              }
-              if(String(editingProduit.lieuStockId) === formState.lieuStockId && editingProduit.lieuStockNom) {
-                  finalLieuStockId = await api.getLieuStockIdByName(editingProduit.lieuStockNom);
-              }
-
-              const productData = { 
-                  ...values, 
-                  categorieId: finalCategorieId,
-                  lieuStockId: finalLieuStockId,
-                  codeBarre: values.codeBarre || `BC-${Date.now().toString().slice(-8)}`
-              };
-              await updateProduit({ ...editingProduit, ...productData });
-              toast({ title: "Produit mis à jour" });
-          } else {
-              const productData = { 
-                  ...values, 
-                  categorieId: parseInt(values.categorieId, 10),
-                  lieuStockId: parseInt(values.lieuStockId, 10),
-                  codeBarre: values.codeBarre || `BC-${Date.now().toString().slice(-8)}`
-              };
-              await addProduit(productData);
-              toast({ title: "Produit ajouté" });
-          }
-          setIsDialogOpen(false);
-      } catch (error) {
-          // Error is handled in context
-      } finally {
-          setIsLoading(false);
-      }
-    };
-
-    const handleDeleteSelected = async () => { 
-      setIsLoading(true);
-      try {
-          await deleteProduits(selectedProduits); 
-          toast({ title: "Produits supprimés" });
-          setSelectedProduits([]);
-      } catch (error) {
-          // Error is handled in context
-      } finally {
-          setIsLoading(false);
-      }
-    };
-
-    const onAssignSubmit = async (values: z.infer<typeof assignSchema>) => {
-        setIsLoading(true);
-        try {
-            const dataToSubmit = {
-                produitIds: selectedProduits,
-                categorieId: values.categorieId ? parseInt(values.categorieId, 10) : undefined,
-                lieuStockId: values.lieuStockId ? parseInt(values.lieuStockId, 10) : undefined,
-            };
-            
-            await assignProduits(dataToSubmit);
-            
-            toast({ title: "Produits assignés avec succès." });
-            setIsAssignDialogOpen(false);
-            setSelectedProduits([]);
-
-        } catch (error) {
-            // Error is handled in context
-        } finally {
-            setIsLoading(false);
-        }
-    };
-  
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-
-  const isAllSelected = displayedProduits.length > 0 && selectedProduits.length === displayedProduits.length;
-
-  return (
-    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="flex items-center gap-4">
-        <h1 className="font-headline text-3xl font-semibold">Gestion du Stock</h1>
-        <div className="ml-auto flex items-center gap-2">
-            <div className="relative">
-                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                 <Input 
-                    type="search" 
-                    placeholder="Rechercher un produit..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 sm:w-[300px]"
-                 />
-            </div>
-          {selectedProduits.length > 0 && (
-            <>
-            {canUpdate && (
-              <Button size="sm" variant="outline" onClick={() => setIsAssignDialogOpen(true)}>
-                  <Shuffle className="h-4 w-4 mr-2"/>
-                  Assigner ({selectedProduits.length})
-              </Button>
-            )}
-            {canDelete && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-2"/>
-                    Supprimer ({selectedProduits.length})
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Cette action est irréversible. Elle supprimera définitivement {selectedProduits.length} produit(s).
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteSelected} disabled={isLoading}>
-                      {isLoading ? "Suppression..." : "Supprimer"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            </>
-          )}
-          {canCreate && (
-            <Button size="sm" onClick={handleAddNew}><PlusCircle className="h-4 w-4 mr-2" />Ajouter un Produit</Button>
-          )}
-        </div>
-      </div>
-      <Card>
-        <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Warehouse /> Vos Produits ( {displayedProduits.length} )</CardTitle><CardDescription>La liste de tous les produits de votre inventaire.</CardDescription></CardHeader>
-        <CardContent>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader><TableRow>
-                <TableHead className="w-[40px]">
-                    <Checkbox
-                        checked={isAllSelected}
-                        onCheckedChange={handleSelectAll}
-                        aria-label="Select all"
-                    />
-                </TableHead>
-                <TableHead>Nom</TableHead>
-                <TableHead>Reférence</TableHead>
-                <TableHead>Catégorie</TableHead>
-                <TableHead>Lieu de Stock</TableHead>
-                <TableHead>Prix Vente</TableHead>
-                <TableHead>Qté/Carton</TableHead>
-                <TableHead>Prix Carton</TableHead>
-                <TableHead className="text-right">Quantité</TableHead>
-                {(canUpdate || canDelete) && <TableHead><span className="sr-only">Actions</span></TableHead>}
-                </TableRow></TableHeader>
-              <TableBody>
-                {!isMounted || isSearching ? (
-                    <TableRow>
-                        <TableCell colSpan={10} className="h-24 text-center">
-                            {isSearching ? <Loader2 className="animate-spin mx-auto"/> : <Skeleton className="h-5 w-full" />}
-                        </TableCell>
-                    </TableRow>
-                ) : displayedProduits.length > 0 ? (
-                  displayedProduits.map((produit) => (
-                    <TableRow key={produit.id} data-state={selectedProduits.includes(produit.id) ? "selected" : undefined} className={produit.qte <= produit.qteMin ? 'bg-red-50 dark:bg-red-900/20' : ''}>
-                      <TableCell>
-                        <Checkbox
-                            checked={selectedProduits.includes(produit.id)}
-                            onCheckedChange={(checked) => handleSelectOne(produit.id, !!checked)}
-                            aria-label={`Select produit ${produit.nom}`}
+    return (
+        <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            <div className="flex items-center gap-4">
+                <h1 className="font-headline text-3xl font-semibold">État du Stock</h1>
+                <div className="ml-auto flex items-center gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Rechercher..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-8 sm:w-[300px]"
                         />
-                      </TableCell>
-                      <TableCell className="font-medium">{produit.nom} {produit.qte <= produit.qteMin && <AlertCircle className="h-4 w-4 inline-block ml-2 text-red-500" />}</TableCell>
-                      <TableCell>{produit.ref || 'N/A'}</TableCell>
-                      <TableCell>{produit.categorieNom || categoriesMap.get(produit.categorieId) || 'N/A'}</TableCell>
-                      <TableCell>{produit.lieuStockNom || lieuxStockMap.get(produit.lieuStockId) || 'N/A'}</TableCell>
-                      <TableCell>{formatCurrency(produit.prix)}</TableCell>
-                      <TableCell>{produit.qteParCarton}</TableCell>
-                      <TableCell>{formatCurrency(produit.prixCarton)}</TableCell>
-                      <TableCell className="text-right">{produit.qte}</TableCell>
-                      {(canUpdate || canDelete) && (
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Menu</span></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {canUpdate && <DropdownMenuItem onClick={() => handleEdit(produit)}><Pencil className="mr-2 h-4 w-4" /> Modifier</DropdownMenuItem>}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                ) : ( <TableRow><TableCell colSpan={10} className="h-24 text-center">Aucun produit trouvé.</TableCell></TableRow> )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-        <CardFooter className="pt-4">
-          <div className="text-sm text-muted-foreground">
-            {selectedProduits.length} sur {displayedProduits.length} produit(s) sélectionné(s). Total: {produits.length} produits.
-          </div>
-        </CardFooter>
-      </Card>
-      
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader><DialogTitle className="font-headline">{editingProduit ? "Modifier le Produit" : "Ajouter un Produit"}</DialogTitle></DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-              <FormField control={form.control} name="nom" render={({ field }) => (<FormItem><FormLabel>Nom du produit</FormLabel><FormControl><Input placeholder="T-Shirt" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="ref" render={({ field }) => (<FormItem><FormLabel>Référence</FormLabel><FormControl><Input placeholder="REF-001" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="categorieId" render={({ field }) => (
-                    <FormItem><FormLabel>Catégorie</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger></FormControl>
-                          <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
-                      </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                 <FormField control={form.control} name="lieuStockId" render={({ field }) => (
-                    <FormItem><FormLabel>Lieu de Stock</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un lieu" /></SelectTrigger></FormControl>
-                          <SelectContent>{lieuxStock.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
-                      </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="prix" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="qte" render={({ field }) => (<FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                 <FormField control={form.control} name="qteMin" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="qteParCarton" render={({ field }) => (<FormItem><FormLabel>Qté / Carton</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="prixCarton" render={({ field }) => (<FormItem><FormLabel>Prix / Carton</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <DialogFooter>
-                  <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
-                  <Button type="submit" disabled={isLoading}>{isLoading ? "Sauvegarde..." : (editingProduit ? "Sauvegarder" : "Créer le produit")}</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-                <DialogTitle className="font-headline">Assignation groupée</DialogTitle>
-                <DialogDescription>
-                    Assigner {selectedProduits.length} produit(s) à une nouvelle catégorie et/ou un nouveau lieu de stock.
-                </DialogDescription>
-            </DialogHeader>
-             <Form {...assignForm}>
-                <form onSubmit={assignForm.handleSubmit(onAssignSubmit)} className="space-y-4 py-2">
-                    <FormField control={assignForm.control} name="categorieId" render={({ field }) => (
-                        <FormItem><FormLabel>Nouvelle Catégorie (Optionnel)</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Choisir une catégorie" /></SelectTrigger></FormControl>
-                                <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={assignForm.control} name="lieuStockId" render={({ field }) => (
-                        <FormItem><FormLabel>Nouveau Lieu de Stock (Optionnel)</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Choisir un lieu" /></SelectTrigger></FormControl>
-                                <SelectContent>{lieuxStock.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nom}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <DialogFooter>
-                        <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
-                        <Button type="submit" disabled={isLoading}>{isLoading ? "Assignation..." : "Assigner"}</Button>
-                    </DialogFooter>
-                </form>
-            </Form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+                    </div>
+                </div>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2">
+                        <Warehouse /> Vue d'ensemble des stocks ({filteredStocks.length})
+                    </CardTitle>
+                    <CardDescription>
+                        Consultez la quantité de chaque produit dans les différents lieux de stock.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-lg border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Produit</TableHead>
+                                    <TableHead>Lieu de Stock</TableHead>
+                                    <TableHead className="text-right">Qté en Cartons</TableHead>
+                                    <TableHead className="text-right">Qté en Unités</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                            <Loader2 className="animate-spin mx-auto" />
+                                        </TableCell>
+                                    </TableRow>
+                                ) : filteredStocks.length > 0 ? (
+                                    filteredStocks.map((stockItem) => (
+                                        <TableRow key={stockItem.id}>
+                                            <TableCell className="font-medium">{stockItem.produitNom}</TableCell>
+                                            <TableCell>{stockItem.lieuStockNom}</TableCell>
+                                            <TableCell className="text-right">{stockItem.qteCartons}</TableCell>
+                                            <TableCell className="text-right">{stockItem.qteUnitesRestantes}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                            Aucun stock trouvé.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }

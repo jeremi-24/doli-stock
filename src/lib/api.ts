@@ -1,6 +1,6 @@
 
 
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock } from './types';
 
 const API_BASE_URL = '/api'; 
 
@@ -226,6 +226,11 @@ export async function printBarcodes(data: { produitNom: string, quantite: number
         body: JSON.stringify(data),
         headers: { 'Accept': 'application/pdf' },
     });
+}
+
+// ========== Stock API ==========
+export async function getStocks(): Promise<Stock[]> {
+    return apiFetch('/stocks');
 }
 
 // ========== Ventes (POS) API ==========
