@@ -29,6 +29,8 @@ export type Produit = {
   codeBarre: string;
   categorieId: number;
   lieuStockId: number;
+  qteParCarton: number;
+  prixCarton: number;
   categorieNom?: string | null;
   lieuStockNom?: string | null;
 };

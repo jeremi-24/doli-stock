@@ -67,6 +67,8 @@ const produitSchema = z.object({
   prix: z.coerce.number().min(0, "Le prix doit être un nombre positif."),
   qte: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
   qteMin: z.coerce.number().int().min(0, "L'alerte de stock doit être un entier positif."),
+  qteParCarton: z.coerce.number().int().min(0, "La quantité par carton doit être un entier positif."),
+  prixCarton: z.coerce.number().min(0, "Le prix du carton doit être un nombre positif."),
 });
 
 const assignSchema = z.object({
@@ -91,7 +93,7 @@ const assignSchema = z.object({
     const { toast } = useToast();
 
     React.useEffect(() => {
-      if (!searchTerm) {
+      if (searchTerm.trim() === '') {
         setDisplayedProduits(produits);
       }
     }, [produits, searchTerm]);
@@ -127,7 +129,7 @@ const assignSchema = z.object({
       resolver: zodResolver(produitSchema),
       defaultValues: {
         nom: "", ref: "", codeBarre: "", categorieId: "", lieuStockId: "",
-        prix: 0, qte: 0, qteMin: 0,
+        prix: 0, qte: 0, qteMin: 0, qteParCarton: 0, prixCarton: 0
       },
     });
 
@@ -163,7 +165,7 @@ const assignSchema = z.object({
       form.reset({
         nom: "", ref: "", codeBarre: `BC-${Date.now().toString().slice(-8)}`,
         categorieId: "", lieuStockId: "",
-        prix: 0, qte: 0, qteMin: 0,
+        prix: 0, qte: 0, qteMin: 0, qteParCarton: 0, prixCarton: 0,
       });
       setIsDialogOpen(true);
     };
@@ -179,6 +181,8 @@ const assignSchema = z.object({
             codeBarre: produit.codeBarre || "",
             categorieId: String(produit.categorieId),
             lieuStockId: String(produit.lieuStockId),
+            qteParCarton: produit.qteParCarton,
+            prixCarton: produit.prixCarton,
         });
         setIsDialogOpen(true);
     };
@@ -410,10 +414,14 @@ const assignSchema = z.object({
                   </FormItem>
                 )} />
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="prix" render={({ field }) => (<FormItem><FormLabel>Prix de vente</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="qte" render={({ field }) => (<FormItem><FormLabel>Quantité</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="qteMin" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                 <FormField control={form.control} name="qteMin" render={({ field }) => (<FormItem><FormLabel>Alerte Stock</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="qteParCarton" render={({ field }) => (<FormItem><FormLabel>Qté / Carton</FormLabel><FormControl><Input type="number" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="prixCarton" render={({ field }) => (<FormItem><FormLabel>Prix / Carton</FormLabel><FormControl><Input type="number" step="any" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <DialogFooter>
                   <DialogClose asChild><Button type="button" variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
