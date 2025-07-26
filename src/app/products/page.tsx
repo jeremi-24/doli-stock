@@ -35,7 +35,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/app-provider";
-import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal, Settings2, Hand } from "lucide-react";
+import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal, Hand } from "lucide-react";
 import type { Produit, Categorie, LieuStock, AssignationPayload } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -80,11 +80,11 @@ function ProductDetailsDialog({ product, onClose }: { product: Produit | null, o
                 <div className="grid gap-4 py-4 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Catégorie</span><Badge variant="outline">{product.categorieNom || 'N/A'}</Badge></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Lieu de Stock</span><Badge variant="outline">{product.lieuStockNom || 'N/A'}</Badge></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Prix Unitaire</span><span>{formatCurrency(product.prix)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Prix Carton</span><span>{formatCurrency(product.prixCarton)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Unités par Carton</span><span>{product.qteParCarton}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Quantité en Stock</span><span className="font-bold">{product.qte}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Seuil d'Alerte</span><span>{product.qteMin}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Prix Unitaire</span><span>{formatCurrency(product.prix || 0)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Prix Carton</span><span>{formatCurrency(product.prixCarton || 0)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Unités par Carton</span><span>{product.qteParCarton || 0}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Quantité en Stock</span><span className="font-bold">{product.quantiteTotaleGlobale ?? 0}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Seuil d'Alerte</span><span>{product.qteMin || 0}</span></div>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>Fermer</Button>
@@ -167,7 +167,7 @@ const COLUMN_NAMES: Record<string, string> = {
     'ref': 'Référence',
     'prix': 'Prix (Unité)',
     'prixCarton': 'Prix (Carton)',
-    'qte': 'Stock Total (U)',
+    'quantiteTotaleGlobale': 'Stock Total (U)',
     'qteParCarton': 'Unités/Carton',
     'qteMin': 'Seuil Alerte',
 };
@@ -188,11 +188,11 @@ export default function ProductsPage() {
     
     const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
     
-    const [columnVisibility, setColumnVisibility] = React.useState({
+    const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>({
         'ref': true,
         'prix': true,
         'prixCarton': false,
-        'qte': true,
+        'quantiteTotaleGlobale': true,
         'qteParCarton': false,
         'qteMin': false,
     });
@@ -407,7 +407,7 @@ export default function ProductsPage() {
                                     {columnVisibility['ref'] && <TableHead>Référence</TableHead>}
                                     {columnVisibility['prix'] && <TableHead className="text-right">Prix (Unité)</TableHead>}
                                     {columnVisibility['prixCarton'] && <TableHead className="text-right">Prix (Carton)</TableHead>}
-                                    {columnVisibility['qte'] && <TableHead className="text-right">Stock Total (U)</TableHead>}
+                                    {columnVisibility['quantiteTotaleGlobale'] && <TableHead className="text-right">Stock Total (U)</TableHead>}
                                     {columnVisibility['qteParCarton'] && <TableHead className="text-right">U/Carton</TableHead>}
                                     {columnVisibility['qteMin'] && <TableHead className="text-right">Seuil Alerte</TableHead>}
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -434,7 +434,7 @@ export default function ProductsPage() {
                                             {columnVisibility['ref'] && <TableCell className="cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.ref}</TableCell>}
                                             {columnVisibility['prix'] && <TableCell className="text-right cursor-pointer" onClick={() => setViewingProduct(produit)}>{(produit.prix || 0).toLocaleString()}</TableCell>}
                                             {columnVisibility['prixCarton'] && <TableCell className="text-right cursor-pointer" onClick={() => setViewingProduct(produit)}>{(produit.prixCarton || 0).toLocaleString()}</TableCell>}
-                                            {columnVisibility['qte'] && <TableCell className="text-right font-bold cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.qte ?? 0}</TableCell>}
+                                            {columnVisibility['quantiteTotaleGlobale'] && <TableCell className="text-right font-bold cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.quantiteTotaleGlobale ?? 0}</TableCell>}
                                             {columnVisibility['qteParCarton'] && <TableCell className="text-right font-bold cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.qteParCarton ?? 0}</TableCell>}
                                             {columnVisibility['qteMin'] && <TableCell className="text-right font-bold cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.qteMin ?? 0}</TableCell>}
                                             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>

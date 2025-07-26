@@ -33,6 +33,7 @@ export type Produit = {
   prixCarton: number;
   categorieNom?: string | null;
   lieuStockNom?: string | null;
+  quantiteTotaleGlobale?: number;
 };
 
 export type Stock = {
