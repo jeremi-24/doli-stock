@@ -35,11 +35,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/app-provider";
-import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal } from "lucide-react";
-import type { Produit, Categorie, LieuStock } from "@/lib/types";
+import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal, Settings2, Hand } from "lucide-react";
+import type { Produit, Categorie, LieuStock, AssignationPayload } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useForm } from "react-hook-form";
+import { useForm, useForm as useHookForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,6 +57,15 @@ const produitSchema = z.object({
     prixCarton: z.coerce.number().min(0, "Le prix doit être positif."),
 });
 
+const assignationSchema = z.object({
+    categorieId: z.coerce.number().optional(),
+    lieuStockId: z.coerce.number().optional(),
+}).refine(data => data.categorieId || data.lieuStockId, {
+    message: "Veuillez sélectionner au moins une catégorie ou un lieu de stock.",
+    path: ["categorieId"], 
+});
+
+
 function ProductDetailsDialog({ product, onClose }: { product: Produit | null, onClose: () => void }) {
     if (!product) return null;
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -69,8 +78,8 @@ function ProductDetailsDialog({ product, onClose }: { product: Produit | null, o
                     <DialogDescription>Référence: {product.ref || 'N/A'}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Catégorie</span><Badge variant="outline">{product.categorieNom}</Badge></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Lieu de Stock</span><Badge variant="outline">{product.lieuStockNom}</Badge></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Catégorie</span><Badge variant="outline">{product.categorieNom || 'N/A'}</Badge></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Lieu de Stock</span><Badge variant="outline">{product.lieuStockNom || 'N/A'}</Badge></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Prix Unitaire</span><span>{formatCurrency(product.prix)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Prix Carton</span><span>{formatCurrency(product.prixCarton)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Unités par Carton</span><span>{product.qteParCarton}</span></div>
@@ -80,6 +89,75 @@ function ProductDetailsDialog({ product, onClose }: { product: Produit | null, o
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>Fermer</Button>
                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function AssignationDialog({ 
+    open, 
+    onOpenChange, 
+    selectedProduitIds,
+    categories,
+    lieuxStock,
+    onAssign
+}: { 
+    open: boolean, 
+    onOpenChange: (open: boolean) => void, 
+    selectedProduitIds: number[],
+    categories: Categorie[],
+    lieuxStock: LieuStock[],
+    onAssign: (data: AssignationPayload) => Promise<void>
+}) {
+    const [isAssigning, setIsAssigning] = React.useState(false);
+    const form = useHookForm<z.infer<typeof assignationSchema>>({
+        resolver: zodResolver(assignationSchema),
+    });
+
+    const onSubmit = async (values: z.infer<typeof assignationSchema>) => {
+        setIsAssigning(true);
+        try {
+            await onAssign({ produitIds: selectedProduitIds, ...values });
+            onOpenChange(false);
+            form.reset();
+        } finally {
+            setIsAssigning(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="font-headline">Assigner une Catégorie / un Lieu</DialogTitle>
+                    <DialogDescription>
+                        Appliquez une nouvelle catégorie et/ou un nouveau lieu de stock aux {selectedProduitIds.length} produits sélectionnés.
+                    </DialogDescription>
+                </DialogHeader>
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        <FormField control={form.control} name="categorieId" render={({ field }) => (
+                            <FormItem><FormLabel>Nouvelle Catégorie (Optionnel)</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Choisir une catégorie..." /></SelectTrigger></FormControl>
+                                    <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
+                                </Select>
+                            <FormMessage /></FormItem>
+                        )}/>
+                        <FormField control={form.control} name="lieuStockId" render={({ field }) => (
+                            <FormItem><FormLabel>Nouveau Lieu de Stock (Optionnel)</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Choisir un lieu..." /></SelectTrigger></FormControl>
+                                    <SelectContent>{lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}</SelectContent>
+                                </Select>
+                            <FormMessage /></FormItem>
+                        )}/>
+                         <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="ghost" disabled={isAssigning}>Annuler</Button></DialogClose>
+                            <Button type="submit" disabled={isAssigning}>{isAssigning ? "Assignation..." : "Assigner"}</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     );
@@ -95,13 +173,14 @@ const COLUMN_NAMES: Record<string, string> = {
 };
 
 export default function ProductsPage() {
-    const { produits, categories, lieuxStock, addProduit, updateProduit, deleteProduits, isMounted, hasPermission } = useApp();
+    const { produits, categories, lieuxStock, addProduit, updateProduit, deleteProduits, assignProduits, isMounted, hasPermission } = useApp();
     const { toast } = useToast();
     
     const [searchTerm, setSearchTerm] = React.useState("");
     const [categoryFilter, setCategoryFilter] = React.useState("all");
     
-    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
+    const [isAssignDialogOpen, setIsAssignDialogOpen] = React.useState(false);
     const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
     const [viewingProduct, setViewingProduct] = React.useState<Produit | null>(null);
     
@@ -143,12 +222,12 @@ export default function ProductsPage() {
 
     const handleAddNew = () => {
         setEditingProduit(null);
-        setIsDialogOpen(true);
+        setIsFormDialogOpen(true);
     };
 
     const handleEdit = (produit: Produit) => {
         setEditingProduit(produit);
-        setIsDialogOpen(true);
+        setIsFormDialogOpen(true);
     };
     
     const handleSelectAll = (checked: boolean | string) => {
@@ -177,7 +256,7 @@ export default function ProductsPage() {
                 await addProduit(values);
                 toast({ title: "Produit ajouté" });
             }
-            setIsDialogOpen(false);
+            setIsFormDialogOpen(false);
             setSelectedProduits([]);
         } finally {
             setIsLoading(false);
@@ -189,6 +268,17 @@ export default function ProductsPage() {
         try {
             await deleteProduits(selectedProduits);
             toast({ title: "Produit(s) supprimé(s)" });
+            setSelectedProduits([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAssign = async (data: AssignationPayload) => {
+        setIsLoading(true);
+        try {
+            await assignProduits(data);
+            toast({ title: `Assignation réussie pour ${data.produitIds.length} produit(s).`});
             setSelectedProduits([]);
         } finally {
             setIsLoading(false);
@@ -252,31 +342,41 @@ export default function ProductsPage() {
                     )}
                 </div>
             </div>
-            {canDelete && selectedProduits.length > 0 && (
-                 <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">{selectedProduits.length} produit(s) sélectionné(s)</span>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm">
-                                <Trash2 className="h-4 w-4 mr-2"/>
-                                Supprimer la sélection
+            {selectedProduits.length > 0 && (
+                 <div className="flex items-center gap-2 rounded-lg border bg-card p-2">
+                    <span className="text-sm text-muted-foreground font-medium pl-2">{selectedProduits.length} produit(s) sélectionné(s)</span>
+                    <div className="ml-auto flex items-center gap-2">
+                        {canUpdate && (
+                            <Button variant="outline" size="sm" onClick={() => setIsAssignDialogOpen(true)}>
+                                <Hand className="h-4 w-4 mr-2"/>
+                                Assigner Cat./Lieu
                             </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Cette action est irréversible et supprimera définitivement {selectedProduits.length} produit(s).
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDeleteSelected} disabled={isLoading}>
-                                {isLoading ? "Suppression..." : "Supprimer"}
-                            </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                        )}
+                        {canDelete && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="sm">
+                                        <Trash2 className="h-4 w-4 mr-2"/>
+                                        Supprimer la sélection
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Cette action est irréversible et supprimera définitivement {selectedProduits.length} produit(s).
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteSelected} disabled={isLoading}>
+                                        {isLoading ? "Suppression..." : "Supprimer"}
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )}
+                    </div>
                 </div>
             )}
             <Card>
@@ -379,7 +479,7 @@ export default function ProductsPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="font-headline">{editingProduit ? "Modifier le Produit" : "Ajouter un Produit"}</DialogTitle>
@@ -429,7 +529,14 @@ export default function ProductsPage() {
                 </DialogContent>
             </Dialog>
             <ProductDetailsDialog product={viewingProduct} onClose={() => setViewingProduct(null)} />
+             <AssignationDialog 
+                open={isAssignDialogOpen} 
+                onOpenChange={setIsAssignDialogOpen} 
+                selectedProduitIds={selectedProduits}
+                categories={categories}
+                lieuxStock={lieuxStock}
+                onAssign={handleAssign}
+            />
         </div>
     );
-
-    
+}

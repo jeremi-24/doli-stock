@@ -186,12 +186,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const storedThemeColors = localStorage.getItem('stockhero_themecolors');
       if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
       
-      // Removed auto-login logic
-      // const storedToken = localStorage.getItem('stockhero_token');
-      // if (storedToken) {
-      //   setToken(storedToken);
-      //   await loadUserAndData(storedToken);
-      // }
+      const storedToken = localStorage.getItem('stockhero_token');
+      if (storedToken) {
+        setToken(storedToken);
+        await loadUserAndData(storedToken);
+      }
       
       setIsMounted(true);
     };
