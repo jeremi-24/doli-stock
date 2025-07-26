@@ -163,13 +163,13 @@ function AssignationDialog({
     );
 }
 
-// Map of column IDs to their display names
 const COLUMN_NAMES: Record<string, string> = {
-    'nom': 'Nom du Produit',
     'ref': 'Référence',
     'prix': 'Prix (Unité)',
-    'qte': 'Stock Total',
-    'actions': 'Actions',
+    'prixCarton': 'Prix (Carton)',
+    'qte': 'Stock Total (U)',
+    'qteParCarton': 'Unités/Carton',
+    'qteMin': 'Seuil Alerte',
 };
 
 export default function ProductsPage() {
@@ -191,7 +191,10 @@ export default function ProductsPage() {
     const [columnVisibility, setColumnVisibility] = React.useState({
         'ref': true,
         'prix': true,
+        'prixCarton': false,
         'qte': true,
+        'qteParCarton': false,
+        'qteMin': false,
     });
 
     const form = useForm<z.infer<typeof produitSchema>>({
@@ -403,7 +406,10 @@ export default function ProductsPage() {
                                     <TableHead>Nom du Produit</TableHead>
                                     {columnVisibility['ref'] && <TableHead>Référence</TableHead>}
                                     {columnVisibility['prix'] && <TableHead className="text-right">Prix (Unité)</TableHead>}
-                                    {columnVisibility['qte'] && <TableHead className="text-right">Stock Total</TableHead>}
+                                    {columnVisibility['prixCarton'] && <TableHead className="text-right">Prix (Carton)</TableHead>}
+                                    {columnVisibility['qte'] && <TableHead className="text-right">Stock Total (U)</TableHead>}
+                                    {columnVisibility['qteParCarton'] && <TableHead className="text-right">U/Carton</TableHead>}
+                                    {columnVisibility['qteMin'] && <TableHead className="text-right">Seuil Alerte</TableHead>}
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -427,7 +433,10 @@ export default function ProductsPage() {
                                             <TableCell className="font-medium cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.nom}</TableCell>
                                             {columnVisibility['ref'] && <TableCell className="cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.ref}</TableCell>}
                                             {columnVisibility['prix'] && <TableCell className="text-right cursor-pointer" onClick={() => setViewingProduct(produit)}>{(produit.prix || 0).toLocaleString()}</TableCell>}
+                                            {columnVisibility['prixCarton'] && <TableCell className="text-right cursor-pointer" onClick={() => setViewingProduct(produit)}>{(produit.prixCarton || 0).toLocaleString()}</TableCell>}
                                             {columnVisibility['qte'] && <TableCell className="text-right font-bold cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.qte ?? 0}</TableCell>}
+                                            {columnVisibility['qteParCarton'] && <TableCell className="text-right font-bold cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.qteParCarton ?? 0}</TableCell>}
+                                            {columnVisibility['qteMin'] && <TableCell className="text-right font-bold cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.qteMin ?? 0}</TableCell>}
                                             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                                  <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
