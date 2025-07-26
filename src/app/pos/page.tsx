@@ -10,12 +10,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
 import type { Produit, Categorie, Client } from '@/lib/types';
-import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2 } from 'lucide-react';
+import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import * as api from "@/lib/api";
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 type VenteLigne = {
     id: number;
@@ -134,7 +136,6 @@ export default function POSPage() {
   const filteredProducts = useMemo(() => {
     const categoryId = categoryNameToId.get(activeTab);
     return produits
-      .filter(p => (p.quantiteTotaleGlobale ?? 0) > 0)
       .filter(p => activeTab === 'Tout' || p.categorieId === categoryId)
       .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [produits, activeTab, searchTerm, categoryNameToId]);
@@ -163,14 +164,15 @@ export default function POSPage() {
   };
 
   const handleAddToCart = (produit: Produit) => {
-    if ((produit.quantiteTotaleGlobale ?? 0) <= 0) {
-       toast({ title: "Rupture de stock", variant: 'destructive' });
+    const stock = produit.quantiteTotaleGlobale ?? 0;
+    if (stock <= 0) {
+       toast({ title: "Rupture de stock", variant: 'destructive', description: "Ce produit ne peut pas être ajouté au panier." });
        return;
     }
     
     const existingItem = cart.find(item => item.produit.id === produit.id);
     if (existingItem) {
-      if (existingItem.quantite >= (produit.quantiteTotaleGlobale ?? 0)) {
+      if (existingItem.quantite >= stock) {
         toast({ title: "Limite de stock atteinte", variant: 'destructive' });
         return;
       }
@@ -206,8 +208,6 @@ export default function POSPage() {
             produitPrix: item.prix_unitaire,
             qteVendueTotaleUnites: item.quantite,
             total: item.prix_total,
-            // These fields seem to be expected by the backend, but we don't have them in the simple POS flow
-            // Sending default/calculated values
             typeQuantite: "UNITE",
             qteVendueCartons: 0, 
             qteVendueUnites: item.quantite,
@@ -227,6 +227,16 @@ export default function POSPage() {
     }
   };
 
+  const StockBadge = ({ qte, qteMin }: { qte: number, qteMin: number }) => {
+    if (qte <= 0) {
+      return <Badge variant="destructive" className="flex items-center gap-1"><Archive className="h-3 w-3" /> Hors stock</Badge>;
+    }
+    if (qte <= qteMin) {
+      return <Badge variant="secondary" className="bg-orange-100 text-orange-800 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {qte} en stock</Badge>;
+    }
+    return <Badge variant="secondary" className="bg-green-100 text-green-800 flex items-center gap-1"><Package className="h-3 w-3" /> {qte} en stock</Badge>;
+  };
+
   return (
     <div className="flex flex-1 h-full">
       <div className="flex-1 p-4 md:p-6 flex flex-col">
@@ -244,18 +254,37 @@ export default function POSPage() {
           <TabsContent value={activeTab} className="mt-0 flex-1 min-h-0">
               <ScrollArea className="h-full">
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pr-4">
-                      {filteredProducts.map(produit => (
-                          <Card key={produit.id} className="overflow-hidden cursor-pointer hover:border-primary transition-colors flex flex-col" onClick={() => handleAddToCart(produit)}>
-                              <CardHeader className="p-0"><div className="aspect-square bg-muted flex items-center justify-center"><PackagePlus className="w-12 h-12 text-muted-foreground" /></div></CardHeader>
-                              <CardContent className="p-3 flex-1 flex flex-col justify-between">
-                                  <div>
-                                      <h3 className="font-semibold truncate text-sm">{produit.nom}</h3>
-                                      <p className="text-xs text-muted-foreground">{produit.quantiteTotaleGlobale} en stock</p>
-                                  </div>
-                                  <p className="text-base text-primary font-bold mt-2">{formatCurrency(produit.prix)}</p>
-                              </CardContent>
+                      {filteredProducts.map(produit => {
+                        const stock = produit.quantiteTotaleGlobale ?? 0;
+                        const isOutOfStock = stock <= 0;
+                        return (
+                          <Card 
+                            key={produit.id} 
+                            className={cn(
+                                "overflow-hidden flex flex-col group",
+                                isOutOfStock 
+                                    ? "bg-muted/50 cursor-not-allowed" 
+                                    : "cursor-pointer hover:border-primary transition-colors"
+                            )} 
+                            onClick={() => !isOutOfStock && handleAddToCart(produit)}
+                          >
+                            <div className="aspect-[4/3] bg-muted flex items-center justify-center relative overflow-hidden">
+                                <PackagePlus className="w-16 h-16 text-muted-foreground/50 transition-transform duration-300 group-hover:scale-110" />
+                                <div className="absolute top-2 right-2">
+                                  <StockBadge qte={stock} qteMin={produit.qteMin || 5} />
+                                </div>
+                            </div>
+                            <div className="p-3 flex-1 flex flex-col justify-between">
+                                <div>
+                                    <h3 className={cn("font-semibold truncate text-sm", isOutOfStock && "text-muted-foreground")}>{produit.nom}</h3>
+                                </div>
+                                <p className={cn("text-base font-bold mt-2", isOutOfStock ? "text-muted-foreground" : "text-primary")}>
+                                    {formatCurrency(produit.prix)}
+                                </p>
+                            </div>
                           </Card>
-                      ))}
+                        )
+                      })}
                       {filteredProducts.length === 0 && (<div className="col-span-full text-center text-muted-foreground py-10"><p>Aucun produit trouvé.</p></div>)}
                   </div>
               </ScrollArea>
