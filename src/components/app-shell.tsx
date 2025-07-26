@@ -188,9 +188,9 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     {
       href: '/sales',
       icon: <History />,
-      label: 'Factures',
+      label: 'Historique des Ventes',
       active: pathname === '/sales',
-      permission: 'FACTURE_GENERATE',
+      permission: 'VENTE_READ',
     },
     {
       href: '/categories',
@@ -222,7 +222,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <PackagePlus />,
       label: 'Réapprovisionnement',
       active: pathname.startsWith('/reapprovisionnements'),
-      permission: 'REAPPROVISIONNEMENT_MANAGE',
+      permission: 'REAPPRO_MANAGE',
     },
     {
       href: '/pos',

@@ -204,9 +204,32 @@ export type CommandePayload = {
 };
 
 // ----- POS Sale Types -----
+export type VenteLigne = {
+    id: number;
+    produitId: number;
+    produitNom: string;
+    produitPrix: number;
+    qteVendueDansLigne: number;
+    typeQuantite: string;
+    qteVendueCartons: number;
+    qteVendueUnites: number;
+    qteVendueTotaleUnites: number;
+    total: number;
+};
+
+export type Vente = {
+    id: number;
+    date: string;
+    ref: string;
+    caissier: string;
+    client: Client;
+    lignes: VenteLigne[];
+    total: number;
+};
+
 export type VenteDirecteLignePayload = {
     produitId: number;
-    quantite: number;
+    qteVendueTotaleUnites: number;
     typeQuantite: 'UNITE' | 'CARTON';
 };
 export type VenteDirectePayload = {

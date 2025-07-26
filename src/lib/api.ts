@@ -1,6 +1,6 @@
 
 
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload } from './types';
 
 const API_BASE_URL = '/api'; 
 
@@ -234,7 +234,10 @@ export async function getStocks(): Promise<Stock[]> {
 }
 
 // ========== Ventes (POS) API ==========
-export async function createVenteDirecte(data: any): Promise<any> {
+export async function getVentes(): Promise<Vente[]> {
+    return apiFetch('/ventes');
+}
+export async function createVenteDirecte(data: VenteDirectePayload): Promise<Vente> {
     return apiFetch('/ventes/directe', { method: 'POST', body: JSON.stringify(data) });
 }
 
