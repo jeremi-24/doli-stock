@@ -229,12 +229,12 @@ export type Vente = {
 
 export type VenteDirecteLignePayload = {
     codeProduit: string;
-    quantite: number;
+    qteVendueDansLigne: number;
     typeQuantite: 'UNITE' | 'CARTON';
 };
 export type VenteDirectePayload = {
-    idClient: number;
-    lignesVente: VenteDirecteLignePayload[];
+    clientId: number;
+    lignes: VenteDirecteLignePayload[];
 }
 
 

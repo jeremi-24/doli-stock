@@ -222,10 +222,10 @@ export default function POSPage() {
     setIsSaving(true);
     
     const payload: VenteDirectePayload = {
-        idClient: details.clientId,
-        lignesVente: cart.map(item => ({
+        clientId: details.clientId,
+        lignes: cart.map(item => ({
             codeProduit: item.produit.codeBarre,
-            quantite: item.quantite,
+            qteVendueDansLigne: item.quantite,
             typeQuantite: item.type,
         })),
     };
@@ -280,9 +280,7 @@ export default function POSPage() {
                             key={produit.id} 
                             className={cn(
                                 "overflow-hidden flex flex-col group",
-                                isOutOfStock 
-                                    ? "bg-muted/50 cursor-not-allowed" 
-                                    : "cursor-pointer"
+                                isOutOfStock && "bg-muted/50"
                             )} 
                           >
                             <div className="aspect-[4/3] bg-muted flex items-center justify-center relative overflow-hidden">
