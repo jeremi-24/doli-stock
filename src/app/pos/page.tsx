@@ -177,7 +177,7 @@ export default function POSPage() {
 
   const handleAddToCart = (produit: Produit, type: 'UNITE' | 'CARTON') => {
     const stock = produit.quantiteTotaleGlobale ?? 0;
-    if (stock <= 0) {
+    if (stock <= 0 && !cart.some(item => item.produit.id === produit.id)) {
        toast({ title: "Rupture de stock", variant: 'destructive', description: "Ce produit ne peut pas être ajouté au panier." });
        return;
     }
@@ -187,7 +187,7 @@ export default function POSPage() {
     if (existingItem) {
       handleQuantityChange(produit.id, type, existingItem.quantite + 1);
     } else {
-      const prix = type === 'CARTON' ? produit.prixCarton || 0 : produit.prix || 0;
+      const prix = type === 'CARTON' ? (produit.prixCarton || 0) : (produit.prix || 0);
       const qteParCarton = produit.qteParCarton || 1;
 
       const qteEnUnitesDansPanier = cart
@@ -244,13 +244,15 @@ export default function POSPage() {
   };
 
   const StockBadge = ({ qte, qteMin }: { qte: number, qteMin: number }) => {
-    if (qte <= 0) {
+    const qteNum = qte || 0;
+    const qteMinNum = qteMin || 0;
+    if (qteNum <= 0) {
       return <Badge variant="destructive" className="flex items-center gap-1"><Archive className="h-3 w-3" /> Hors stock</Badge>;
     }
-    if (qte <= qteMin) {
-      return <Badge variant="secondary" className="bg-orange-100 text-orange-800 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {qte} en stock</Badge>;
+    if (qteNum <= qteMinNum) {
+      return <Badge variant="secondary" className="bg-orange-100 text-orange-800 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {qteNum} en stock</Badge>;
     }
-    return <Badge variant="secondary" className="bg-green-100 text-green-800 flex items-center gap-1"><Package className="h-3 w-3" /> {qte} en stock</Badge>;
+    return <Badge variant="secondary" className="bg-green-100 text-green-800 flex items-center gap-1"><Package className="h-3 w-3" /> {qteNum} en stock</Badge>;
   };
 
   return (
@@ -279,8 +281,8 @@ export default function POSPage() {
                             className={cn(
                                 "overflow-hidden flex flex-col group",
                                 isOutOfStock 
-                                    ? "bg-muted/50" 
-                                    : ""
+                                    ? "bg-muted/50 cursor-not-allowed" 
+                                    : "cursor-pointer"
                             )} 
                           >
                             <div className="aspect-[4/3] bg-muted flex items-center justify-center relative overflow-hidden">
