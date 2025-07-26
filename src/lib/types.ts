@@ -12,12 +12,7 @@ export type Categorie = {
   nProd?: number;
 };
 
-export type LieuStock = {
-  id: number;
-  nom: string;
-  type: string;
-  localisation?: string;
-};
+
 
 export type Produit = {
   id: number;
@@ -188,9 +183,16 @@ export type BonLivraison = {
     agent: string;
     lignesLivraison: LigneBonLivraison[];
     status: BonLivraisonStatus;
-    lieuStockNom: string;
+    lieuStock: LieuStock;
 };
 
+export type LieuStock = {
+id:number;
+nom:string;
+type?: string;
+localisation?: string;
+
+}
 
 // --- Payloads for creating new entities
 export type LigneCommandePayload = {

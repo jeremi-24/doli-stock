@@ -94,7 +94,7 @@ export default function DeliveriesPage() {
                                                     <div>{bl.agent}</div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div>{bl.lieuStockNom}</div>
+                                                    <div>{bl.lieuStock.nom}</div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant={isDone ? 'default' : 'secondary'} className={cn(statusInfo.className)}>
