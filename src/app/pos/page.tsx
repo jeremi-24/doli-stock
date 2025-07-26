@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
-import type { Produit, Categorie, Client } from '@/lib/types';
+import type { Produit, Categorie, Client, VenteDirectePayload } from '@/lib/types';
 import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle, Box as CartonIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -220,21 +220,13 @@ export default function POSPage() {
 
   const handleCompleteSale = async (details: { clientId: number }) => {
     setIsSaving(true);
-    const client = clients.find(c => c.id === details.clientId);
-    const payload = {
-        ref: `POS-${Date.now().toString().slice(-8)}`,
-        caissier: currentUser?.email || 'Inconnu',
-        clientId: details.clientId,
-        clientNom: client?.nom || 'Inconnu',
-        lignes: cart.map(item => ({
-            produitId: item.produit.id,
-            produitNom: item.produit.nom,
-            produitPrix: item.prix_unitaire,
-            qteVendueTotaleUnites: item.quantite,
-            total: item.prix_total,
+    
+    const payload: VenteDirectePayload = {
+        idClient: details.clientId,
+        lignesVente: cart.map(item => ({
+            codeProduit: item.produit.codeBarre,
+            quantite: item.quantite,
             typeQuantite: item.type,
-            qteVendueCartons: item.type === 'CARTON' ? item.quantite : 0,
-            qteVendueUnites: item.type === 'UNITE' ? item.quantite : 0,
         })),
     };
 
@@ -302,7 +294,7 @@ export default function POSPage() {
                                     <h3 className={cn("font-semibold truncate text-sm", isOutOfStock && "text-muted-foreground")}>{produit.nom}</h3>
                                 </div>
                                 <p className={cn("text-base font-bold mt-2", isOutOfStock ? "text-muted-foreground" : "text-primary")}>
-                                    {formatCurrency(produit.prix)}
+                                    {formatCurrency(produit.prix || 0)}
                                 </p>
                             </div>
                              <div className="flex border-t">
@@ -383,5 +375,3 @@ export default function POSPage() {
     </div>
   );
 }
-
-    

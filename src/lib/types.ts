@@ -228,13 +228,13 @@ export type Vente = {
 };
 
 export type VenteDirecteLignePayload = {
-    produitId: number;
-    qteVendueTotaleUnites: number;
+    codeProduit: string;
+    quantite: number;
     typeQuantite: 'UNITE' | 'CARTON';
 };
 export type VenteDirectePayload = {
-    clientId: number;
-    lignes: VenteDirecteLignePayload[];
+    idClient: number;
+    lignesVente: VenteDirecteLignePayload[];
 }
 
 
