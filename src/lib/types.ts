@@ -222,7 +222,7 @@ export type Vente = {
     date: string;
     ref: string;
     caissier: string;
-    client: Client;
+    client: Client | null;
     lignes: VenteLigne[];
     total: number;
 };

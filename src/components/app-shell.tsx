@@ -30,7 +30,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, Building2, ClipboardList, PackagePlus, Users, FileStack, Truck, Bell, Package } from 'lucide-react';
+import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, Building2, ClipboardList, PackagePlus, Users, FileStack, Truck, Bell, Package, FileText as InvoiceIcon } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 import { useNotifications } from '@/context/notification-provider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -177,6 +177,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       label: 'Commandes',
       active: pathname.startsWith('/orders'),
       permission: 'COMMANDE_READ',
+    },
+    {
+      href: '/invoicing',
+      icon: <InvoiceIcon />,
+      label: 'Factures',
+      active: pathname.startsWith('/invoicing'),
+      permission: 'FACTURE_GENERATE',
     },
     {
       href: '/deliveries',
