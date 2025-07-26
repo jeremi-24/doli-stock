@@ -203,6 +203,17 @@ export type CommandePayload = {
   lignes: LigneCommandePayload[];
 };
 
+// ----- POS Sale Types -----
+export type VenteDirecteLignePayload = {
+    produitId: number;
+    quantite: number;
+    typeQuantite: 'UNITE' | 'CARTON';
+};
+export type VenteDirectePayload = {
+    clientId: number;
+    lignes: VenteDirecteLignePayload[];
+}
+
 
 // ----- App Settings Types -----
 export type ShopInfo = {

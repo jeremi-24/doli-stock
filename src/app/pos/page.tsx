@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
 import type { Produit, Categorie, Client } from '@/lib/types';
-import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle } from 'lucide-react';
+import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle, Box as CartonIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
@@ -25,21 +25,8 @@ type VenteLigne = {
     quantite: number;
     prix_unitaire: number;
     prix_total: number;
+    type: 'UNITE' | 'CARTON';
 };
-
-type VentePayload = {
-    ref: string;
-    caissier: string;
-    clientId: number;
-    lignes: {
-        produitId: number;
-        produitNom: string;
-        produitPrix: number;
-        qteVendueTotaleUnites: number;
-        total: number;
-    }[];
-};
-
 
 function CheckoutDialog({
   isOpen,
@@ -139,51 +126,88 @@ export default function POSPage() {
       .filter(p => activeTab === 'Tout' || p.categorieId === categoryId)
       .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [produits, activeTab, searchTerm, categoryNameToId]);
-
-  const handleQuantityChange = (produitId: number, newQuantity: number) => {
+  
+  const handleQuantityChange = (produitId: number, type: 'UNITE' | 'CARTON', newQuantity: number) => {
     const produitInStock = produits.find(p => p.id === produitId);
     if (!produitInStock) return;
-
-    if (newQuantity < 1) {
-        setCart(currentCart => currentCart.filter(item => item.produit.id !== produitId));
+  
+    if (newQuantity < 0) return;
+  
+    const stockTotalUnites = produitInStock.quantiteTotaleGlobale ?? 0;
+    const qteParCarton = produitInStock.qteParCarton || 1;
+  
+    // Calcul de la quantité totale en unités dans le panier pour ce produit
+    const qteEnUnitesDansPanier = cart
+        .filter(item => item.produit.id === produitId)
+        .reduce((total, item) => total + (item.quantite * (item.type === 'CARTON' ? qteParCarton : 1)), 0);
+    
+    // Calcul de la quantité qu'on essaie d'ajouter
+    const qteActuellePourCeType = cart.find(item => item.produit.id === produitId && item.type === type)?.quantite || 0;
+    const diff = newQuantity - qteActuellePourCeType;
+    const diffEnUnites = diff * (type === 'CARTON' ? qteParCarton : 1);
+  
+    if (qteEnUnitesDansPanier + diffEnUnites > stockTotalUnites) {
+        toast({ title: "Limite de stock atteinte", variant: "destructive", description: `Stock disponible: ${stockTotalUnites} unités.` });
         return;
     }
-
-    if (newQuantity > (produitInStock.quantiteTotaleGlobale ?? 0)) {
-        toast({ title: "Limite de stock atteinte", variant: "destructive" });
-        return; 
+  
+    const existingItem = cart.find(item => item.produit.id === produitId && item.type === type);
+  
+    if (newQuantity === 0) {
+      setCart(currentCart => currentCart.filter(item => !(item.produit.id === produitId && item.type === type)));
+    } else if (existingItem) {
+      setCart(currentCart => currentCart.map(item =>
+        item.produit.id === produitId && item.type === type
+          ? { ...item, quantite: newQuantity, prix_total: newQuantity * item.prix_unitaire }
+          : item
+      ));
+    } else { // nouvel ajout (cas ne devrait pas arriver avec l'UI actuelle mais par sécurité)
+      const newItem: VenteLigne = {
+        id: Date.now(),
+        produit: produitInStock,
+        quantite: newQuantity,
+        type: type,
+        prix_unitaire: type === 'CARTON' ? (produitInStock.prixCarton || 0) : (produitInStock.prix || 0),
+        prix_total: newQuantity * (type === 'CARTON' ? (produitInStock.prixCarton || 0) : (produitInStock.prix || 0)),
+      };
+      setCart(currentCart => [...currentCart, newItem]);
     }
-
-    setCart(currentCart =>
-        currentCart.map(item =>
-            item.produit.id === produitId
-                ? { ...item, quantite: newQuantity, prix_total: newQuantity * item.prix_unitaire }
-                : item
-        )
-    );
   };
 
-  const handleAddToCart = (produit: Produit) => {
+
+  const handleAddToCart = (produit: Produit, type: 'UNITE' | 'CARTON') => {
     const stock = produit.quantiteTotaleGlobale ?? 0;
     if (stock <= 0) {
        toast({ title: "Rupture de stock", variant: 'destructive', description: "Ce produit ne peut pas être ajouté au panier." });
        return;
     }
     
-    const existingItem = cart.find(item => item.produit.id === produit.id);
+    const existingItem = cart.find(item => item.produit.id === produit.id && item.type === type);
+    
     if (existingItem) {
-      if (existingItem.quantite >= stock) {
-        toast({ title: "Limite de stock atteinte", variant: 'destructive' });
-        return;
-      }
-      handleQuantityChange(produit.id, existingItem.quantite + 1);
+      handleQuantityChange(produit.id, type, existingItem.quantite + 1);
     } else {
+      const prix = type === 'CARTON' ? produit.prixCarton || 0 : produit.prix || 0;
+      const qteParCarton = produit.qteParCarton || 1;
+
+      const qteEnUnitesDansPanier = cart
+        .filter(item => item.produit.id === produit.id)
+        .reduce((total, item) => total + (item.quantite * (item.type === 'CARTON' ? qteParCarton : 1)), 0);
+      
+      const qteAjoutEnUnites = type === 'CARTON' ? qteParCarton : 1;
+
+      if(qteEnUnitesDansPanier + qteAjoutEnUnites > stock) {
+         toast({ title: "Limite de stock atteinte", variant: "destructive", description: `Stock disponible: ${stock} unités.` });
+         return;
+      }
+
       const newLigne: VenteLigne = {
           id: Date.now(),
           produit: produit,
           quantite: 1,
-          prix_unitaire: produit.prix,
-          prix_total: produit.prix
+          prix_unitaire: prix,
+          prix_total: prix,
+          type: type
       };
       setCart(currentCart => [...currentCart, newLigne]);
     }
@@ -208,9 +232,9 @@ export default function POSPage() {
             produitPrix: item.prix_unitaire,
             qteVendueTotaleUnites: item.quantite,
             total: item.prix_total,
-            typeQuantite: "UNITE",
-            qteVendueCartons: 0, 
-            qteVendueUnites: item.quantite,
+            typeQuantite: item.type,
+            qteVendueCartons: item.type === 'CARTON' ? item.quantite : 0,
+            qteVendueUnites: item.type === 'UNITE' ? item.quantite : 0,
         })),
     };
 
@@ -263,10 +287,9 @@ export default function POSPage() {
                             className={cn(
                                 "overflow-hidden flex flex-col group",
                                 isOutOfStock 
-                                    ? "bg-muted/50 cursor-not-allowed" 
-                                    : "cursor-pointer hover:border-primary transition-colors"
+                                    ? "bg-muted/50" 
+                                    : ""
                             )} 
-                            onClick={() => !isOutOfStock && handleAddToCart(produit)}
                           >
                             <div className="aspect-[4/3] bg-muted flex items-center justify-center relative overflow-hidden">
                                 <PackagePlus className="w-16 h-16 text-muted-foreground/50 transition-transform duration-300 group-hover:scale-110" />
@@ -281,6 +304,11 @@ export default function POSPage() {
                                 <p className={cn("text-base font-bold mt-2", isOutOfStock ? "text-muted-foreground" : "text-primary")}>
                                     {formatCurrency(produit.prix)}
                                 </p>
+                            </div>
+                             <div className="flex border-t">
+                                <Button variant="ghost" className="rounded-none rounded-bl-md flex-1" onClick={() => handleAddToCart(produit, 'UNITE')} disabled={isOutOfStock}>Unité</Button>
+                                <div className="border-l"/>
+                                <Button variant="ghost" className="rounded-none rounded-br-md flex-1" onClick={() => handleAddToCart(produit, 'CARTON')} disabled={isOutOfStock || !produit.prixCarton}>Carton</Button>
                             </div>
                           </Card>
                         )
@@ -305,13 +333,19 @@ export default function POSPage() {
                             <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-24 text-center">Qté</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {cart.map(item => (
-                                    <TableRow key={item.produit.id}>
-                                        <TableCell className="font-medium py-2"><p className="truncate">{item.produit.nom}</p><p className="text-xs text-muted-foreground">{formatCurrency(item.prix_unitaire)}</p></TableCell>
+                                    <TableRow key={`${item.produit.id}-${item.type}`}>
+                                        <TableCell className="font-medium py-2">
+                                            <p className="truncate">{item.produit.nom}</p>
+                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                {item.type === 'CARTON' ? <CartonIcon className="h-3 w-3"/> : <Package className="h-3 w-3"/>}
+                                                {formatCurrency(item.prix_unitaire)}
+                                            </p>
+                                        </TableCell>
                                         <TableCell className="py-2">
                                             <div className="flex items-center justify-center gap-1">
-                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite - 1)}><Minus className="h-3 w-3"/></Button>
+                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.type, item.quantite - 1)}><Minus className="h-3 w-3"/></Button>
                                                 <Input readOnly value={item.quantite} className="h-6 w-8 text-center p-0 border-0 bg-transparent focus-visible:ring-0" />
-                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.quantite + 1)}><Plus className="h-3 w-3"/></Button>
+                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produit.id, item.type, item.quantite + 1)}><Plus className="h-3 w-3"/></Button>
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right py-2">{formatCurrency(item.prix_total)}</TableCell>
@@ -349,3 +383,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+    
