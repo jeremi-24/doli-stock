@@ -13,8 +13,11 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -32,7 +35,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/app-provider";
-import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal } from "lucide-react";
 import type { Produit, Categorie, LieuStock } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -41,6 +44,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const produitSchema = z.object({
     nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -81,32 +85,50 @@ function ProductDetailsDialog({ product, onClose }: { product: Produit | null, o
     );
 }
 
+// Map of column IDs to their display names
+const COLUMN_NAMES: Record<string, string> = {
+    'nom': 'Nom du Produit',
+    'ref': 'Référence',
+    'prix': 'Prix (Unité)',
+    'qte': 'Stock Total',
+    'actions': 'Actions',
+};
+
 export default function ProductsPage() {
     const { produits, categories, lieuxStock, addProduit, updateProduit, deleteProduits, isMounted, hasPermission } = useApp();
     const { toast } = useToast();
-    const [filteredProduits, setFilteredProduits] = React.useState<Produit[]>([]);
+    
     const [searchTerm, setSearchTerm] = React.useState("");
     const [categoryFilter, setCategoryFilter] = React.useState("all");
+    
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
     const [viewingProduct, setViewingProduct] = React.useState<Produit | null>(null);
+    
     const [isLoading, setIsLoading] = React.useState(false);
+    
     const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
+    
+    const [columnVisibility, setColumnVisibility] = React.useState({
+        'ref': true,
+        'prix': true,
+        'qte': true,
+    });
 
     const form = useForm<z.infer<typeof produitSchema>>({
         resolver: zodResolver(produitSchema),
         defaultValues: { nom: "", ref: "", prix: 0, qteMin: 0, qteParCarton: 0, prixCarton: 0 },
     });
-
-    React.useEffect(() => {
+    
+    const filteredProduits = React.useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
-        const filteredData = produits.filter(item => {
+        return produits.filter(item => {
             const matchesSearch = item.nom.toLowerCase().includes(lowercasedFilter) || (item.ref && item.ref.toLowerCase().includes(lowercasedFilter));
             const matchesCategory = categoryFilter === 'all' || String(item.categorieId) === categoryFilter;
             return matchesSearch && matchesCategory;
         });
-        setFilteredProduits(filteredData);
     }, [searchTerm, categoryFilter, produits]);
+
 
     React.useEffect(() => {
         if (editingProduit) {
@@ -128,6 +150,22 @@ export default function ProductsPage() {
         setEditingProduit(produit);
         setIsDialogOpen(true);
     };
+    
+    const handleSelectAll = (checked: boolean | string) => {
+        if (checked) {
+          setSelectedProduits(filteredProduits.map((p) => p.id));
+        } else {
+          setSelectedProduits([]);
+        }
+    };
+    
+    const handleSelectOne = (id: number, checked: boolean) => {
+        if (checked) {
+            setSelectedProduits((prev) => [...prev, id]);
+        } else {
+            setSelectedProduits((prev) => prev.filter((pId) => pId !== id));
+        }
+    };
 
     const onSubmit = async (values: z.infer<typeof produitSchema>) => {
         setIsLoading(true);
@@ -140,21 +178,23 @@ export default function ProductsPage() {
                 toast({ title: "Produit ajouté" });
             }
             setIsDialogOpen(false);
+            setSelectedProduits([]);
         } finally {
             setIsLoading(false);
         }
     };
     
-    const handleDeleteSelected = async (id: number) => {
+    const handleDeleteSelected = async () => {
         setIsLoading(true);
         try {
-            await deleteProduits([id]);
-            toast({ title: "Produit supprimé" });
+            await deleteProduits(selectedProduits);
+            toast({ title: "Produit(s) supprimé(s)" });
+            setSelectedProduits([]);
         } finally {
             setIsLoading(false);
         }
     };
-
+    
     const canCreate = React.useMemo(() => hasPermission('PRODUIT_CREATE'), [hasPermission]);
     const canUpdate = React.useMemo(() => hasPermission('PRODUIT_UPDATE'), [hasPermission]);
     const canDelete = React.useMemo(() => hasPermission('PRODUIT_DELETE'), [hasPermission]);
@@ -183,6 +223,28 @@ export default function ProductsPage() {
                             {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="ml-auto">
+                                <SlidersHorizontal className="mr-2 h-4 w-4" /> Affichage
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Afficher/Masquer</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {Object.entries(columnVisibility).map(([key, value]) => (
+                                <DropdownMenuCheckboxItem
+                                    key={key}
+                                    className="capitalize"
+                                    checked={value}
+                                    onCheckedChange={(checked) => setColumnVisibility(prev => ({...prev, [key]: !!checked}))}
+                                >
+                                    {COLUMN_NAMES[key] || key}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                      {canCreate && (
                         <Button size="sm" onClick={handleAddNew}>
                             <PlusCircle className="h-4 w-4 mr-2" /> Ajouter
@@ -190,6 +252,33 @@ export default function ProductsPage() {
                     )}
                 </div>
             </div>
+            {canDelete && selectedProduits.length > 0 && (
+                 <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{selectedProduits.length} produit(s) sélectionné(s)</span>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                                <Trash2 className="h-4 w-4 mr-2"/>
+                                Supprimer la sélection
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Cette action est irréversible et supprimera définitivement {selectedProduits.length} produit(s).
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteSelected} disabled={isLoading}>
+                                {isLoading ? "Suppression..." : "Supprimer"}
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            )}
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2">
@@ -204,27 +293,41 @@ export default function ProductsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-[40px]">
+                                        <Checkbox
+                                            checked={selectedProduits.length === filteredProduits.length && filteredProduits.length > 0}
+                                            onCheckedChange={handleSelectAll}
+                                            aria-label="Select all"
+                                        />
+                                    </TableHead>
                                     <TableHead>Nom du Produit</TableHead>
-                                    <TableHead>Référence</TableHead>
-                                    <TableHead className="text-right">Prix (Unité)</TableHead>
-                                    <TableHead className="text-right">Stock Total</TableHead>
+                                    {columnVisibility['ref'] && <TableHead>Référence</TableHead>}
+                                    {columnVisibility['prix'] && <TableHead className="text-right">Prix (Unité)</TableHead>}
+                                    {columnVisibility['qte'] && <TableHead className="text-right">Stock Total</TableHead>}
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {!isMounted ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={Object.values(columnVisibility).filter(v=>v).length + 3} className="h-24 text-center">
                                             <Loader2 className="animate-spin mx-auto" />
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredProduits.length > 0 ? (
                                     filteredProduits.map((produit) => (
-                                        <TableRow key={produit.id} onClick={() => setViewingProduct(produit)} className="cursor-pointer">
-                                            <TableCell className="font-medium">{produit.nom}</TableCell>
-                                            <TableCell>{produit.ref}</TableCell>
-                                            <TableCell className="text-right">{produit.prix.toLocaleString()}</TableCell>
-                                            <TableCell className="text-right font-bold">{produit.qte}</TableCell>
+                                        <TableRow key={produit.id} data-state={selectedProduits.includes(produit.id) ? "selected" : undefined}>
+                                             <TableCell onClick={(e) => e.stopPropagation()}>
+                                                <Checkbox
+                                                    checked={selectedProduits.includes(produit.id)}
+                                                    onCheckedChange={(checked) => handleSelectOne(produit.id, !!checked)}
+                                                    aria-label={`Select product ${produit.nom}`}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="font-medium cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.nom}</TableCell>
+                                            {columnVisibility['ref'] && <TableCell className="cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.ref}</TableCell>}
+                                            {columnVisibility['prix'] && <TableCell className="text-right cursor-pointer" onClick={() => setViewingProduct(produit)}>{(produit.prix || 0).toLocaleString()}</TableCell>}
+                                            {columnVisibility['qte'] && <TableCell className="text-right font-bold cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.qte ?? 0}</TableCell>}
                                             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                                  <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -252,7 +355,7 @@ export default function ProductsPage() {
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
                                                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleDeleteSelected(produit.id)} disabled={isLoading}>
+                                                                <AlertDialogAction onClick={() => deleteProduits([produit.id])} disabled={isLoading}>
                                                                     {isLoading ? "Suppression..." : "Supprimer"}
                                                                 </AlertDialogAction>
                                                                 </AlertDialogFooter>
@@ -265,7 +368,7 @@ export default function ProductsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={Object.values(columnVisibility).filter(v=>v).length + 3} className="h-24 text-center">
                                             {searchTerm || categoryFilter !== 'all' ? "Aucun produit ne correspond à vos filtres." : "Aucun produit trouvé."}
                                         </TableCell>
                                     </TableRow>
@@ -287,7 +390,7 @@ export default function ProductsPage() {
                                 <FormItem className="md:col-span-2"><FormLabel>Nom du produit</FormLabel><FormControl><Input placeholder="ex: Huile Moteur 5L" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="ref" render={({ field }) => (
-                                <FormItem><FormLabel>Référence</FormLabel><FormControl><Input placeholder="ex: HUILE-01" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Référence</FormLabel><FormControl><Input placeholder="ex: HUILE-01" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="prix" render={({ field }) => (
                                 <FormItem><FormLabel>Prix de vente (unité)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
@@ -328,4 +431,5 @@ export default function ProductsPage() {
             <ProductDetailsDialog product={viewingProduct} onClose={() => setViewingProduct(null)} />
         </div>
     );
-}
+
+    
