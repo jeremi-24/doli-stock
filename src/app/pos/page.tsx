@@ -32,8 +32,8 @@ type VentePayload = {
     lignes: {
         produitId: number;
         produitNom: string;
-        qteVendu: number;
         produitPrix: number;
+        qteVendueTotaleUnites: number;
         total: number;
     }[];
 };
@@ -134,7 +134,7 @@ export default function POSPage() {
   const filteredProducts = useMemo(() => {
     const categoryId = categoryNameToId.get(activeTab);
     return produits
-      .filter(p => p.qte > 0)
+      .filter(p => (p.quantiteTotaleGlobale ?? 0) > 0)
       .filter(p => activeTab === 'Tout' || p.categorieId === categoryId)
       .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [produits, activeTab, searchTerm, categoryNameToId]);
@@ -148,7 +148,7 @@ export default function POSPage() {
         return;
     }
 
-    if (newQuantity > produitInStock.qte) {
+    if (newQuantity > (produitInStock.quantiteTotaleGlobale ?? 0)) {
         toast({ title: "Limite de stock atteinte", variant: "destructive" });
         return; 
     }
@@ -163,14 +163,14 @@ export default function POSPage() {
   };
 
   const handleAddToCart = (produit: Produit) => {
-    if (produit.qte <= 0) {
+    if ((produit.quantiteTotaleGlobale ?? 0) <= 0) {
        toast({ title: "Rupture de stock", variant: 'destructive' });
        return;
     }
     
     const existingItem = cart.find(item => item.produit.id === produit.id);
     if (existingItem) {
-      if (existingItem.quantite >= produit.qte) {
+      if (existingItem.quantite >= (produit.quantiteTotaleGlobale ?? 0)) {
         toast({ title: "Limite de stock atteinte", variant: 'destructive' });
         return;
       }
@@ -194,21 +194,28 @@ export default function POSPage() {
 
   const handleCompleteSale = async (details: { clientId: number }) => {
     setIsSaving(true);
-    const payload: VentePayload = {
+    const client = clients.find(c => c.id === details.clientId);
+    const payload = {
         ref: `POS-${Date.now().toString().slice(-8)}`,
         caissier: currentUser?.email || 'Inconnu',
         clientId: details.clientId,
+        clientNom: client?.nom || 'Inconnu',
         lignes: cart.map(item => ({
             produitId: item.produit.id,
             produitNom: item.produit.nom,
-            qteVendu: item.quantite,
             produitPrix: item.prix_unitaire,
+            qteVendueTotaleUnites: item.quantite,
             total: item.prix_total,
+            // These fields seem to be expected by the backend, but we don't have them in the simple POS flow
+            // Sending default/calculated values
+            typeQuantite: "UNITE",
+            qteVendueCartons: 0, 
+            qteVendueUnites: item.quantite,
         })),
     };
 
     try {
-        await api.createVente(payload);
+        await api.createVenteDirecte(payload);
         toast({ title: "Vente finalisée !", description: `Le stock a été mis à jour.`});
         setCart([]);
         setIsCheckoutOpen(false);
@@ -243,7 +250,7 @@ export default function POSPage() {
                               <CardContent className="p-3 flex-1 flex flex-col justify-between">
                                   <div>
                                       <h3 className="font-semibold truncate text-sm">{produit.nom}</h3>
-                                      <p className="text-xs text-muted-foreground">{produit.qte} en stock</p>
+                                      <p className="text-xs text-muted-foreground">{produit.quantiteTotaleGlobale} en stock</p>
                                   </div>
                                   <p className="text-base text-primary font-bold mt-2">{formatCurrency(produit.prix)}</p>
                               </CardContent>

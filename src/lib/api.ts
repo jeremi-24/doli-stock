@@ -234,8 +234,8 @@ export async function getStocks(): Promise<Stock[]> {
 }
 
 // ========== Ventes (POS) API ==========
-export async function createVente(data: any): Promise<any> {
-    return apiFetch('/ventes', { method: 'POST', body: JSON.stringify(data) });
+export async function createVenteDirecte(data: any): Promise<any> {
+    return apiFetch('/ventes/directe', { method: 'POST', body: JSON.stringify(data) });
 }
 
 // ========== Inventaires API ==========
