@@ -33,10 +33,14 @@ export type Produit = {
 
 export type Stock = {
     id: number;
+    produitId: number;
     produitNom: string;
+    lieuStockId: number;
     lieuStockNom: string;
     qteCartons: number;
     qteUnitesRestantes: number;
+    quantiteTotale: number;
+    produit?: Produit;
 };
 
 
@@ -189,7 +193,7 @@ export type BonLivraison = {
     email: string | null; // Agent's email
     lignesLivraison: LigneBonLivraison[];
     status: BonLivraisonStatus;
-    lieuStock: LieuStock;
+    lieuStock: LieuStock | null;
     totalLivraison: number;
 };
 
@@ -209,6 +213,7 @@ export type LigneCommandePayload = {
 
 export type CommandePayload = {
   clientId: number;
+  lieuLivraisonId: number;
   lignes: LigneCommandePayload[];
 };
 

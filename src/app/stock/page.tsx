@@ -90,12 +90,13 @@ export default function StockPage() {
                                     <TableHead>Lieu de Stock</TableHead>
                                     <TableHead className="text-right">Qté en Cartons</TableHead>
                                     <TableHead className="text-right">Qté en Unités</TableHead>
+                                    <TableHead className="text-right font-semibold">Stock Total (en Unités)</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">
+                                        <TableCell colSpan={5} className="h-24 text-center">
                                             <Loader2 className="animate-spin mx-auto" />
                                         </TableCell>
                                     </TableRow>
@@ -106,11 +107,12 @@ export default function StockPage() {
                                             <TableCell>{stockItem.lieuStockNom}</TableCell>
                                             <TableCell className="text-right">{stockItem.qteCartons}</TableCell>
                                             <TableCell className="text-right">{stockItem.qteUnitesRestantes}</TableCell>
+                                            <TableCell className="text-right font-semibold">{stockItem.quantiteTotale}</TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">
+                                        <TableCell colSpan={5} className="h-24 text-center">
                                             Aucun stock trouvé.
                                         </TableCell>
                                     </TableRow>
