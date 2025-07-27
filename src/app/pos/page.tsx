@@ -271,7 +271,7 @@ export default function POSPage() {
           </TabsList>
           <TabsContent value={activeTab} className="mt-0 flex-1 min-h-0">
               <ScrollArea className="h-full">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pr-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pr-4">
                       {filteredProducts.map(produit => {
                         const stock = produit.quantiteTotaleGlobale ?? 0;
                         const isOutOfStock = stock <= 0;
