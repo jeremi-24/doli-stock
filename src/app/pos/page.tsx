@@ -136,12 +136,10 @@ export default function POSPage() {
     const stockTotalUnites = produitInStock.quantiteTotaleGlobale ?? 0;
     const qteParCarton = produitInStock.qteParCarton || 1;
   
-    // Calcul de la quantité totale en unités dans le panier pour ce produit
     const qteEnUnitesDansPanier = cart
         .filter(item => item.produit.id === produitId)
         .reduce((total, item) => total + (item.quantite * (item.type === 'CARTON' ? qteParCarton : 1)), 0);
     
-    // Calcul de la quantité qu'on essaie d'ajouter
     const qteActuellePourCeType = cart.find(item => item.produit.id === produitId && item.type === type)?.quantite || 0;
     const diff = newQuantity - qteActuellePourCeType;
     const diffEnUnites = diff * (type === 'CARTON' ? qteParCarton : 1);
@@ -161,7 +159,7 @@ export default function POSPage() {
           ? { ...item, quantite: newQuantity, prix_total: newQuantity * item.prix_unitaire }
           : item
       ));
-    } else { // nouvel ajout (cas ne devrait pas arriver avec l'UI actuelle mais par sécurité)
+    } else { 
       const newItem: VenteLigne = {
         id: Date.now(),
         produit: produitInStock,
