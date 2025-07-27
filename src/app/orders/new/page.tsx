@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useApp } from '@/context/app-provider';
 import type { LigneCommandePayload, Produit, Commande } from '@/lib/types';
 import { PlusCircle, Trash2, FileText, Loader2 } from 'lucide-react';
@@ -73,10 +73,12 @@ function ConfirmationDialog({
                                 </TableRow>
                             ))}
                         </TableBody>
-                        <TableRow className="font-bold text-base bg-muted/50">
-                            <TableCell colSpan={2} className="text-right">Total Général</TableCell>
-                            <TableCell className="text-right">{formatCurrency(commande.total)}</TableCell>
-                        </TableRow>
+                        <TableFooter>
+                            <TableRow className="font-bold text-base bg-muted/50">
+                                <TableCell colSpan={2} className="text-right">Total Général</TableCell>
+                                <TableCell className="text-right">{formatCurrency(commande.total)}</TableCell>
+                            </TableRow>
+                        </TableFooter>
                     </Table>
                 </div>
             </div>
