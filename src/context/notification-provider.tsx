@@ -23,7 +23,7 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const WS_URL = 'http://localhost:8080/ws-notifications';
+const WS_URL = '/api/ws-notifications';
 const MAX_NOTIFICATIONS = 50;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
@@ -31,6 +31,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stompClient, setStompClient] = useState<Client | null>(null);
+
+  const addNotification = useCallback((notif: Omit<Notification, 'read'>) => {
+    const newNotification: Notification = { ...notif, read: false, date: new Date().toISOString() };
+    setNotifications(prev => [newNotification, ...prev].slice(0, MAX_NOTIFICATIONS));
+    toast({
+        title: newNotification.title,
+        description: newNotification.message,
+    });
+  }, [toast]);
+
 
   useEffect(() => {
     if (isAuthenticated && currentUser && !stompClient) {
@@ -40,28 +50,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
         onConnect: (frame: IFrame) => {
-          console.log('Connected to WebSocket:', frame);
+          console.log('STOMP: Connected to WebSocket', frame);
 
-          // Subscribe to user-specific notifications
-          console.log(currentUser);
-          client.subscribe(`/topic/${currentUser.role.nom.toLowerCase()}`, (message) => {
-            const newNotif = JSON.parse(message.body);
-            addNotification(newNotif);
+          const roleTopic = `/topic/${currentUser.role.nom.toLowerCase()}`;
+          console.log(`STOMP: Subscribing to role-specific topic: ${roleTopic}`);
+          
+          client.subscribe(roleTopic, (message) => {
+            console.log(`STOMP: Received message on ${roleTopic}`, message.body);
+            try {
+              const newNotif = JSON.parse(message.body);
+              addNotification(newNotif);
+            } catch (e) {
+              console.error("STOMP: Failed to parse notification message", e);
+            }
           });
           
-          // Subscribe to global notifications
-          client.subscribe('/app', (message) => {
-            const newNotif = JSON.parse(message.body);
-            addNotification(newNotif);
-          });
+          // You can also subscribe to a global topic if needed
+          // client.subscribe('/topic/global', (message) => { ... });
         },
         onStompError: (frame: IFrame) => {
-          console.error('Broker reported error: ' + frame.headers['message']);
-          console.error('Additional details: ' + frame.body);
+          console.error('STOMP: Broker reported error: ' + frame.headers['message']);
+          console.error('STOMP: Additional details: ' + frame.body);
         },
         onWebSocketError: (error) => {
-            console.error('WebSocket Error', error);
+            console.error('STOMP: WebSocket Error', error);
         },
+        onDisconnect: () => {
+            console.log('STOMP: Disconnected from WebSocket');
+        }
       });
 
       client.activate();
@@ -77,17 +93,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         stompClient.deactivate();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, currentUser]);
+  }, [isAuthenticated, currentUser, stompClient, addNotification]);
 
-  const addNotification = (notif: Omit<Notification, 'read'>) => {
-    const newNotification: Notification = { ...notif, read: false, date: new Date().toISOString() };
-    setNotifications(prev => [newNotification, ...prev].slice(0, MAX_NOTIFICATIONS));
-    toast({
-        title: newNotification.title,
-        description: newNotification.message,
-    });
-  };
 
   const markAsRead = useCallback((id?: number) => {
     setNotifications(prev =>
