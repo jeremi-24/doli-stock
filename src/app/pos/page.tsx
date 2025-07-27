@@ -254,7 +254,7 @@ export default function POSPage() {
   };
 
   return (
-    <div className="flex flex-1 h-full">
+    <div className="flex flex-1 h-screen overflow-hidden">
       <div className="flex-1 p-4 md:p-6 flex flex-col">
         <div className="flex items-center gap-4 mb-4 pt-10 md:pt-0">
           <h1 className="font-headline text-3xl font-semibold">Point de Vente</h1>
@@ -289,7 +289,7 @@ export default function POSPage() {
                             </div>
                             <div className="p-3 flex-1 flex flex-col justify-between">
                                 <div>
-                                    <h3 className={cn("font-semibold truncate text-sm", isOutOfStock && "text-muted-foreground")}>{produit.nom}</h3>
+                                    <h3 className={cn("font-semibold truncate text-base", isOutOfStock && "text-muted-foreground")}>{produit.nom}</h3>
                                 </div>
                                 <p className={cn("text-base font-bold mt-2", isOutOfStock ? "text-muted-foreground" : "text-primary")}>
                                     {formatCurrency(produit.prix || 0)}
@@ -310,7 +310,7 @@ export default function POSPage() {
         </Tabs>
       </div>
 
-      <div className="w-[380px] border-l bg-card flex flex-col">
+      <div className="w-[380px] border-l bg-card flex flex-col h-full">
         <CardHeader className="flex-row items-center justify-between shrink-0">
           <CardTitle className="font-headline flex items-center gap-2"><ShoppingCart className="w-6 h-6" />Panier</CardTitle>
           <CardDescription>{cart.length} article(s)</CardDescription>
