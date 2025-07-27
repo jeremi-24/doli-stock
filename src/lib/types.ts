@@ -168,10 +168,15 @@ export type Facture = {
 
 export type LigneBonLivraison = {
     id: number;
+    produitId: number;
     produitNom: string;
-    qteLivre: number;
     produitPrix: number;
-    totalLigne: number;
+    qteLivreeDansLigne: number;
+    typeQuantite: string | null;
+    qteLivreeCartons: number;
+    qteLivreeUnites: number;
+    qteLivreeTotaleUnites: number;
+    totalLivraison: number;
 };
 
 export type BonLivraisonStatus = 'EN_ATTENTE' | 'A_LIVRER' | 'LIVRE' | 'VALIDE_SECRETARIAT';
@@ -180,10 +185,12 @@ export type BonLivraison = {
     id: number;
     dateLivraison: string;
     commandeId: number;
-    agent: string;
+    agent: string; // This might be deprecated, API sends `email`
+    email: string | null; // Agent's email
     lignesLivraison: LigneBonLivraison[];
     status: BonLivraisonStatus;
     lieuStock: LieuStock;
+    totalLivraison: number;
 };
 
 export type LieuStock = {

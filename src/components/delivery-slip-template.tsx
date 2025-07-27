@@ -8,8 +8,7 @@ import React from 'react';
 
 export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivraison: BonLivraison, facture: Facture, shopInfo: ShopInfo }>(({ bonLivraison, facture, shopInfo }, ref) => {
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-    const total = bonLivraison.lignesLivraison.reduce((sum, item) => sum + item.totalLigne, 0);
-
+    
     return (
         <div ref={ref} className="bg-white text-black p-6 font-mono text-[10px] w-full border border-gray-300">
             <div className="text-center mb-4">
@@ -42,10 +41,10 @@ export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivrai
                 <tbody>
                     {bonLivraison.lignesLivraison.map(ligne => (
                         <tr key={ligne.id} className="border-b border-black">
-                            <td className="border-r border-black p-1 text-center">{ligne.qteLivre}</td>
+                            <td className="border-r border-black p-1 text-center">{ligne.qteLivreeTotaleUnites}</td>
                             <td className="border-r border-black p-1">{ligne.produitNom}</td>
                             <td className="border-r border-black p-1 text-right">{formatCurrency(ligne.produitPrix)}</td>
-                            <td className="p-1 text-right">{formatCurrency(ligne.totalLigne)}</td>
+                            <td className="p-1 text-right">{formatCurrency(ligne.totalLivraison)}</td>
                         </tr>
                     ))}
                     {Array.from({ length: 15 - bonLivraison.lignesLivraison.length }).map((_, i) => (
@@ -58,7 +57,7 @@ export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivrai
                     ))}
                     <tr className="border-b-2 border-black font-bold">
                         <td colSpan={2} className="p-1 text-right border-r border-black">TOTAL</td>
-                        <td colSpan={2} className="p-1 text-right">{formatCurrency(total)}</td>
+                        <td colSpan={2} className="p-1 text-right">{formatCurrency(bonLivraison.totalLivraison)}</td>
                     </tr>
                 </tbody>
             </table>
