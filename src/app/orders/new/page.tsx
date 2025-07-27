@@ -9,11 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useApp } from '@/context/app-provider';
-import type { LigneCommandePayload, Stock, Commande } from '@/lib/types';
+import type { LigneCommandePayload, Produit, Commande } from '@/lib/types';
 import { PlusCircle, Trash2, FileText, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import * as api from '@/lib/api';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -93,47 +92,24 @@ function ConfirmationDialog({
 }
 
 export default function NewOrderPage() {
-  const { clients, createCommande, currentUser, lieuxStock, isMounted } = useApp();
+  const { clients, createCommande, currentUser, lieuxStock, produits, isMounted } = useApp();
   const { toast } = useToast();
   const router = useRouter();
   
-  const [stocks, setStocks] = useState<Stock[]>([]);
-  const [isStockLoading, setIsStockLoading] = useState(false);
-
   const [clientId, setClientId] = useState<string | undefined>(undefined);
   const [lieuLivraisonId, setLieuLivraisonId] = useState<string | undefined>(undefined);
   const [lignes, setLignes] = useState<LignePanier[]>([]);
   const [selectedProduitId, setSelectedProduitId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    async function fetchStocks() {
-        if (!lieuLivraisonId) {
-            setStocks([]);
-            return;
-        }
-        setIsStockLoading(true);
-        try {
-            // Note: Assuming an API endpoint to get stock per location exists
-            // If not, we might need to filter the global stock list client-side
-            const allStocks = await api.getStocks(); 
-            const filtered = allStocks.filter(s => s.lieuStockId === Number(lieuLivraisonId));
-            setStocks(filtered);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger le stock pour ce lieu.' });
-        } finally {
-            setIsStockLoading(false);
-        }
-    }
-    fetchStocks();
-  }, [lieuLivraisonId, toast]);
-
   const availableProducts = useMemo(() => {
     if (!lieuLivraisonId) return [];
-    return stocks
-      .filter(s => s.produitId && !lignes.some(ligne => ligne.produitId === s.produitId));
-  }, [stocks, lignes, lieuLivraisonId]);
-
+    
+    return produits
+      .filter(p => String(p.lieuStockId) === lieuLivraisonId)
+      .filter(p => !lignes.some(ligne => ligne.produitId === p.id));
+  }, [produits, lignes, lieuLivraisonId]);
+  
   const canSelectClient = useMemo(() => {
       if (!currentUser || !currentUser.roleNom) return false;
       const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
@@ -152,18 +128,18 @@ export default function NewOrderPage() {
 
   const handleAddItem = () => {
     if (!selectedProduitId) return;
-    const stockInfo = stocks.find(s => s.produitId === parseInt(selectedProduitId, 10));
-    if (stockInfo && stockInfo.produit) {
-      if (stockInfo.quantiteTotale <= 0) {
+    const produitInfo = produits.find(p => p.id === parseInt(selectedProduitId, 10));
+    if (produitInfo) {
+      if ((produitInfo.qte ?? 0) <= 0) {
         toast({ title: "Rupture de stock", variant: "destructive", description: "Ce produit n'est pas disponible dans ce lieu." });
         return;
       }
       const newLigne: LignePanier = {
-        produitId: stockInfo.produitId,
-        produitNom: stockInfo.produitNom,
+        produitId: produitInfo.id,
+        produitNom: produitInfo.nom,
         qteVoulu: 1,
-        prix: stockInfo.produit.prix || 0,
-        stockDisponible: stockInfo.quantiteTotale,
+        prix: produitInfo.prix || 0,
+        stockDisponible: produitInfo.qte ?? 0,
       };
       setLignes([...lignes, newLigne]);
       setSelectedProduitId(undefined);
@@ -266,20 +242,20 @@ export default function NewOrderPage() {
               <Select 
                 value={selectedProduitId} 
                 onValueChange={setSelectedProduitId} 
-                disabled={isSaving || !lieuLivraisonId || isStockLoading}
+                disabled={isSaving || !lieuLivraisonId}
               >
                 <SelectTrigger>
-                    <SelectValue placeholder={!lieuLivraisonId ? "Sélectionnez d'abord un lieu" : (isStockLoading ? "Chargement du stock..." : "Sélectionner un produit")} />
+                    <SelectValue placeholder={!lieuLivraisonId ? "Sélectionnez d'abord un lieu" : "Sélectionner un produit"} />
                 </SelectTrigger>
                 <SelectContent>
-                    {availableProducts.map(s => 
-                        <SelectItem key={s.produitId} value={String(s.produitId)}>
-                            {s.produitNom} ({s.quantiteTotale} en stock)
+                    {availableProducts.map(p => 
+                        <SelectItem key={p.id} value={String(p.id)}>
+                            {p.nom} ({p.qte} en stock)
                         </SelectItem>
                     )}
                 </SelectContent>
               </Select>
-              <Button onClick={handleAddItem} variant="outline" size="icon" aria-label="Ajouter le produit" disabled={isSaving || !selectedProduitId || isStockLoading}><PlusCircle className="h-4 w-4" /></Button>
+              <Button onClick={handleAddItem} variant="outline" size="icon" aria-label="Ajouter le produit" disabled={isSaving || !selectedProduitId}><PlusCircle className="h-4 w-4" /></Button>
             </div>
           </div>
           
