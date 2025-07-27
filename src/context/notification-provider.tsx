@@ -44,8 +44,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (isAuthenticated && currentUser && !stompClient) {
+      const token = localStorage.getItem('stockhero_token');
+      
       const client = new Client({
         webSocketFactory: () => new SockJS(WS_URL),
+        connectHeaders: {
+            Authorization: `Bearer ${token}`,
+        },
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
@@ -64,9 +69,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
               console.error("STOMP: Failed to parse notification message", e);
             }
           });
-          
-          // You can also subscribe to a global topic if needed
-          // client.subscribe('/topic/global', (message) => { ... });
         },
         onStompError: (frame: IFrame) => {
           console.error('STOMP: Broker reported error: ' + frame.headers['message']);
