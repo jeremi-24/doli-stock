@@ -130,8 +130,9 @@ export default function NewOrderPage() {
     if (!selectedProduitId) return;
     const produitInfo = produits.find(p => p.id === parseInt(selectedProduitId, 10));
     if (produitInfo) {
-      if ((produitInfo.qte ?? 0) <= 0) {
-        toast({ title: "Rupture de stock", variant: "destructive", description: "Ce produit n'est pas disponible dans ce lieu." });
+      const stockDisponible = produitInfo.quantiteTotaleGlobale ?? 0;
+      if (stockDisponible <= 0) {
+        toast({ title: "Rupture de stock", variant: "destructive", description: "Ce produit n'est pas disponible." });
         return;
       }
       const newLigne: LignePanier = {
@@ -139,7 +140,7 @@ export default function NewOrderPage() {
         produitNom: produitInfo.nom,
         qteVoulu: 1,
         prix: produitInfo.prix || 0,
-        stockDisponible: produitInfo.qte ?? 0,
+        stockDisponible: stockDisponible,
       };
       setLignes([...lignes, newLigne]);
       setSelectedProduitId(undefined);
@@ -250,7 +251,7 @@ export default function NewOrderPage() {
                 <SelectContent>
                     {availableProducts.map(p => 
                         <SelectItem key={p.id} value={String(p.id)}>
-                            {p.nom} ({p.qte} en stock)
+                            {p.nom} ({p.quantiteTotaleGlobale ?? 0} en stock)
                         </SelectItem>
                     )}
                 </SelectContent>
