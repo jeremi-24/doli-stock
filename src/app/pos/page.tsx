@@ -15,7 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import * as api from "@/lib/api";
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -103,7 +102,7 @@ function CheckoutDialog({
 
 
 export default function POSPage() {
-  const { produits, categories, clients, currentUser } = useApp();
+  const { produits, categories, clients, currentUser, createVente } = useApp();
   const { toast } = useToast();
   const [cart, setCart] = useState<VenteLigne[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -229,13 +228,11 @@ export default function POSPage() {
     };
 
     try {
-        await api.createVenteDirecte(payload);
-        toast({ title: "Vente finalisée !", description: `Le stock a été mis à jour.`});
+        await createVente(payload);
         setCart([]);
         setIsCheckoutOpen(false);
     } catch (error) {
-         const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
-         toast({ variant: 'destructive', title: "Erreur de vente", description: errorMessage });
+         // Error is handled in context
     } finally {
         setIsSaving(false);
     }
