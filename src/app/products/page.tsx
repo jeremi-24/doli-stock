@@ -216,11 +216,12 @@ export default function ProductsPage() {
     
     const filteredProduits = React.useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
-        return produits.filter(item => {
+        const filtered = produits.filter(item => {
             const matchesSearch = item.nom.toLowerCase().includes(lowercasedFilter) || (item.ref && item.ref.toLowerCase().includes(lowercasedFilter));
             const matchesCategory = categoryFilter === 'all' || String(item.categorieId) === categoryFilter;
             return matchesSearch && matchesCategory;
         });
+        return filtered.sort((a, b) => a.nom.localeCompare(b.nom));
     }, [searchTerm, categoryFilter, produits]);
 
 
