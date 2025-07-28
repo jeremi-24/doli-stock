@@ -23,7 +23,7 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const WS_URL = 'https://8080-firebase-staback-1753361084962.cluster-lu4mup47g5gm4rtyvhzpwbfadi.cloudworkstations.dev/ws-notifications';
+const WS_URL = '/api/ws-notifications';
 const MAX_NOTIFICATIONS = 50;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
@@ -32,8 +32,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stompClient, setStompClient] = useState<Client | null>(null);
 
-  const addNotification = useCallback((notif: Omit<Notification, 'read'>) => {
-    const newNotification: Notification = { ...notif, read: false, date: new Date().toISOString() };
+  const addNotification = useCallback((notif: Omit<Notification, 'read' | 'date' | 'id'> & { id?: number }) => {
+    const newNotification: Notification = {
+      id: notif.id ?? Date.now(),
+      title: notif.title,
+      message: notif.message,
+      read: false,
+      date: new Date().toISOString(),
+    };
     setNotifications(prev => [newNotification, ...prev].slice(0, MAX_NOTIFICATIONS));
     toast({
         title: newNotification.title,
@@ -57,7 +63,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         onConnect: (frame: IFrame) => {
           console.log('STOMP: Connected to WebSocket', frame);
 
-          const roleTopic = `/topic/${currentUser.role.nom.toLowerCase()}`;
+          const roleTopic = `/topic/${currentUser.roleNom.toLowerCase()}`;
           console.log(`STOMP: Subscribing to role-specific topic: ${roleTopic}`);
           
           client.subscribe(roleTopic, (message) => {
