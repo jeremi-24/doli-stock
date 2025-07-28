@@ -23,7 +23,8 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const WS_URL = 'https://8080-firebase-staback-1753361084962.cluster-lu4mup47g5gm4rtyvhzpwbfadi.cloudworkstations.dev/ws-notifications';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL!;
+
 const MAX_NOTIFICATIONS = 50;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
