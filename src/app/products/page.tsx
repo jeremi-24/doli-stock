@@ -35,7 +35,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/app-provider";
-import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal, Hand } from "lucide-react";
+import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal, Hand, Tag, Building2, DollarSign, Boxes, AlertTriangle, Hash } from "lucide-react";
 import type { Produit, Categorie, LieuStock, AssignationPayload } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -70,6 +70,16 @@ function ProductDetailsDialog({ product, onClose }: { product: Produit | null, o
     if (!product) return null;
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
     
+    const details = [
+        { icon: Tag, label: "Catégorie", value: <Badge variant="outline">{product.categorieNom || 'N/A'}</Badge> },
+        { icon: Building2, label: "Lieu de Stock", value: <Badge variant="outline">{product.lieuStockNom || 'N/A'}</Badge> },
+        { icon: DollarSign, label: "Prix Unitaire", value: formatCurrency(product.prix || 0) },
+        { icon: DollarSign, label: "Prix Carton", value: formatCurrency(product.prixCarton || 0) },
+        { icon: Boxes, label: "Unités par Carton", value: product.qteParCarton || 0 },
+        { icon: Package, label: "Stock Total", value: product.quantiteTotaleGlobale ?? 0, className: "font-bold" },
+        { icon: AlertTriangle, label: "Seuil d'Alerte", value: product.qteMin || 0 },
+    ];
+
     return (
         <Dialog open={!!product} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DialogContent className="sm:max-w-md">
@@ -77,14 +87,16 @@ function ProductDetailsDialog({ product, onClose }: { product: Produit | null, o
                     <DialogTitle className="font-headline">{product.nom}</DialogTitle>
                     <DialogDescription>Référence: {product.ref || 'N/A'}</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Catégorie</span><Badge variant="outline">{product.categorieNom || 'N/A'}</Badge></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Lieu de Stock</span><Badge variant="outline">{product.lieuStockNom || 'N/A'}</Badge></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Prix Unitaire</span><span>{formatCurrency(product.prix || 0)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Prix Carton</span><span>{formatCurrency(product.prixCarton || 0)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Unités par Carton</span><span>{product.qteParCarton || 0}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Quantité en Stock</span><span className="font-bold">{product.quantiteTotaleGlobale ?? 0}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Seuil d'Alerte</span><span>{product.qteMin || 0}</span></div>
+                <div className="space-y-2 py-4 text-sm">
+                    {details.map(detail => (
+                        <div key={detail.label} className="flex items-center justify-between border-b py-2">
+                           <div className="flex items-center gap-2 text-muted-foreground">
+                             <detail.icon className="h-4 w-4" />
+                             <span>{detail.label}</span>
+                           </div>
+                           <span className={detail.className}>{detail.value}</span>
+                        </div>
+                    ))}
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>Fermer</Button>
