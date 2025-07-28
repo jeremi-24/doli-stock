@@ -307,37 +307,6 @@ export default function ProductsPage() {
                             className="pl-8 sm:w-[250px]"
                         />
                     </div>
-                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Filtrer par catégorie" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Toutes les catégories</SelectItem>
-                            {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="ml-auto">
-                                <SlidersHorizontal className="mr-2 h-4 w-4" /> Affichage
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Afficher/Masquer</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {Object.entries(columnVisibility).map(([key, value]) => (
-                                <DropdownMenuCheckboxItem
-                                    key={key}
-                                    className="capitalize"
-                                    checked={value}
-                                    onCheckedChange={(checked) => setColumnVisibility(prev => ({...prev, [key]: !!checked}))}
-                                >
-                                    {COLUMN_NAMES[key] || key}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
                      {canCreate && (
                         <Button size="sm" onClick={handleAddNew}>
                             <PlusCircle className="h-4 w-4 mr-2" /> Ajouter
@@ -383,13 +352,47 @@ export default function ProductsPage() {
                 </div>
             )}
             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2">
-                        <Package /> Catalogue Produits ({filteredProduits.length})
-                    </CardTitle>
-                    <CardDescription>
-                        Liste de tous les produits de votre catalogue. Cliquez sur une ligne pour voir les détails.
-                    </CardDescription>
+                <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <CardTitle className="font-headline flex items-center gap-2">
+                            <Package /> Catalogue Produits ({filteredProduits.length})
+                        </CardTitle>
+                        <CardDescription>
+                            Liste de tous les produits de votre catalogue. Cliquez sur une ligne pour voir les détails.
+                        </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <SelectTrigger className="w-full md:w-[180px]">
+                                <SelectValue placeholder="Filtrer par catégorie" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Toutes les catégories</SelectItem>
+                                {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline">
+                                    <SlidersHorizontal className="mr-2 h-4 w-4" /> Affichage
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Afficher/Masquer</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {Object.entries(columnVisibility).map(([key, value]) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={key}
+                                        className="capitalize"
+                                        checked={value}
+                                        onCheckedChange={(checked) => setColumnVisibility(prev => ({...prev, [key]: !!checked}))}
+                                    >
+                                        {COLUMN_NAMES[key] || key}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="rounded-lg border">

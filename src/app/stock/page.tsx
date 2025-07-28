@@ -88,8 +88,8 @@ export default function StockPage() {
                                 <TableRow>
                                     <TableHead>Produit</TableHead>
                                     <TableHead>Lieu de Stock</TableHead>
-                                    <TableHead className="text-right">Qté en Cartons</TableHead>
-                                    <TableHead className="text-right">Qté en Unités</TableHead>
+                                    <TableHead className="text-right">Qté de Cartons</TableHead>
+                                    <TableHead className="text-right">Qté hors Cartons</TableHead>
                                     <TableHead className="text-right font-semibold">Stock Total (en Unités)</TableHead>
                                 </TableRow>
                             </TableHeader>
