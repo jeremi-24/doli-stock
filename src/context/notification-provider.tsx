@@ -69,10 +69,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           client.subscribe(roleTopic, (message) => {
             console.log(`STOMP: Received message on ${roleTopic}`, message.body);
             try {
-              const newNotif = JSON.parse(message.body);
+              const messageBody = message.body;
+              let title = 'Nouvelle Notification';
+              let content = messageBody;
+              
+              const parts = messageBody.split(':');
+              if (parts.length > 1) {
+                title = parts[0].trim();
+                content = parts.slice(1).join(':').trim();
+              }
+              
+              const newNotif = { title, message: content };
               addNotification(newNotif);
+
             } catch (e) {
-              console.error("STOMP: Failed to parse notification message", e);
+              console.error("STOMP: Failed to process notification message", e);
             }
           });
         },
