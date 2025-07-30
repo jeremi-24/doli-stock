@@ -70,7 +70,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const token = localStorage.getItem('stockhero_token');
       
       const client = new Client({
-        webSocketFactory: () => new SockJS(WS_URL, null, { transports: ['websocket'] }),
+        webSocketFactory: () => new SockJS(new URL(WS_URL).href, null, { transports: ['websocket'] }),
         connectHeaders: { Authorization: `Bearer ${token}` },
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
