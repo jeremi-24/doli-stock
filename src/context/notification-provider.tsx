@@ -70,8 +70,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const token = localStorage.getItem('stockhero_token');
       
       const client = new Client({
-        // The URL for SockJS must point to the base endpoint, not the full WebSocket path
-        webSocketFactory: () => new SockJS(WS_URL, null, { transports: 'websocket' }),
+        webSocketFactory: () => new SockJS(WS_URL, null, { transports: ['websocket'] }),
         connectHeaders: { Authorization: `Bearer ${token}` },
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
@@ -94,7 +93,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 const payload = JSON.parse(message.body);
                 processNotificationPayload(payload);
               } catch (e) {
-                console.error("STOMP: Failed to process notification", e);
+                console.error(`STOMP: Failed to process notification from ${topic}`, e);
               }
             });
           });
