@@ -1,5 +1,5 @@
 
-# STA - Système de Gestion de Stock Avancé
+# STA - Stock Management
 
 ![Logo STA](public/logosta.jpg)
 
@@ -31,11 +31,6 @@ Ce projet est construit avec une architecture moderne, performante et maintenabl
 - **Communication Temps Réel** : WebSockets (avec STOMP.js et SockJS)
 - **Validation de Formulaires** : React Hook Form & Zod
 - **Backend (API)** : L'application communique avec une API RESTful externe (non incluse dans ce dépôt).
-
-## Référence API (Endpoints Utilisateurs)
-
-- `PUT /api/users/{id}` : Modifier un utilisateur par son ID (Admin)
-- `DELETE /api/users/{id}` : Supprimer un utilisateur par son ID (Admin)
 
 ## ⚙️ Démarrage
 
@@ -88,4 +83,3 @@ L'application sera accessible à l'adresse [http://localhost:3000](http://localh
 
 ---
 
-Développé avec ❤️ pour une gestion de stock efficace.
