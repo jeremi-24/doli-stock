@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,13 +10,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
 import type { Produit, Categorie, Client, VenteDirectePayload } from '@/lib/types';
-import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle, Box as CartonIcon } from 'lucide-react';
+import * as api from '@/lib/api';
+import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle, Box as CartonIcon, ScanLine } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+
 
 type VenteLigne = {
     id: number;
@@ -106,9 +109,18 @@ export default function POSPage() {
   const { toast } = useToast();
   const [cart, setCart] = useState<VenteLigne[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [barcode, setBarcode] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("Tout");
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+
+  useEffect(() => {
+    barcodeInputRef.current?.focus();
+  }, []);
 
   const displayCategories = useMemo(() => ['Tout', ...categories.map(c => c.nom)], [categories]);
   const categoryNameToId = useMemo(() => new Map(categories.map(c => [c.nom, c.id])), [categories]);
@@ -210,6 +222,29 @@ export default function POSPage() {
     }
   };
 
+  const handleScan = async () => {
+    if (!barcode.trim()) return;
+
+    setScanError(null);
+    setIsScanning(true);
+
+    try {
+        const product = await api.getProductByBarcode(barcode);
+        if (product && product.id) {
+            handleAddToCart(product, 'UNITE');
+            toast({ title: "Produit ajouté", description: product.nom });
+        } else {
+            setScanError(`Produit non trouvé pour le code-barres : ${barcode}`);
+        }
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue.";
+        setScanError(errorMessage);
+    } finally {
+        setIsScanning(false);
+        setBarcode("");
+    }
+};
+
   const total = useMemo(() => {
     return cart.reduce((acc, item) => acc + item.prix_total, 0);
   }, [cart]);
@@ -260,6 +295,36 @@ export default function POSPage() {
             <Input type="search" placeholder="Rechercher un produit..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
           </div>
         </div>
+
+        <Card className="mb-4">
+            <CardHeader className='pb-2'>
+                <CardTitle className='text-lg font-semibold flex items-center gap-2'><ScanLine/>Vente par Scan</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-start gap-2">
+                    <Input
+                        ref={barcodeInputRef}
+                        id="barcode-scan"
+                        placeholder="Scannez un code-barres et appuyez sur Entrée..."
+                        value={barcode}
+                        onChange={(e) => setBarcode(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleScan()}
+                        disabled={isScanning}
+                    />
+                    <Button onClick={handleScan} disabled={!barcode || isScanning}>
+                        {isScanning ? <Loader2 className="h-4 w-4 animate-spin"/> : <PackagePlus className="h-4 w-4"/>}
+                        <span className="sr-only">Ajouter</span>
+                    </Button>
+                </div>
+                 {scanError && (
+                    <Alert variant="destructive" className="mt-2">
+                        <AlertTriangle className="h-4 w-4"/>
+                        <AlertTitle>{scanError}</AlertTitle>
+                    </Alert>
+                )}
+            </CardContent>
+        </Card>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
           <TabsList className="mb-4 shrink-0 flex-wrap h-auto justify-start">
             {displayCategories.map(category => (<TabsTrigger key={category} value={category}>{category}</TabsTrigger>))}
