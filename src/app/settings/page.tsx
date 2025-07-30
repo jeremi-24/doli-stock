@@ -45,12 +45,19 @@ const themeColorsSchema = z.object({
   accent: z.string().regex(/^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/, "Utilisez le format 'H S% L%' (ex: 262 52% 50%)").trim(),
 });
 
-const userSchema = z.object({
+const userCreationSchema = z.object({
   email: z.string().email("Adresse e-mail invalide."),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères."),
   roleId: z.string().min(1, "Veuillez sélectionner un rôle."),
   lieuId: z.string().min(1, "Veuillez sélectionner un lieu."),
 });
+
+const userUpdateSchema = z.object({
+    password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères.").optional().or(z.literal('')),
+    roleId: z.string().min(1, "Veuillez sélectionner un rôle."),
+    lieuId: z.string().min(1, "Veuillez sélectionner un lieu."),
+});
+
 
 const roleSchema = z.object({
   nom: z.string().min(2, "Le nom du rôle est requis."),
@@ -230,167 +237,288 @@ function AppearanceForm() {
 }
 
 function UsersTab() {
-  const { toast } = useToast();
-  const [users, setUsers] = React.useState<Utilisateur[]>([]);
-  const [roles, setRoles] = React.useState<Role[]>([]);
-  const [lieux, setLieux] = React.useState<LieuStock[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isFormLoading, setFormIsLoading] = React.useState(false);
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const { toast } = useToast();
+    const { currentUser } = useApp();
+    const [users, setUsers] = React.useState<Utilisateur[]>([]);
+    const [roles, setRoles] = React.useState<Role[]>([]);
+    const [lieux, setLieux] = React.useState<LieuStock[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [dialogState, setDialogState] = React.useState<{ open: boolean, mode: 'create' | 'edit', user: Utilisateur | null }>({ open: false, mode: 'create', user: null });
   
-  const form = useForm<z.infer<typeof userSchema>>({
-    resolver: zodResolver(userSchema),
-    defaultValues: { email: "", password: "", roleId: "", lieuId: "" },
-  });
-
-  const fetchData = React.useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [usersData, rolesData, lieuxData] = await Promise.all([
-        api.getUsers(),
-        api.getRoles(),
-        api.getLieuxStock(),
-      ]);
-      setUsers(usersData || []);
-      setRoles(rolesData || []);
-      setLieux(lieuxData || []);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-      toast({ variant: "destructive", title: "Erreur de chargement", description: errorMessage });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+    const creationForm = useForm<z.infer<typeof userCreationSchema>>({
+      resolver: zodResolver(userCreationSchema),
+      defaultValues: { email: "", password: "", roleId: "", lieuId: "" },
+    });
   
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  async function onSubmit(values: z.infer<typeof userSchema>) {
-    setFormIsLoading(true);
-    const payload = {
-      email: values.email,
-      password: values.password,
-      roleId: parseInt(values.roleId, 10),
-      lieuId: parseInt(values.lieuId, 10),
-    };
-    try {
-        await api.createUser(payload);
-        toast({ title: "Utilisateur créé avec succès" });
-        setIsDialogOpen(false);
-        form.reset();
-        await fetchData(); // Refresh user list
-    } catch (error) {
+    const updateForm = useForm<z.infer<typeof userUpdateSchema>>({
+        resolver: zodResolver(userUpdateSchema),
+        defaultValues: { password: "", roleId: "", lieuId: "" },
+    });
+  
+    const fetchData = React.useCallback(async () => {
+      setIsLoading(true);
+      try {
+        const [usersData, rolesData, lieuxData] = await Promise.all([
+          api.getUsers(),
+          api.getRoles(),
+          api.getLieuxStock(),
+        ]);
+        setUsers(usersData || []);
+        setRoles(rolesData || []);
+        setLieux(lieuxData || []);
+      } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: "destructive", title: "Erreur de création", description: errorMessage });
-    } finally {
-        setFormIsLoading(false);
-    }
-  }
-
-  const permissionDescriptions = React.useMemo(() => 
-    new Map(ALL_PERMISSIONS.map(p => [p.action, p.description])), 
-  []);
+        toast({ variant: "destructive", title: "Erreur de chargement", description: errorMessage });
+      } finally {
+        setIsLoading(false);
+      }
+    }, [toast]);
   
-  return (
-    <>
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="font-headline">Utilisateurs</CardTitle>
-          <CardDescription>Gérez les utilisateurs et leurs permissions.</CardDescription>
-        </div>
-        <Button onClick={() => setIsDialogOpen(true)} disabled={isLoading}>Ajouter un utilisateur</Button>
-      </CardHeader>
-      <CardContent>
-          <Accordion type="single" collapsible className="w-full">
-            {isLoading ? (
-                <div className="text-center p-8"><Loader2 className="animate-spin mx-auto" /></div>
-            ) : users.length > 0 ? (
-                users.map(user => (
-                  <AccordionItem value={user.email} key={user.id}>
-                    <AccordionTrigger>
-                      <div className="flex flex-col md:flex-row md:items-center gap-x-4 gap-y-1 text-left">
-                        <span className="font-semibold">{user.email}</span>
-                        <div className="flex items-center gap-4">
-                          <Badge variant="secondary">{user.roleNom}</Badge>
-                          <Badge variant="outline">{user.lieuNom}</Badge>
+    React.useEffect(() => {
+      fetchData();
+    }, [fetchData]);
+  
+    React.useEffect(() => {
+      if (dialogState.mode === 'edit' && dialogState.user) {
+        updateForm.reset({
+          password: "",
+          roleId: String(dialogState.user.roleId),
+          lieuId: String(dialogState.user.lieuId),
+        });
+      } else {
+        creationForm.reset();
+      }
+    }, [dialogState, creationForm, updateForm]);
+  
+    const handleOpenDialog = (mode: 'create' | 'edit', user: Utilisateur | null = null) => {
+        setDialogState({ open: true, mode, user });
+    };
+
+    const handleCloseDialog = () => {
+        setDialogState({ open: false, mode: 'create', user: null });
+    };
+
+    async function onCreationSubmit(values: z.infer<typeof userCreationSchema>) {
+      setIsSubmitting(true);
+      const payload = {
+        email: values.email,
+        password: values.password,
+        roleId: parseInt(values.roleId, 10),
+        lieuId: parseInt(values.lieuId, 10),
+      };
+      try {
+          await api.createUser(payload);
+          toast({ title: "Utilisateur créé avec succès" });
+          handleCloseDialog();
+          await fetchData();
+      } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+          toast({ variant: "destructive", title: "Erreur de création", description: errorMessage });
+      } finally {
+          setIsSubmitting(false);
+      }
+    }
+  
+    async function onUpdateSubmit(values: z.infer<typeof userUpdateSchema>) {
+        if (!dialogState.user) return;
+        setIsSubmitting(true);
+        
+        const payload: { password?: string; roleId: number; lieuId: number } = {
+            roleId: parseInt(values.roleId, 10),
+            lieuId: parseInt(values.lieuId, 10),
+        };
+        if (values.password) {
+            payload.password = values.password;
+        }
+
+        try {
+            await api.updateUser(dialogState.user.id, payload);
+            toast({ title: "Utilisateur mis à jour" });
+            handleCloseDialog();
+            await fetchData();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+            toast({ variant: "destructive", title: "Erreur de mise à jour", description: errorMessage });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    async function onDeleteUser(userId: number) {
+        setIsSubmitting(true);
+        try {
+            await api.deleteUser(userId);
+            toast({ title: "Utilisateur supprimé" });
+            await fetchData();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+            toast({ variant: "destructive", title: "Erreur de suppression", description: errorMessage });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+  
+    const permissionDescriptions = React.useMemo(() => 
+      new Map(ALL_PERMISSIONS.map(p => [p.action, p.description])), 
+    []);
+    
+    return (
+      <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="font-headline">Utilisateurs</CardTitle>
+            <CardDescription>Gérez les utilisateurs et leurs permissions.</CardDescription>
+          </div>
+          <Button onClick={() => handleOpenDialog('create')} disabled={isLoading}>Ajouter un utilisateur</Button>
+        </CardHeader>
+        <CardContent>
+            <Accordion type="single" collapsible className="w-full">
+              {isLoading ? (
+                  <div className="text-center p-8"><Loader2 className="animate-spin mx-auto" /></div>
+              ) : users.length > 0 ? (
+                  users.map(user => (
+                    <AccordionItem value={user.email} key={user.id}>
+                      <div className="flex items-center w-full">
+                        <AccordionTrigger className="flex-1">
+                          <div className="flex flex-col md:flex-row md:items-center gap-x-4 gap-y-1 text-left">
+                            <span className="font-semibold">{user.email}</span>
+                            <div className="flex items-center gap-4">
+                              <Badge variant="secondary">{user.roleNom}</Badge>
+                              <Badge variant="outline">{user.lieuNom}</Badge>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <div className="flex items-center pl-4">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog('edit', user)} disabled={user.id === currentUser?.id}>
+                                <Pencil className="h-4 w-4"/>
+                            </Button>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={user.id === currentUser?.id}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader><AlertDialogTitle>Supprimer {user.email}?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription></AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => onDeleteUser(user.id)}>Supprimer</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </div>
                       </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="px-4 pb-4">
-                          <h4 className="font-semibold mb-2 text-sm">Permissions :</h4>
-                          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-sm">
-                            {user.permissions && user.permissions
-                                .filter(p => p.autorise)
-                                .map(permission => (
-                                <li key={permission.id} className="flex items-center gap-2">
-                                  <CheckCircle className="h-4 w-4 text-green-500" />
-                                  <span>{permissionDescriptions.get(permission.action) || permission.action}</span>
-                                </li>
-                            ))}
-                          </ul>
-                          {(!user.permissions || user.permissions.filter(p => p.autorise).length === 0) && (
-                            <p className="text-sm text-muted-foreground">Cet utilisateur n'a aucune permission spécifique.</p>
-                          )}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))
-            ) : (
-              <div className="text-center text-muted-foreground p-8">Aucun utilisateur trouvé.</div>
-            )}
-          </Accordion>
-      </CardContent>
-    </Card>
-    
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-headline">Ajouter un utilisateur</DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
-                 <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="utilisateur@megatram.com" {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
-                <FormField control={form.control} name="password" render={({ field }) => (
-                    <FormItem><FormLabel>Mot de passe</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
-                <FormField control={form.control} name="roleId" render={({ field }) => (
-                    <FormItem><FormLabel>Rôle</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger></FormControl>
-                          <SelectContent>{roles.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.nom}</SelectItem>)}</SelectContent>
-                      </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="lieuId" render={({ field }) => (
-                    <FormItem><FormLabel>Lieu de Stock</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un lieu" /></SelectTrigger></FormControl>
-                          <SelectContent>{lieux.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}</SelectContent>
-                      </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <DialogFooter className="pt-4">
-                  <DialogClose asChild><Button type="button" variant="ghost" disabled={isFormLoading}>Annuler</Button></DialogClose>
-                  <Button type="submit" disabled={isFormLoading}>
-                    {isFormLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                    {isFormLoading ? "Création..." : "Créer l'utilisateur"}
-                  </Button>
-                </DialogFooter>
-            </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-    </>
-  );
-}
-
+                      <AccordionContent>
+                        <div className="px-4 pb-4">
+                            <h4 className="font-semibold mb-2 text-sm">Permissions :</h4>
+                            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                              {user.permissions && user.permissions
+                                  .filter(p => p.autorise)
+                                  .map(permission => (
+                                  <li key={permission.id} className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    <span>{permissionDescriptions.get(permission.action) || permission.action}</span>
+                                  </li>
+                              ))}
+                            </ul>
+                            {(!user.permissions || user.permissions.filter(p => p.autorise).length === 0) && (
+                              <p className="text-sm text-muted-foreground">Cet utilisateur n'a aucune permission spécifique.</p>
+                            )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))
+              ) : (
+                <div className="text-center text-muted-foreground p-8">Aucun utilisateur trouvé.</div>
+              )}
+            </Accordion>
+        </CardContent>
+      </Card>
+      
+      <Dialog open={dialogState.open} onOpenChange={handleCloseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-headline">
+              {dialogState.mode === 'create' ? 'Ajouter un utilisateur' : `Modifier ${dialogState.user?.email}`}
+            </DialogTitle>
+          </DialogHeader>
+          {dialogState.mode === 'create' ? (
+            <Form {...creationForm}>
+                <form onSubmit={creationForm.handleSubmit(onCreationSubmit)} className="space-y-4 py-2">
+                     <FormField control={creationForm.control} name="email" render={({ field }) => (
+                        <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="utilisateur@email.com" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={creationForm.control} name="password" render={({ field }) => (
+                        <FormItem><FormLabel>Mot de passe</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={creationForm.control} name="roleId" render={({ field }) => (
+                        <FormItem><FormLabel>Rôle</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger></FormControl>
+                              <SelectContent>{roles.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.nom}</SelectItem>)}</SelectContent>
+                          </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={creationForm.control} name="lieuId" render={({ field }) => (
+                        <FormItem><FormLabel>Lieu de Stock</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un lieu" /></SelectTrigger></FormControl>
+                              <SelectContent>{lieux.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}</SelectContent>
+                          </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <DialogFooter className="pt-4">
+                      <Button type="button" variant="ghost" onClick={handleCloseDialog} disabled={isSubmitting}>Annuler</Button>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Créer
+                      </Button>
+                    </DialogFooter>
+                </form>
+            </Form>
+          ) : (
+             <Form {...updateForm}>
+                <form onSubmit={updateForm.handleSubmit(onUpdateSubmit)} className="space-y-4 py-2">
+                    <FormField control={updateForm.control} name="password" render={({ field }) => (
+                        <FormItem><FormLabel>Nouveau mot de passe (optionnel)</FormLabel><FormControl><Input type="password" {...field} placeholder="Laisser vide pour ne pas changer" /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={updateForm.control} name="roleId" render={({ field }) => (
+                        <FormItem><FormLabel>Rôle</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un rôle" /></SelectTrigger></FormControl>
+                              <SelectContent>{roles.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.nom}</SelectItem>)}</SelectContent>
+                          </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={updateForm.control} name="lieuId" render={({ field }) => (
+                        <FormItem><FormLabel>Lieu de Stock</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un lieu" /></SelectTrigger></FormControl>
+                              <SelectContent>{lieux.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}</SelectContent>
+                          </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <DialogFooter className="pt-4">
+                        <Button type="button" variant="ghost" onClick={handleCloseDialog} disabled={isSubmitting}>Annuler</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            Sauvegarder
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </Form>
+          )}
+        </DialogContent>
+      </Dialog>
+      </>
+    );
+  }
 function RoleDialog({
     isOpen,
     onOpenChange,

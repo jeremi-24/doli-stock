@@ -100,6 +100,12 @@ export async function getUsers(): Promise<Utilisateur[]> { return apiFetch('/use
 export async function createUser(data: any): Promise<any> {
   return apiFetch('/users', { method: 'POST', body: JSON.stringify(data) });
 }
+export async function updateUser(id: number, data: any): Promise<any> {
+    return apiFetch(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export async function deleteUser(id: number): Promise<null> {
+    return apiFetch(`/users/${id}`, { method: 'DELETE' });
+}
 export async function getRoles(): Promise<Role[]> { return apiFetch('/roles'); }
 export async function getRoleById(id: number): Promise<Role> { return apiFetch(`/roles/${id}`); }
 export async function createRole(data: RoleCreationPayload): Promise<Role> { 

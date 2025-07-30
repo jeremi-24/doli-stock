@@ -275,6 +275,7 @@ export type Utilisateur = {
   email: string;
   roleId: number;
   roleNom: string;
+  lieuId: number;
   lieuNom: string;
   permissions: Permission[];
 };
