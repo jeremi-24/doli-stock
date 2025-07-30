@@ -325,3 +325,15 @@ export type SignupPayload = {
   roleId: number;
   lieuId?: number;
 }
+
+// ----- Notifications -----
+export interface Notification {
+  id?: number;
+  type?: string;
+  message?: string;
+  userId?: number;
+  date?: string;
+  lu?: boolean;
+  commandeId?: number;
+  statut?: string;
+}

@@ -37,6 +37,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 function NotificationBell() {
   const { notifications, markAsRead, unreadCount } = useNotifications();
@@ -60,10 +62,14 @@ function NotificationBell() {
             ) : (
                 <div className="divide-y">
                     {notifications.map(notif => (
-                        <div key={notif.id} className={cn("p-4 text-sm", !notif.read && "bg-accent/50")}>
-                            <p className="font-semibold">{notif.title}</p>
+                        <div key={notif.id} className={cn("p-4 text-sm", !notif.lu && "bg-accent/50")}>
+                            <p className="font-semibold">{notif.type}</p>
                             <p className="text-muted-foreground">{notif.message}</p>
-                            <p className="text-xs text-muted-foreground mt-2">{new Date(notif.date).toLocaleString()}</p>
+                             {notif.date && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    {format(new Date(notif.date), 'd MMM yyyy, HH:mm', { locale: fr })}
+                                </p>
+                             )}
                         </div>
                     ))}
                 </div>

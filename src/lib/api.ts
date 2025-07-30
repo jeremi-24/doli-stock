@@ -1,6 +1,6 @@
 
 
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload, Notification } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -316,4 +316,9 @@ export async function validerLivraisonEtape1(id: number): Promise<BonLivraison> 
 }
 export async function validerLivraisonEtape2(id: number): Promise<BonLivraison> {
     return apiFetch(`/livraisons/${id}/valider2`, { method: 'PUT' });
+}
+
+// ========== Notifications API ==========
+export async function getNotificationsByUserId(userId: number): Promise<Notification[]> {
+    return apiFetch(`/notifications/user/${userId}`);
 }

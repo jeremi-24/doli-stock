@@ -6,15 +6,8 @@ import { useApp } from './app-provider';
 import { Client, type IFrame } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { useToast } from '@/hooks/use-toast';
-import type { CommandeStatus } from '@/lib/types';
-
-export interface Notification {
-  id: number;
-  title: string;
-  message: string;
-  read: boolean;
-  date: string;
-}
+import type { CommandeStatus, Notification } from '@/lib/types';
+import * as api from '@/lib/api';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -25,7 +18,6 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL!;
-
 const MAX_NOTIFICATIONS = 50;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
@@ -34,92 +26,80 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stompClient, setStompClient] = useState<Client | null>(null);
 
-  const addNotification = useCallback((notif: Omit<Notification, 'read' | 'date' | 'id'> & { id?: number }) => {
-    const newNotification: Notification = {
-      id: notif.id ?? Date.now(),
-      title: notif.title,
-      message: notif.message,
-      read: false,
-      date: new Date().toISOString(),
-    };
-    setNotifications(prev => [newNotification, ...prev].slice(0, MAX_NOTIFICATIONS));
-    toast({
-        title: newNotification.title,
-        description: newNotification.message,
-    });
-  }, [toast]);
+  const processNotificationPayload = useCallback((payload: any) => {
+      const newNotification: Notification = {
+          id: payload.id ?? Date.now(),
+          type: payload.type,
+          message: payload.message,
+          userId: payload.userId,
+          date: payload.date || new Date().toISOString(),
+          lu: payload.lu || false,
+          commandeId: payload.commandeId,
+          statut: payload.statut,
+      };
 
+      setNotifications(prev => [newNotification, ...prev]
+          .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime())
+          .slice(0, MAX_NOTIFICATIONS));
+
+      if (newNotification.message) {
+        toast({
+            title: newNotification.type || 'Nouvelle Notification',
+            description: newNotification.message,
+        });
+      }
+
+      if (newNotification.commandeId && newNotification.statut) {
+          updateCommandeStatus(newNotification.commandeId, newNotification.statut as CommandeStatus);
+      }
+  }, [toast, updateCommandeStatus]);
 
   useEffect(() => {
     if (isAuthenticated && currentUser && !stompClient) {
+      // 1. Fetch historical notifications
+      api.getNotificationsByUserId(currentUser.id)
+        .then(history => {
+            const sortedHistory = history.sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
+            setNotifications(sortedHistory);
+        })
+        .catch(err => console.error("Failed to fetch notification history", err));
+
+      // 2. Setup WebSocket client
       const token = localStorage.getItem('stockhero_token');
       
       const client = new Client({
         webSocketFactory: () => new SockJS(WS_URL),
-        connectHeaders: {
-            Authorization: `Bearer ${token}`,
-        },
+        connectHeaders: { Authorization: `Bearer ${token}` },
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
         onConnect: (frame: IFrame) => {
-          console.log('STOMP: Connected to WebSocket', frame);
-
-          const roleTopic = `/topic/${currentUser.roleNom.toLowerCase()}`;
-          console.log(`STOMP: Subscribing to role-specific topic: ${roleTopic}`);
+          console.log('STOMP: Connected', frame);
           
-          client.subscribe(roleTopic, (message) => {
-            console.log(`STOMP: Received message on ${roleTopic}`, message.body);
-             try {
-              const messageBody = message.body;
-              let title = 'Nouvelle Notification';
-              let content = messageBody;
-              
-              const parts = messageBody.split(':');
-              if (parts.length > 1) {
-                title = parts[0].trim();
-                content = parts.slice(1).join(':').trim();
-              }
-              
-              const newNotif = { title, message: content };
-              addNotification(newNotif);
-
-            } catch (e) {
-              console.error("STOMP: Failed to process notification message", e);
-            }
-          });
-          
-          if (currentUser.clientId) {
-            const clientTopic = `/topic/client/${currentUser.clientId}`;
-            console.log(`STOMP: Subscribing to client-specific topic: ${clientTopic}`);
-
-            client.subscribe(clientTopic, (message) => {
-                console.log(`STOMP: Received message on ${clientTopic}`, message.body);
-                try {
-                    const payload = JSON.parse(message.body);
-                    if (payload.type === 'update' && payload.info && payload.info.id && payload.info.status) {
-                        addNotification({
-                            title: 'Mise à jour Commande',
-                            message: payload.message,
-                        });
-                        updateCommandeStatus(payload.info.id, payload.info.status as CommandeStatus);
-                    }
-                } catch (e) {
-                    console.error("STOMP: Failed to process client notification", e);
-                }
-            });
+          const topics = ['/app'];
+          if (currentUser.roleNom) {
+            topics.push(`/topic/${currentUser.roleNom.toLowerCase()}`);
           }
+          if (currentUser.clientId) {
+            topics.push(`/topic/client/${currentUser.clientId}`);
+          }
+          
+          topics.forEach(topic => {
+            console.log(`STOMP: Subscribing to ${topic}`);
+            client.subscribe(topic, (message) => {
+              console.log(`STOMP: Received message on ${topic}`, message.body);
+              try {
+                const payload = JSON.parse(message.body);
+                processNotificationPayload(payload);
+              } catch (e) {
+                console.error("STOMP: Failed to process notification", e);
+              }
+            });
+          });
         },
-        onStompError: (frame: IFrame) => {
-          console.error('STOMP: Broker reported error: ' + frame.headers['message']);
-          console.error('STOMP: Additional details: ' + frame.body);
-        },
-        onWebSocketError: (error) => {
-            console.error('STOMP: WebSocket Error', error);
-        },
-        onDisconnect: () => {
-            console.log('STOMP: Disconnected from WebSocket');
-        }
+        onStompError: (frame: IFrame) => console.error('STOMP: Broker error', frame.headers['message'], frame.body),
+        onWebSocketError: (error) => console.error('STOMP: WebSocket Error', error),
+        onDisconnect: () => console.log('STOMP: Disconnected'),
       });
 
       client.activate();
@@ -135,17 +115,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         stompClient.deactivate();
       }
     };
-  }, [isAuthenticated, currentUser, stompClient, addNotification, updateCommandeStatus]);
+  }, [isAuthenticated, currentUser, stompClient, processNotificationPayload]);
 
 
   const markAsRead = useCallback((id?: number) => {
     setNotifications(prev =>
-      prev.map(n => (id === undefined || n.id === id) ? { ...n, read: true } : n)
+      prev.map(n => (id === undefined || n.id === id) ? { ...n, lu: true } : n)
     );
+    // Here you would also call an API to mark them as read on the backend
   }, []);
 
   const unreadCount = useMemo(() => {
-    return notifications.filter(n => !n.read).length;
+    return notifications.filter(n => !n.lu).length;
   }, [notifications]);
 
   const value = {
