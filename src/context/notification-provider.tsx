@@ -17,7 +17,7 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL!;
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
 const MAX_NOTIFICATIONS = 50;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
@@ -56,6 +56,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (isAuthenticated && currentUser && !stompClient) {
+      if (!WS_URL) {
+        console.error("STOMP: WebSocket URL is not configured. Please set NEXT_PUBLIC_WS_URL in your environment variables.");
+        return;
+      }
+      
       // 1. Fetch historical notifications
       api.getNotificationsByUserId(currentUser.id)
         .then(history => {
@@ -70,7 +75,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const token = localStorage.getItem('stockhero_token');
       
       const client = new Client({
-        webSocketFactory: () => new SockJS(new URL(WS_URL).href, null, { transports: ['websocket'] }),
+        webSocketFactory: () => new SockJS(WS_URL, null, { transports: ['websocket'] }),
         connectHeaders: { Authorization: `Bearer ${token}` },
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
