@@ -141,10 +141,12 @@ export type LigneCommande = {
   totalLigne: number;
 };
 
+export type CommandeStatus = 'EN_ATTENTE' | 'VALIDEE' | 'ANNULEE' | 'LIVREE';
+
 export type Commande = {
   id: number;
   date: string;
-  statut: 'EN_ATTENTE' | 'VALIDEE' | 'ANNULEE' | 'LIVREE';
+  statut: CommandeStatus;
   client: Client;
   lieuLivraison: LieuStock | null;
   lignes: LigneCommande[];

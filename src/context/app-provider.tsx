@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VenteDirectePayload, Vente } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VenteDirectePayload, Vente, CommandeStatus } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -45,6 +45,7 @@ interface AppContextType {
   genererBonLivraison: (commandeId: number) => Promise<void>;
   validerLivraisonEtape1: (livraisonId: number) => Promise<void>;
   validerLivraisonEtape2: (livraisonId: number) => Promise<void>;
+  updateCommandeStatus: (commandeId: number, status: CommandeStatus) => void;
   shopInfo: ShopInfo;
   setShopInfo: (org: ShopInfo) => Promise<void>;
   themeColors: ThemeColors;
@@ -415,6 +416,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast, handleGenericError, currentUser]);
 
+  const updateCommandeStatus = useCallback((commandeId: number, status: CommandeStatus) => {
+    setCommandes(prev => 
+      prev.map(cmd => cmd.id === commandeId ? { ...cmd, statut: status } : cmd)
+    );
+  }, []);
+
   const value = useMemo(() => ({
     produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, fetchFactures,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
@@ -423,7 +430,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
-    validerLivraisonEtape1, validerLivraisonEtape2,
+    validerLivraisonEtape1, validerLivraisonEtape2, updateCommandeStatus,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, isAuthenticated: !!token, currentUser,
     login, logout, hasPermission,
@@ -436,7 +443,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
-    validerLivraisonEtape1, validerLivraisonEtape2,
+    validerLivraisonEtape1, validerLivraisonEtape2, updateCommandeStatus,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout
   ]);

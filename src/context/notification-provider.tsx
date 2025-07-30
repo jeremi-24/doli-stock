@@ -6,6 +6,7 @@ import { useApp } from './app-provider';
 import { Client, type IFrame } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { useToast } from '@/hooks/use-toast';
+import type { CommandeStatus } from '@/lib/types';
 
 export interface Notification {
   id: number;
@@ -28,7 +29,7 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL!;
 const MAX_NOTIFICATIONS = 50;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, currentUser } = useApp();
+  const { isAuthenticated, currentUser, updateCommandeStatus } = useApp();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stompClient, setStompClient] = useState<Client | null>(null);
@@ -69,7 +70,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           
           client.subscribe(roleTopic, (message) => {
             console.log(`STOMP: Received message on ${roleTopic}`, message.body);
-            try {
+             try {
               const messageBody = message.body;
               let title = 'Nouvelle Notification';
               let content = messageBody;
@@ -87,6 +88,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
               console.error("STOMP: Failed to process notification message", e);
             }
           });
+          
+          if (currentUser.clientId) {
+            const clientTopic = `/topic/client/${currentUser.clientId}`;
+            console.log(`STOMP: Subscribing to client-specific topic: ${clientTopic}`);
+
+            client.subscribe(clientTopic, (message) => {
+                console.log(`STOMP: Received message on ${clientTopic}`, message.body);
+                try {
+                    const payload = JSON.parse(message.body);
+                    if (payload.type === 'update' && payload.info && payload.info.id && payload.info.status) {
+                        addNotification({
+                            title: 'Mise à jour Commande',
+                            message: payload.message,
+                        });
+                        updateCommandeStatus(payload.info.id, payload.info.status as CommandeStatus);
+                    }
+                } catch (e) {
+                    console.error("STOMP: Failed to process client notification", e);
+                }
+            });
+          }
         },
         onStompError: (frame: IFrame) => {
           console.error('STOMP: Broker reported error: ' + frame.headers['message']);
@@ -113,7 +135,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         stompClient.deactivate();
       }
     };
-  }, [isAuthenticated, currentUser, stompClient, addNotification]);
+  }, [isAuthenticated, currentUser, stompClient, addNotification, updateCommandeStatus]);
 
 
   const markAsRead = useCallback((id?: number) => {
