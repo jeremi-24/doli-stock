@@ -59,8 +59,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       // 1. Fetch historical notifications
       api.getNotificationsByUserId(currentUser.id)
         .then(history => {
-            const sortedHistory = history.sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
-            setNotifications(sortedHistory);
+            if (history) {
+              const sortedHistory = history.sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
+              setNotifications(sortedHistory);
+            }
         })
         .catch(err => console.error("Failed to fetch notification history", err));
 
@@ -68,13 +70,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const token = localStorage.getItem('stockhero_token');
       
       const client = new Client({
-        webSocketFactory: () => new SockJS(WS_URL),
+        // The URL for SockJS must point to the base endpoint, not the full WebSocket path
+        webSocketFactory: () => new SockJS(WS_URL, null, { transports: 'websocket' }),
         connectHeaders: { Authorization: `Bearer ${token}` },
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
         onConnect: (frame: IFrame) => {
-          console.log('STOMP: Connected', frame);
+          console.log('STOMP: Connected successfully to the server.');
           
           const topics = ['/app'];
           if (currentUser.roleNom) {
@@ -85,9 +88,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           }
           
           topics.forEach(topic => {
-            console.log(`STOMP: Subscribing to ${topic}`);
             client.subscribe(topic, (message) => {
-              console.log(`STOMP: Received message on ${topic}`, message.body);
+              console.log(`STOMP: Received message on ${topic}`);
               try {
                 const payload = JSON.parse(message.body);
                 processNotificationPayload(payload);
@@ -97,9 +99,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             });
           });
         },
-        onStompError: (frame: IFrame) => console.error('STOMP: Broker error', frame.headers['message'], frame.body),
-        onWebSocketError: (error) => console.error('STOMP: WebSocket Error', error),
-        onDisconnect: () => console.log('STOMP: Disconnected'),
+        onStompError: (frame: IFrame) => console.error('STOMP: Broker reported error: ' + frame.headers['message'] + '. Additional details: ' + frame.body),
+        onWebSocketError: (error) => console.error('STOMP: WebSocket connection error', error),
+        onDisconnect: () => console.log('STOMP: Disconnected from the server.'),
       });
 
       client.activate();
