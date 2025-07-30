@@ -45,7 +45,7 @@ interface AppContextType {
   genererBonLivraison: (commandeId: number) => Promise<void>;
   validerLivraisonEtape1: (livraisonId: number) => Promise<void>;
   validerLivraisonEtape2: (livraisonId: number) => Promise<void>;
-  updateCommandeStatus: (commandeId: number, status: CommandeStatus) => void;
+  refreshAllData: () => Promise<void>;
   shopInfo: ShopInfo;
   setShopInfo: (org: ShopInfo) => Promise<void>;
   themeColors: ThemeColors;
@@ -125,27 +125,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [handleFetchError]);
 
-  const fetchAllData = useCallback(async (user: CurrentUser | null) => {
-    if (!user) return;
+  const refreshAllData = useCallback(async () => {
+    if (!currentUser) return;
     
     const adminOrControlRoles = ['ADMIN', 'SECRETARIAT', 'DG', 'CONTROLLEUR'];
 
     let fetchCommandesPromise;
-    if (adminOrControlRoles.includes(user.roleNom)) {
+    if (adminOrControlRoles.includes(currentUser.roleNom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
-    } else if (user.clientId) {
-        fetchCommandesPromise = api.getCommandesByClientId(user.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes Client'));
+    } else if (currentUser.clientId) {
+        fetchCommandesPromise = api.getCommandesByClientId(currentUser.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes Client'));
     }
 
     let fetchLivraisonsPromise;
-    if (adminOrControlRoles.includes(user.roleNom)) {
+    if (adminOrControlRoles.includes(currentUser.roleNom)) {
         fetchLivraisonsPromise = api.getAllBonsLivraison().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Tous les Bons de Livraison'));
     } else {
         fetchLivraisonsPromise = api.getBonsLivraisonParLieu().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Bons de Livraison par Lieu'));
     }
 
     let fetchClientsPromise;
-    if (adminOrControlRoles.includes(user.roleNom)) {
+    if (adminOrControlRoles.includes(currentUser.roleNom)) {
         fetchClientsPromise = api.getAllClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Tous les clients'));
     } else {
         fetchClientsPromise = api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients'));
@@ -165,7 +165,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ];
 
     await Promise.allSettled(dataFetchPromises);
-  }, [handleFetchError, fetchFactures]);
+  }, [handleFetchError, fetchFactures, currentUser]);
 
 
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
@@ -174,14 +174,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(userProfile);
       const userPermissions = new Set(userProfile.permissions?.filter(p => p.autorise).map(p => p.action) || []);
       setPermissions(userPermissions);
-      await fetchAllData(userProfile);
+      await refreshAllData();
       return true;
     } catch (error) {
       handleGenericError(error, "Erreur de chargement de la session");
       logout();
       return false;
     }
-  }, [fetchAllData, handleGenericError, logout]);
+  }, [refreshAllData, handleGenericError, logout]);
 
   
   useEffect(() => {
@@ -229,62 +229,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
     try {
         await api.saveOrganisation(orgData);
-        await fetchAllData(currentUser);
+        await refreshAllData();
         toast({ title: "Informations de l'organisation mises à jour" });
     } catch (error) {
         handleGenericError(error, "Erreur de sauvegarde");
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const addCategorie = useCallback(async (data: Omit<Categorie, 'id' | 'nProd'>) => {
-    try { await api.createCategory(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.createCategory(data); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+  }, [refreshAllData, handleGenericError]);
   const updateCategorie = useCallback(async (id: number, data: Partial<Categorie>) => {
-    try { await api.updateCategory(id, data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.updateCategory(id, data); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+  }, [refreshAllData, handleGenericError]);
   const deleteCategories = useCallback(async (ids: number[]) => {
-    try { await api.deleteCategories(ids); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.deleteCategories(ids); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
+  }, [refreshAllData, handleGenericError]);
 
   const addLieuStock = useCallback(async (data: Omit<LieuStock, 'id'>) => {
-    try { await api.createLieuStock(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.createLieuStock(data); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+  }, [refreshAllData, handleGenericError]);
   const updateLieuStock = useCallback(async (id: number, data: Partial<LieuStock>) => {
-    try { await api.updateLieuStock(id, data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.updateLieuStock(id, data); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+  }, [refreshAllData, handleGenericError]);
   const deleteLieuxStock = useCallback(async (ids: number[]) => {
-    try { await api.deleteLieuxStock(ids); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.deleteLieuxStock(ids); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
+  }, [refreshAllData, handleGenericError]);
 
   const addProduit = useCallback(async (data: Omit<Produit, 'id'>) => {
-    try { await api.createProduct(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.createProduct(data); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+  }, [refreshAllData, handleGenericError]);
   const updateProduit = useCallback(async (data: Produit) => {
-    try { await api.updateProduct(data.id, data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.updateProduct(data.id, data); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+  }, [refreshAllData, handleGenericError]);
   const deleteProduits = useCallback(async (ids: number[]) => {
-    try { await api.deleteProducts(ids); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.deleteProducts(ids); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
+  }, [refreshAllData, handleGenericError]);
   const assignProduits = useCallback(async (data: AssignationPayload) => {
-    try { await api.assignProducts(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'assignation"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
-  const addMultipleProduits = useCallback(async () => { await fetchAllData(currentUser); }, [fetchAllData, currentUser]);
+    try { await api.assignProducts(data); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur d'assignation"); }
+  }, [refreshAllData, handleGenericError]);
+  const addMultipleProduits = useCallback(async () => { await refreshAllData(); }, [refreshAllData]);
   
   const addClient = useCallback(async (data: Omit<Client, 'id'>) => {
-    try { await api.createClient(data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.createClient(data); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+  }, [refreshAllData, handleGenericError]);
   const updateClient = useCallback(async (id: number, data: Partial<Client>) => {
-    try { await api.updateClient(id, data); await fetchAllData(currentUser); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
-  }, [fetchAllData, handleGenericError, currentUser]);
+    try { await api.updateClient(id, data); await refreshAllData(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+  }, [refreshAllData, handleGenericError]);
   const deleteClient = useCallback(async (id: number) => {
     try {
         await api.deleteClient(id);
-        await fetchAllData(currentUser);
+        await refreshAllData();
         toast({ title: "Client supprimé" });
     } catch(error) {
         handleGenericError(error, "Erreur de suppression");
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const deleteFacture = useCallback(async (factureId: number) => {
     try {
@@ -299,82 +299,82 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const createInventaire = useCallback(async (payload: InventairePayload, isFirst: boolean): Promise<Inventaire | null> => {
     try {
       const newInventaire = await api.createInventaire(payload, isFirst);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Inventaire enregistré avec succès" });
       return newInventaire;
     } catch (error) {
       handleGenericError(error, "Erreur d'enregistrement");
       return null;
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const addReapprovisionnement = useCallback(async (payload: ReapproPayload): Promise<Reapprovisionnement | null> => {
     try {
       const newReappro = await api.createReapprovisionnement(payload);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Réapprovisionnement enregistré avec succès" });
       return newReappro;
     } catch (error) {
       handleGenericError(error, "Erreur d'enregistrement");
       return null;
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const createCommande = useCallback(async (payload: CommandePayload): Promise<Commande | null> => {
     try {
       const newCommande = await api.createCommande(payload);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Commande créée avec succès" });
       return newCommande;
     } catch (error) {
         handleGenericError(error, "Erreur de création");
         return null;
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const createVente = useCallback(async (payload: VenteDirectePayload): Promise<Vente | null> => {
     try {
       const newVente = await api.createVenteDirecte(payload);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Vente finalisée !", description: `Le stock a été mis à jour.`});
       return newVente;
     } catch (error) {
         handleGenericError(error, "Erreur de vente");
         return null;
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const annulerVente = useCallback(async (venteId: number) => {
     try {
       await api.annulerVente(venteId);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Vente annulée", description: "Le stock a été restauré." });
     } catch (error) {
         handleGenericError(error, "Erreur d'annulation de la vente");
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const validerCommande = useCallback(async (commandeId: number): Promise<Commande | null> => {
     try {
       const validationData = await api.validerCommande(commandeId);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Commande validée" });
       return validationData;
     } catch (error) {
         handleGenericError(error, "Erreur de validation");
         return null;
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const annulerCommande = useCallback(async (commandeId: number) => {
     try {
       await api.annulerCommande(commandeId);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Commande annulée" });
     } catch (error) {
         handleGenericError(error, "Erreur d'annulation");
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const genererFacture = useCallback(async (commandeId: number) => {
     try {
@@ -389,38 +389,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const genererBonLivraison = useCallback(async (commandeId: number) => {
     try {
       await api.genererBonLivraison(commandeId);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Bon de livraison généré" });
     } catch (error) {
         handleGenericError(error, "Erreur de génération");
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
  const validerLivraisonEtape1 = useCallback(async (livraisonId: number) => {
     try {
       await api.validerLivraisonEtape1(livraisonId);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Bon de livraison validé" });
     } catch (error) {
         handleGenericError(error, "Erreur de validation (Étape 1)");
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const validerLivraisonEtape2 = useCallback(async (livraisonId: number) => {
     try {
       await api.validerLivraisonEtape2(livraisonId);
-      await fetchAllData(currentUser);
+      await refreshAllData();
       toast({ title: "Livraison confirmée et stock mis à jour" });
     } catch (error) {
         handleGenericError(error, "Erreur de validation (Étape 2)");
     }
-  }, [fetchAllData, toast, handleGenericError, currentUser]);
-
-  const updateCommandeStatus = useCallback((commandeId: number, status: CommandeStatus) => {
-    setCommandes(prev => 
-      prev.map(cmd => cmd.id === commandeId ? { ...cmd, statut: status } : cmd)
-    );
-  }, []);
+  }, [refreshAllData, toast, handleGenericError]);
 
   const value = useMemo(() => ({
     produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, fetchFactures,
@@ -430,7 +424,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
-    validerLivraisonEtape1, validerLivraisonEtape2, updateCommandeStatus,
+    validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, isAuthenticated: !!token, currentUser,
     login, logout, hasPermission,
@@ -443,7 +437,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
-    validerLivraisonEtape1, validerLivraisonEtape2, updateCommandeStatus,
+    validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout
   ]);

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
@@ -21,7 +22,7 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
 const MAX_NOTIFICATIONS = 50;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, currentUser, updateCommandeStatus } = useApp();
+  const { isAuthenticated, currentUser, refreshAllData } = useApp();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stompClient, setStompClient] = useState<Client | null>(null);
@@ -49,10 +50,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         });
       }
 
-      if (newNotification.commandeId && newNotification.statut) {
-          updateCommandeStatus(newNotification.commandeId, newNotification.statut as CommandeStatus);
-      }
-  }, [toast, updateCommandeStatus]);
+      refreshAllData();
+
+  }, [toast, refreshAllData]);
 
   useEffect(() => {
     if (isAuthenticated && currentUser && !stompClient) {
