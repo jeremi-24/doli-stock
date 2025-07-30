@@ -30,6 +30,51 @@ type VenteLigne = {
     type: 'UNITE' | 'CARTON';
 };
 
+function ScanSelectionDialog({
+    isOpen,
+    onOpenChange,
+    produit,
+    onSelect,
+}: {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    produit: Produit | null;
+    onSelect: (type: 'UNITE' | 'CARTON') => void;
+}) {
+    if (!produit) return null;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="font-headline">Produit Scanné : {produit.nom}</DialogTitle>
+                    <DialogDescription>Comment souhaitez-vous ajouter cet article au panier ?</DialogDescription>
+                </DialogHeader>
+                <div className="py-4 flex justify-around gap-4">
+                    <Button 
+                        size="lg" 
+                        className="flex-1"
+                        onClick={() => onSelect('UNITE')}
+                    >
+                        <Package className="mr-2 h-5 w-5"/>
+                        Ajouter en Unité
+                    </Button>
+                    <Button 
+                        size="lg" 
+                        variant="secondary"
+                        className="flex-1"
+                        onClick={() => onSelect('CARTON')}
+                        disabled={!produit.prixCarton}
+                    >
+                         <CartonIcon className="mr-2 h-5 w-5"/>
+                        Ajouter en Carton
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function CheckoutDialog({
   isOpen,
   onOpenChange,
@@ -116,6 +161,9 @@ export default function POSPage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  const [scannedProductForSelection, setScannedProductForSelection] = useState<Produit | null>(null);
+  const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
 
 
   useEffect(() => {
@@ -231,8 +279,8 @@ export default function POSPage() {
     try {
         const product = await api.getProductByBarcode(barcode);
         if (product && product.id) {
-            handleAddToCart(product, 'UNITE');
-            toast({ title: "Produit ajouté", description: product.nom });
+            setScannedProductForSelection(product);
+            setIsSelectionModalOpen(true);
         } else {
             setScanError(`Produit non trouvé pour le code-barres : ${barcode}`);
         }
@@ -243,7 +291,18 @@ export default function POSPage() {
         setIsScanning(false);
         setBarcode("");
     }
-};
+  };
+
+  const handleSelectionFromModal = (type: 'UNITE' | 'CARTON') => {
+    if (scannedProductForSelection) {
+        handleAddToCart(scannedProductForSelection, type);
+        toast({ title: "Produit ajouté", description: `${scannedProductForSelection.nom} (${type})` });
+    }
+    setIsSelectionModalOpen(false);
+    setScannedProductForSelection(null);
+    barcodeInputRef.current?.focus();
+  };
+
 
   const total = useMemo(() => {
     return cart.reduce((acc, item) => acc + item.prix_total, 0);
@@ -423,6 +482,18 @@ export default function POSPage() {
             </div>
         )}
       </div>
+       <ScanSelectionDialog 
+        isOpen={isSelectionModalOpen}
+        onOpenChange={(open) => {
+            if (!open) {
+                setScannedProductForSelection(null);
+                barcodeInputRef.current?.focus();
+            }
+            setIsSelectionModalOpen(open);
+        }}
+        produit={scannedProductForSelection}
+        onSelect={handleSelectionFromModal}
+      />
       <CheckoutDialog 
         isOpen={isCheckoutOpen} 
         onOpenChange={setIsCheckoutOpen} 
