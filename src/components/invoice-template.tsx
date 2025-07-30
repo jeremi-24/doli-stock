@@ -20,6 +20,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
               src={shopInfo.logoUrl} 
               alt={`${shopInfo.nom} Logo`} 
               className="h-16 w-auto max-w-full object-contain"
+              crossOrigin="anonymous"
               onError={(e) => { e.currentTarget.style.display = 'none'; const fallback = document.getElementById('logo-fallback'); if(fallback) fallback.style.display = 'block'; }}
             />
           ) : null}
