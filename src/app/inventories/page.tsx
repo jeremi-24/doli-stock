@@ -60,7 +60,7 @@ export default function InventoriesPage() {
                   <TableHead>N° Inventaire</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Chargé de l'inventaire</TableHead>
-                  <TableHead>Nb. Lignes</TableHead>
+                  <TableHead>Nombre de produit comptés</TableHead>
                   <TableHead><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>

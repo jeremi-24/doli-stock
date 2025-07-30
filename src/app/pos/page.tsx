@@ -47,8 +47,8 @@ function ScanSelectionDialog({
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="font-headline">Produit Scanné : {produit.nom}</DialogTitle>
-                    <DialogDescription>Comment souhaitez-vous ajouter cet article au panier ?</DialogDescription>
+                    <DialogTitle className="font-headline">Comment souhaitez-vous vendre  : {produit.nom}</DialogTitle>
+                    <DialogDescription> </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 flex justify-around gap-4">
                     <Button 
@@ -57,7 +57,7 @@ function ScanSelectionDialog({
                         onClick={() => onSelect('UNITE')}
                     >
                         <Package className="mr-2 h-5 w-5"/>
-                        Ajouter en Unité
+                    Vendre l'unité
                     </Button>
                     <Button 
                         size="lg" 
@@ -67,7 +67,7 @@ function ScanSelectionDialog({
                         disabled={!produit.prixCarton}
                     >
                          <CartonIcon className="mr-2 h-5 w-5"/>
-                        Ajouter en Carton
+                      Vendre le carton
                     </Button>
                 </div>
             </DialogContent>

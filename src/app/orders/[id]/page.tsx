@@ -12,7 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { InvoiceTemplate } from '@/components/invoice-template';
 import { DeliverySlipTemplate } from '@/components/delivery-slip-template';
-import { useReactToPrint } from 'react-to-print';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { useApp } from '@/context/app-provider';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
@@ -26,6 +27,7 @@ function DocumentViewer() {
     const [facture, setFacture] = useState<Facture | null | undefined>(undefined);
     const [bonLivraison, setBonLivraison] = useState<BonLivraison | null | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
+    const [isPrinting, setIsPrinting] = useState(false);
 
     const invoiceRef = useRef<HTMLDivElement>(null);
     const deliverySlipRef = useRef<HTMLDivElement>(null);
@@ -44,21 +46,59 @@ function DocumentViewer() {
       }
     }, [id, isMounted, commandes, factures, bonLivraisons]);
 
+    const handlePrint = async (elementRef: React.RefObject<HTMLDivElement>, documentTitle: string) => {
+        if (!elementRef.current) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Le contenu à imprimer n\'est pas disponible.' });
+            return;
+        }
 
-    const handlePrintInvoice = useReactToPrint({
-        content: () => invoiceRef.current,
-        documentTitle: `Facture-${facture?.idFacture || id}`,
-    });
+        setIsPrinting(true);
+        try {
+            const canvas = await html2canvas(elementRef.current, {
+                scale: 2, // Améliore la qualité de l'image
+                useCORS: true,
+            });
+            const imgData = canvas.toDataURL('image/png');
+            
+            // Dimensions A4 en mm: 210 x 297
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4',
+            });
 
-    const handlePrintSlip = useReactToPrint({
-        content: () => deliverySlipRef.current,
-        documentTitle: `BL-${bonLivraison?.id || id}`,
-    });
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = imgWidth / imgHeight;
+            
+            let finalImgWidth = pdfWidth;
+            let finalImgHeight = pdfWidth / ratio;
+            
+            if (finalImgHeight > pdfHeight) {
+                finalImgHeight = pdfHeight;
+                finalImgWidth = pdfHeight * ratio;
+            }
+
+            const x = (pdfWidth - finalImgWidth) / 2;
+            const y = (pdfHeight - finalImgHeight) / 2;
+
+            pdf.addImage(imgData, 'PNG', x > 0 ? x : 0, y > 0 ? y : 0, finalImgWidth, finalImgHeight);
+            pdf.save(`${documentTitle}.pdf`);
+            
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur d\'impression', description: 'Une erreur est survenue lors de la génération du PDF.' });
+        } finally {
+            setIsPrinting(false);
+        }
+    };
     
-    const handlePrintAll = () => {
-        handlePrintInvoice();
-        handlePrintSlip();
+    const handlePrintAll = async () => {
+        if (invoiceRef.current) await handlePrint(invoiceRef, `Facture-${facture?.idFacture || id}`);
+        if (deliverySlipRef.current) await handlePrint(deliverySlipRef, `BL-${bonLivraison?.id || id}`);
     }
+
 
     if (isLoading || !isMounted) {
         return (
@@ -109,9 +149,15 @@ function DocumentViewer() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handlePrintInvoice}><Printer className="h-4 w-4 mr-2" /> Imprimer Facture</Button>
-                    <Button variant="outline" onClick={handlePrintSlip}><Printer className="h-4 w-4 mr-2" /> Imprimer BL</Button>
-                    <Button onClick={handlePrintAll}><Printer className="h-4 w-4 mr-2" /> Imprimer Tout</Button>
+                    <Button variant="outline" onClick={() => handlePrint(invoiceRef, `Facture-${facture?.idFacture || id}`)} disabled={isPrinting}>
+                        {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer Facture
+                    </Button>
+                    <Button variant="outline" onClick={() => handlePrint(deliverySlipRef, `BL-${bonLivraison?.id || id}`)} disabled={isPrinting}>
+                        {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer BL
+                    </Button>
+                    <Button onClick={handlePrintAll} disabled={isPrinting}>
+                        {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer Tout
+                    </Button>
                 </div>
             </div>
 
@@ -145,3 +191,5 @@ function DocumentViewer() {
 }
 
 export default DocumentViewer;
+
+    

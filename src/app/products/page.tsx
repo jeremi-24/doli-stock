@@ -368,10 +368,9 @@ export default function ProductsPage() {
                 <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <CardTitle className="font-headline flex items-center gap-2">
-                            <Package /> Catalogue Produits ({filteredProduits.length})
+                            <Package /> Liste des Produits ({filteredProduits.length})
                         </CardTitle>
                         <CardDescription>
-                            Liste de tous les produits de votre catalogue. Cliquez sur une ligne pour voir les détails.
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
@@ -421,9 +420,9 @@ export default function ProductsPage() {
                                     </TableHead>
                                     <TableHead>Nom du Produit</TableHead>
                                     {columnVisibility['ref'] && <TableHead>Référence</TableHead>}
-                                    {columnVisibility['prix'] && <TableHead className="text-right">Prix (Unité)</TableHead>}
+                                    {columnVisibility['prix'] && <TableHead className="text-right">Prix Unitaire</TableHead>}
                                     {columnVisibility['prixCarton'] && <TableHead className="text-right">Prix (Carton)</TableHead>}
-                                    {columnVisibility['quantiteTotaleGlobale'] && <TableHead className="text-right">Stock Total (U)</TableHead>}
+                                    {columnVisibility['quantiteTotaleGlobale'] && <TableHead className="text-right">Qantité Totale </TableHead>}
                                     {columnVisibility['qteParCarton'] && <TableHead className="text-right">U/Carton</TableHead>}
                                     {columnVisibility['qteMin'] && <TableHead className="text-right">Seuil Alerte</TableHead>}
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
