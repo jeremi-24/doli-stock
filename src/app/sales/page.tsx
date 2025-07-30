@@ -7,13 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { Vente, VenteLigne } from '@/lib/types';
 import * as api from '@/lib/api';
-import { Eye, Search, History, Loader2, User, Tag, ShoppingCart, DollarSign } from 'lucide-react';
+import { Eye, Search, History, Loader2, User, Tag, ShoppingCart, DollarSign, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/context/app-provider';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
 
 function SaleDetailsDialog({ vente }: { vente: Vente }) {
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -60,30 +64,32 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
 
 
 export default function SalesPage() {
-  const { hasPermission } = useApp();
+  const { hasPermission, annulerVente } = useApp();
   const { toast } = useToast();
   const [ventes, setVentes] = useState<Vente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCancelling, setIsCancelling] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
-  useEffect(() => {
-    async function fetchVentes() {
-        if (!hasPermission('VENTE_READ')) return setIsLoading(false);
-        try {
-            setIsLoading(true);
-            const data = await api.getVentes();
-            setVentes(data.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-            toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
-        } finally {
-            setIsLoading(false);
-        }
+  const fetchVentes = React.useCallback(async () => {
+    if (!hasPermission('VENTE_READ')) return setIsLoading(false);
+    try {
+        setIsLoading(true);
+        const data = await api.getVentes();
+        setVentes(data.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
+    } finally {
+        setIsLoading(false);
     }
-    fetchVentes();
   }, [toast, hasPermission]);
+
+  useEffect(() => {
+    fetchVentes();
+  }, [fetchVentes]);
 
 
   const filteredSales = useMemo(() => {
@@ -95,6 +101,16 @@ export default function SalesPage() {
       );
   }, [ventes, searchTerm, isLoading]);
   
+  const handleCancelSale = async (id: number) => {
+    setIsCancelling(id);
+    try {
+        await annulerVente(id);
+        await fetchVentes();
+    } finally {
+        setIsCancelling(null);
+    }
+  }
+
   if (!hasPermission('VENTE_READ')) {
     return (
         <div className="flex flex-1 items-center justify-center">
@@ -136,22 +152,48 @@ export default function SalesPage() {
                             <TableHead>Client</TableHead>
                             <TableHead>Caissier</TableHead>
                             <TableHead className="text-right">Total</TableHead>
-                            <TableHead className="text-center w-[80px]">Détails</TableHead>
+                            <TableHead className="text-center w-[120px]">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                     {isLoading ? (
                         <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                     ) : filteredSales.length > 0 ? filteredSales.map(vente => {
+                        const isAnnulee = vente.statut === 'ANNULEE';
                         return (
-                        <TableRow key={vente.id}>
+                        <TableRow key={vente.id} className={cn(isAnnulee && "bg-destructive/10 text-muted-foreground")}>
                             <TableCell className="font-mono text-xs">{vente.ref}</TableCell>
                             <TableCell>{vente.date ? format(new Date(vente.date), 'd MMM yyyy, HH:mm', { locale: fr }) : "N/A"}</TableCell>
                             <TableCell className="font-medium">{vente.client?.nom || 'N/A'}</TableCell>
                             <TableCell>{vente.caissier}</TableCell>
-                            <TableCell className="text-right font-semibold">{formatCurrency(vente.total)}</TableCell>
+                            <TableCell className={cn("text-right font-semibold", !isAnnulee && "text-foreground")}>{formatCurrency(vente.total)}</TableCell>
                             <TableCell className="text-center">
-                                <SaleDetailsDialog vente={vente} />
+                               {isAnnulee ? (
+                                    <Badge variant="destructive">Annulée</Badge>
+                                ) : (
+                                    <div className="flex items-center justify-center">
+                                        <SaleDetailsDialog vente={vente} />
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" disabled={isCancelling === vente.id}>
+                                                    {isCancelling === vente.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive"/>}
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Annuler la vente #{vente.ref}?</AlertDialogTitle>
+                                                    <AlertDialogDesc>
+                                                        Cette action est irréversible. Elle annulera la vente et restaurera le stock des produits concernés.
+                                                    </AlertDialogDesc>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Retour</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleCancelSale(vente.id)}>Confirmer l'annulation</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
+                                )}
                             </TableCell>
                         </TableRow>
                     )}) : (<TableRow><TableCell colSpan={6} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}

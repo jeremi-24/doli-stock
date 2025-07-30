@@ -239,6 +239,7 @@ export type Vente = {
     client: Client | null;
     lignes: VenteLigne[];
     total: number;
+    statut?: 'COMPLETEE' | 'ANNULEE';
 };
 
 export type VenteDirecteLignePayload = {

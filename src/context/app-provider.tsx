@@ -38,6 +38,7 @@ interface AppContextType {
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   createCommande: (payload: CommandePayload) => Promise<Commande | null>;
   createVente: (payload: VenteDirectePayload) => Promise<Vente | null>;
+  annulerVente: (venteId: number) => Promise<void>;
   validerCommande: (commandeId: number) => Promise<Commande | null>;
   annulerCommande: (commandeId: number) => Promise<void>;
   genererFacture: (commandeId: number) => Promise<void>;
@@ -342,6 +343,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchAllData, toast, handleGenericError, currentUser]);
 
+  const annulerVente = useCallback(async (venteId: number) => {
+    try {
+      await api.annulerVente(venteId);
+      await fetchAllData(currentUser);
+      toast({ title: "Vente annulée", description: "Le stock a été restauré." });
+    } catch (error) {
+        handleGenericError(error, "Erreur d'annulation de la vente");
+    }
+  }, [fetchAllData, toast, handleGenericError, currentUser]);
+
   const validerCommande = useCallback(async (commandeId: number): Promise<Commande | null> => {
     try {
       const validationData = await api.validerCommande(commandeId);
@@ -411,7 +422,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
-    createCommande, createVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
+    createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, isAuthenticated: !!token, currentUser,
@@ -424,7 +435,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient, deleteFacture,
     createInventaire, addReapprovisionnement,
-    createCommande, createVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
+    createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2,
     shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout

@@ -246,6 +246,10 @@ export async function getVentes(): Promise<Vente[]> {
 export async function createVenteDirecte(data: VenteDirectePayload): Promise<Vente> {
     return apiFetch('/ventes/directe', { method: 'POST', body: JSON.stringify(data) });
 }
+export async function annulerVente(id: number): Promise<void> {
+    return apiFetch(`/ventes/annuler/${id}`, { method: 'PUT' });
+}
+
 
 // ========== Inventaires API ==========
 export async function getInventaires(): Promise<Inventaire[]> {
