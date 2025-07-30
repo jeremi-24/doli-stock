@@ -1,5 +1,5 @@
 
-# STA - Système de Gestion de Stock Avancé
+# STA - Stock Management
 
 ![Logo STA](public/logosta.jpg)
 
