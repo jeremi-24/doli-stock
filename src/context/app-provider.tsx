@@ -174,16 +174,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(userProfile);
       const userPermissions = new Set(userProfile.permissions?.filter(p => p.autorise).map(p => p.action) || []);
       setPermissions(userPermissions);
-      await refreshAllData();
       return true;
     } catch (error) {
       handleGenericError(error, "Erreur de chargement de la session");
       logout();
       return false;
     }
-  }, [refreshAllData, handleGenericError, logout]);
+  }, [handleGenericError, logout]);
 
-  
   useEffect(() => {
     const initializeApp = async () => {
       const storedThemeColors = localStorage.getItem('stockhero_themecolors');
@@ -201,6 +199,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (currentUser) {
+      refreshAllData();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
   
   useEffect(() => {
     if (isMounted) {
@@ -439,7 +443,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
     shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout
+    isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout, loadUserAndData
   ]);
 
   return (
