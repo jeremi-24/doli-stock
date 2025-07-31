@@ -55,13 +55,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [toast, refreshAllData]);
 
   useEffect(() => {
-    if (isAuthenticated && currentUser && !stompClient) {
+    if (isAuthenticated && currentUser) {
       if (!WS_URL) {
         console.error("STOMP: WebSocket URL is not configured. Please set NEXT_PUBLIC_WS_URL in your environment variables.");
         return;
       }
-      
-      // 1. Fetch historical notifications
+
       api.getNotificationsByUserId(currentUser.id)
         .then(history => {
             if (history) {
@@ -71,7 +70,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         })
         .catch(err => console.error("Failed to fetch notification history", err));
 
-      // 2. Setup WebSocket client
       const token = localStorage.getItem('stockhero_token');
       
       const client = new Client({
@@ -81,7 +79,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
         onConnect: (frame: IFrame) => {
-          console.log('STOMP: Connected successfully to the server.');
+          console.log('STOMP: Connected successfully.');
           
           const topics = ['/app'];
           if (currentUser.roleNom) {
@@ -91,6 +89,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             topics.push(`/topic/client/${currentUser.clientId}`);
           }
           
+          console.log(`STOMP: Subscribing to topics: ${topics.join(', ')}`);
           topics.forEach(topic => {
             client.subscribe(topic, (message) => {
               console.log(`STOMP: Received message on ${topic}`);
@@ -103,17 +102,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             });
           });
         },
-        onStompError: (frame: IFrame) => console.error('STOMP: Broker reported error: ' + frame.headers['message'] + '. Additional details: ' + frame.body),
+        onStompError: (frame: IFrame) => console.error('STOMP: Broker reported error: ' + frame.headers['message'] + '. Details: ' + frame.body),
         onWebSocketError: (error) => console.error('STOMP: WebSocket connection error', error),
-        onDisconnect: () => console.log('STOMP: Disconnected from the server.'),
+        onDisconnect: () => console.log('STOMP: Disconnected.'),
       });
 
       client.activate();
       setStompClient(client);
-    } else if (!isAuthenticated && stompClient) {
-      stompClient.deactivate();
-      setStompClient(null);
-      setNotifications([]);
+
+    } else {
+        if (stompClient?.active) {
+            stompClient.deactivate();
+        }
+        setStompClient(null);
+        setNotifications([]);
     }
 
     return () => {
@@ -121,7 +123,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         stompClient.deactivate();
       }
     };
-  }, [isAuthenticated, currentUser, stompClient, processNotificationPayload]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, currentUser]);
 
 
   const markAsRead = useCallback((id?: number) => {
