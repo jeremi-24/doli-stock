@@ -128,11 +128,26 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
 
   const markAsRead = useCallback((id?: number) => {
-    setNotifications(prev =>
-      prev.map(n => (id === undefined || n.id === id) ? { ...n, lu: true } : n)
-    );
-    // Here you would also call an API to mark them as read on the backend
-  }, []);
+    if (id === undefined) {
+      // Mark all as read
+      const unreadIds: number[] = [];
+      const updatedNotifications = notifications.map(n => {
+        if (!n.lu) {
+          if (n.id) unreadIds.push(n.id);
+          return { ...n, lu: true };
+        }
+        return n;
+      });
+      setNotifications(updatedNotifications);
+      unreadIds.forEach(notifId => api.markNotificationAsRead(notifId).catch(err => console.error(`Failed to mark notification ${notifId} as read`, err)));
+    } else {
+      // Mark a single notification as read
+      setNotifications(prev =>
+        prev.map(n => (n.id === id ? { ...n, lu: true } : n))
+      );
+      api.markNotificationAsRead(id).catch(err => console.error(`Failed to mark notification ${id} as read`, err));
+    }
+  }, [notifications]);
 
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.lu).length;

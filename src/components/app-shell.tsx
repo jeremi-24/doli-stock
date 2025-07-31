@@ -43,6 +43,12 @@ import { fr } from 'date-fns/locale';
 function NotificationBell() {
   const { notifications, markAsRead, unreadCount } = useNotifications();
 
+  const handleNotificationClick = (notif: any) => {
+    if (!notif.lu) {
+      markAsRead(notif.id);
+    }
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -62,7 +68,7 @@ function NotificationBell() {
             ) : (
                 <div className="divide-y">
                     {notifications.map(notif => (
-                        <div key={notif.id} className={cn("p-4 text-sm", !notif.lu && "bg-accent/50")}>
+                        <div key={notif.id} className={cn("p-4 text-sm cursor-pointer hover:bg-muted/50", !notif.lu && "bg-accent/50")} onClick={() => handleNotificationClick(notif)}>
                             <p className="font-semibold">{notif.type}</p>
                             <p className="text-muted-foreground">{notif.message}</p>
                              {notif.date && (

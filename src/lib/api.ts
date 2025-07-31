@@ -322,3 +322,7 @@ export async function validerLivraisonEtape2(id: number): Promise<BonLivraison> 
 export async function getNotificationsByUserId(userId: number): Promise<Notification[]> {
     return apiFetch(`/notifications/user/${userId}`);
 }
+
+export async function markNotificationAsRead(id: number): Promise<void> {
+    return apiFetch(`/notifications/${id}/lu`, { method: 'PUT' });
+}
