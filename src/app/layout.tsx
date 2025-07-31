@@ -7,7 +7,7 @@ import { AppShell } from '@/components/app-shell';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'StockHero',
+  title: 'STA',
   description: 'Gérez vos stocks, créez des factures, et plus encore.',
 };
 
