@@ -55,6 +55,9 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
       }
     }
 
+    if (options.headers?.['Accept']?.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || response.headers.get('Content-Type')?.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+        return response.blob();
+    }
     if (options.headers?.['Accept'] === 'application/pdf' || response.headers.get('Content-Type')?.includes('application/pdf')) {
         return response.blob();
     }
@@ -261,6 +264,25 @@ export async function getInventaire(id: number): Promise<Inventaire> {
 export async function createInventaire(data: InventairePayload, isFirst: boolean): Promise<Inventaire> {
   return apiFetch(`/inventaire?premier=${isFirst}`, { method: 'POST', body: JSON.stringify(data) });
 }
+
+export async function exportInventaire(id: number): Promise<void> {
+  const blob = await apiFetch(`/inventaire/${id}/export`, {
+    method: 'GET',
+    headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  }) as Blob;
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `inventaire_${id}.xlsx`; // Nom du fichier
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+
+  return Promise.resolve();
+}
+
 
 // ========== Restocking API ==========
 export async function getReapprovisionnements(): Promise<Reapprovisionnement[]> {

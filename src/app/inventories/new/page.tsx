@@ -103,11 +103,17 @@ export default function NewInventoryPage() {
             produits: scannedItems.map(({ nomProduit, barcode, ...item}) => item)
         };
         
-        const newInventory = await createInventaire(payload, isFirstInventory);
-        
-        if (newInventory) {
-            router.push(`/inventories/${newInventory.inventaireId}`);
-        } else {
+        try {
+            const newInventory = await createInventaire(payload, isFirstInventory);
+            
+            if (newInventory && newInventory.inventaireId) {
+                toast({ title: "Exportation...", description: "Le fichier d'inventaire est en cours de téléchargement." });
+                await api.exportInventaire(newInventory.inventaireId);
+                router.push(`/inventories/${newInventory.inventaireId}`);
+            } else {
+                 setIsSaving(false);
+            }
+        } catch (error) {
             // Error toast is handled by the provider
             setIsSaving(false);
         }

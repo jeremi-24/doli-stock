@@ -4,11 +4,10 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VenteDirectePayload, Vente, CommandeStatus } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VenteDirectePayload, Vente, CommandeStatus, Notification } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
-import { Console } from 'console';
 
 interface AppContextType {
   produits: Produit[];
@@ -305,6 +304,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newInventaire = await api.createInventaire(payload, isFirst);
       await refreshAllData();
       toast({ title: "Inventaire enregistré avec succès" });
+      if (newInventaire && newInventaire.inventaireId) {
+        toast({ title: "Exportation...", description: "Le fichier d'inventaire est en cours de téléchargement." });
+        await api.exportInventaire(newInventaire.inventaireId);
+      }
       return newInventaire;
     } catch (error) {
       handleGenericError(error, "Erreur d'enregistrement");
@@ -443,7 +446,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
     shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout, loadUserAndData
+    isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout
   ]);
 
   return (

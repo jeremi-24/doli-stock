@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from "@/components/ui/badge";
 import type { Inventaire } from '@/lib/types';
 import * as api from '@/lib/api';
-import { PlusCircle, ClipboardList, Eye, Loader2 } from 'lucide-react';
+import { PlusCircle, ClipboardList, Eye, Loader2, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,7 @@ export default function InventoriesPage() {
   const { toast } = useToast();
   const [inventaires, setInventaires] = useState<Inventaire[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [exportingId, setExportingId] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchInventaires() {
@@ -35,6 +36,19 @@ export default function InventoriesPage() {
     }
     fetchInventaires();
   }, [toast]);
+  
+  const handleExport = async (id: number) => {
+    setExportingId(id);
+    try {
+        toast({ title: "Préparation de l'export...", description: "Le téléchargement va bientôt commencer."});
+        await api.exportInventaire(id);
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: "Erreur d'exportation", description: errorMessage });
+    } finally {
+        setExportingId(null);
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -61,7 +75,7 @@ export default function InventoriesPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Chargé de l'inventaire</TableHead>
                   <TableHead>Nombre de produit comptés</TableHead>
-                  <TableHead><span className="sr-only">Actions</span></TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -76,6 +90,10 @@ export default function InventoriesPage() {
                     <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/${inv.inventaireId}`)}>
                             <Eye className="h-4 w-4" /><span className="sr-only">Voir les détails</span>
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleExport(inv.inventaireId)} disabled={exportingId === inv.inventaireId}>
+                           {exportingId === inv.inventaireId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                           <span className="sr-only">Exporter</span>
                         </Button>
                     </TableCell>
                   </TableRow>
