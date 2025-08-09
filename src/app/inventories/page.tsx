@@ -9,10 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from "@/components/ui/badge";
 import type { Inventaire } from '@/lib/types';
 import * as api from '@/lib/api';
-import { PlusCircle, ClipboardList, Eye, Loader2, Download } from 'lucide-react';
+import { PlusCircle, ClipboardList, Eye, Loader2, Download, Trash2, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function InventoriesPage() {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function InventoriesPage() {
   const [inventaires, setInventaires] = useState<Inventaire[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [exportingId, setExportingId] = useState<number | null>(null);
+  const [drafts, setDrafts] = useLocalStorage<any[]>('inventory_drafts', []);
 
   useEffect(() => {
     async function fetchInventaires() {
@@ -50,10 +53,15 @@ export default function InventoriesPage() {
     }
   }
 
+  const deleteDraft = (draftId: string) => {
+    setDrafts(currentDrafts => currentDrafts.filter(d => d.id !== draftId));
+    toast({ title: "Brouillon supprimé" });
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center gap-4">
-        <h1 className="font-headline text-3xl font-semibold">Historique des Inventaires</h1>
+        <h1 className="font-headline text-3xl font-semibold">Gestion des Inventaires</h1>
         <div className="ml-auto">
           <Button size="sm" onClick={() => router.push('/inventories/new')}>
             <PlusCircle className="h-4 w-4 mr-2" /> Nouvel Inventaire
@@ -61,10 +69,62 @@ export default function InventoriesPage() {
         </div>
       </div>
 
+      {drafts.length > 0 && (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">Brouillons d'Inventaire</CardTitle>
+                <CardDescription>Reprenez un inventaire que vous avez commencé.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="border rounded-lg">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Nom du brouillon</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead className="text-right">Nb. Produits</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {drafts.map(draft => (
+                                <TableRow key={draft.id}>
+                                    <TableCell className="font-medium">{draft.name}</TableCell>
+                                    <TableCell>{format(new Date(draft.date), 'd MMM yyyy, HH:mm', { locale: fr })}</TableCell>
+                                    <TableCell className="text-right">{draft.items.length}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="outline" size="sm" onClick={() => router.push(`/inventories/new?draft=${draft.id}`)}>
+                                            <Edit className="h-4 w-4 mr-2"/> Continuer
+                                        </Button>
+                                         <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Supprimer le brouillon "{draft.name}" ?</AlertDialogTitle>
+                                                    <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => deleteDraft(draft.id)}>Supprimer</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline flex items-center gap-2"><ClipboardList /> Tous les inventaires</CardTitle>
-          <CardDescription>Liste de tous les inventaires réalisés.</CardDescription>
+          <CardTitle className="font-headline flex items-center gap-2"><ClipboardList /> Historique des inventaires</CardTitle>
+          <CardDescription>Liste de tous les inventaires soumis et validés.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg">

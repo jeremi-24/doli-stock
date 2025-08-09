@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,16 +12,41 @@ import { useApp } from '@/context/app-provider';
 import type { ScannedProduit, Produit } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Search, Package, Save, Loader2, Minus, Plus, Box, Package as UnitIcon, Trash2 } from 'lucide-react';
+import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, FileDown } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { Dialog, DialogClose, DialogContent as DialogContentNonClosable } from '@/components/ui/dialog';
 
+function SaveDraftDialog({ onSave }: { onSave: (name: string) => void }) {
+    const [name, setName] = useState(`Brouillon ${new Date().toLocaleDateString('fr-FR')}`);
+    return (
+        <DialogContentNonClosable>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Sauvegarder le brouillon</AlertDialogTitle>
+                <AlertDialogDescription>Donnez un nom à ce brouillon d'inventaire pour le retrouver plus tard.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+                <Label htmlFor="draft-name">Nom du brouillon</Label>
+                <Input id="draft-name" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <AlertDialogFooter>
+                <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
+                <Button onClick={() => onSave(name)} disabled={!name}>Sauvegarder</Button>
+            </AlertDialogFooter>
+        </DialogContentNonClosable>
+    )
+}
 
 export default function NewInventoryPage() {
     const { createInventaire, currentUser } = useApp();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
+
+    const [drafts, setDrafts] = useLocalStorage<any[]>('inventory_drafts', []);
+    const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
 
     const [scannedItems, setScannedItems] = useState<ScannedProduit[]>([]);
     const [barcode, setBarcode] = useState("");
@@ -31,6 +56,19 @@ export default function NewInventoryPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [productCache, setProductCache] = useState<Map<string, Produit>>(new Map());
     const [isFirstInventory, setIsFirstInventory] = useState(false);
+    const [isDraftDialog, setIsDraftDialog] = useState(false);
+
+    useEffect(() => {
+        const draftId = searchParams.get('draft');
+        if (draftId) {
+            const draft = drafts.find(d => d.id === draftId);
+            if (draft) {
+                setScannedItems(draft.items);
+                setActiveDraftId(draft.id);
+                toast({ title: `Brouillon "${draft.name}" chargé.` });
+            }
+        }
+    }, [searchParams, drafts, toast]);
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
@@ -58,7 +96,6 @@ export default function NewInventoryPage() {
             toast({ title: "Produit ajouté/mis à jour", description: `${quantity} x ${product.nom} (${scanType})` });
         };
 
-        // Check cache first
         if (productCache.has(barcode)) {
             const cachedProduct = productCache.get(barcode)!;
             addOrUpdateProduct(cachedProduct);
@@ -67,7 +104,6 @@ export default function NewInventoryPage() {
             return;
         }
 
-        // If not in cache, make the API call
         setIsScanning(true);
         try {
             const product = await api.getProductByBarcode(barcode);
@@ -90,6 +126,20 @@ export default function NewInventoryPage() {
     const handleRemoveItem = (produitId: number, type: 'UNITE' | 'CARTON') => {
         setScannedItems(currentItems => currentItems.filter(item => !(item.produitId === produitId && item.typeQuantiteScanne === type)));
     };
+    
+    const handleSaveDraft = (name: string) => {
+        const newDraft = {
+            id: activeDraftId || String(Date.now()),
+            name: name,
+            date: new Date().toISOString(),
+            items: scannedItems,
+        };
+        const otherDrafts = drafts.filter(d => d.id !== newDraft.id);
+        setDrafts([...otherDrafts, newDraft]);
+        setActiveDraftId(newDraft.id);
+        toast({ title: "Brouillon sauvegardé", description: `L'inventaire "${name}" a été sauvegardé localement.` });
+        setIsDraftDialog(false);
+    };
 
     const handleSaveInventory = async () => {
         if (scannedItems.length === 0) {
@@ -107,6 +157,9 @@ export default function NewInventoryPage() {
             const newInventory = await createInventaire(payload, isFirstInventory);
             
             if (newInventory && newInventory.inventaireId) {
+                if(activeDraftId) {
+                    setDrafts(drafts.filter(d => d.id !== activeDraftId));
+                }
                 toast({ title: "Exportation...", description: "Le fichier d'inventaire est en cours de téléchargement." });
                 await api.exportInventaire(newInventory.inventaireId);
                 router.push(`/inventories/${newInventory.inventaireId}`);
@@ -114,7 +167,6 @@ export default function NewInventoryPage() {
                  setIsSaving(false);
             }
         } catch (error) {
-            // Error toast is handled by the provider
             setIsSaving(false);
         }
     };
@@ -179,7 +231,7 @@ export default function NewInventoryPage() {
                 <div className="md:col-span-2">
                      <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline flex items-center gap-2"><Package />Produits Scannés</CardTitle>
+                            <CardTitle className="font-headline flex items-center gap-2"><UnitIcon />Produits Scannés</CardTitle>
                             <CardDescription>Liste des produits comptabilisés dans cet inventaire.</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -217,19 +269,29 @@ export default function NewInventoryPage() {
                                 </Table>
                             </div>
                         </CardContent>
-                        <CardFooter className="border-t pt-6">
+                        <CardFooter className="border-t pt-6 flex justify-between">
+                            <AlertDialog open={isDraftDialog} onOpenChange={setIsDraftDialog}>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="outline" disabled={scannedItems.length === 0 || isSaving}>
+                                        <FileDown className="h-4 w-4 mr-2" />
+                                        Sauvegarder le brouillon
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <SaveDraftDialog onSave={handleSaveDraft} />
+                            </AlertDialog>
+
                            <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button disabled={scannedItems.length === 0 || isSaving}>
-                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="h-4 w-4 mr-2" />} 
-                                    {isSaving ? "Enregistrement..." : "Enregistrer l'inventaire"}
+                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Server className="h-4 w-4 mr-2" />} 
+                                    {isSaving ? "Enregistrement..." : "Finaliser et envoyer"}
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Confirmer l'inventaire ?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Cette action soumettra l'inventaire et mettra à jour les quantités en stock de {scannedItems.length} entrée(s). Cette opération est irréversible.
+                                        Cette action soumettra l'inventaire au serveur et mettra à jour les quantités en stock de {scannedItems.length} entrée(s). Cette opération est irréversible.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="flex items-center space-x-2 py-2">
