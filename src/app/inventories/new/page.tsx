@@ -17,25 +17,31 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { Dialog, DialogClose, DialogContent as DialogContentNonClosable } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogClose, DialogContent } from '@/components/ui/dialog';
 
-function SaveDraftDialog({ onSave }: { onSave: (name: string) => void }) {
+function SaveDraftDialog({ onSave, onOpenChange }: { onSave: (name: string) => void, onOpenChange: (open: boolean) => void }) {
     const [name, setName] = useState(`Brouillon ${new Date().toLocaleDateString('fr-FR')}`);
+    
+    const handleSave = () => {
+        onSave(name);
+        onOpenChange(false);
+    }
+    
     return (
-        <DialogContentNonClosable>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Sauvegarder le brouillon</AlertDialogTitle>
-                <AlertDialogDescription>Donnez un nom à ce brouillon d'inventaire pour le retrouver plus tard.</AlertDialogDescription>
-            </AlertDialogHeader>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Sauvegarder le brouillon</DialogTitle>
+                <DialogDescription>Donnez un nom à ce brouillon d'inventaire pour le retrouver plus tard.</DialogDescription>
+            </DialogHeader>
             <div className="py-4">
                 <Label htmlFor="draft-name">Nom du brouillon</Label>
                 <Input id="draft-name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-            <AlertDialogFooter>
+            <DialogFooter>
                 <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-                <Button onClick={() => onSave(name)} disabled={!name}>Sauvegarder</Button>
-            </AlertDialogFooter>
-        </DialogContentNonClosable>
+                <Button onClick={handleSave} disabled={!name}>Sauvegarder</Button>
+            </DialogFooter>
+        </DialogContent>
     )
 }
 
@@ -56,7 +62,7 @@ export default function NewInventoryPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [productCache, setProductCache] = useState<Map<string, Produit>>(new Map());
     const [isFirstInventory, setIsFirstInventory] = useState(false);
-    const [isDraftDialog, setIsDraftDialog] = useState(false);
+    const [isDraftDialogOpen, setIsDraftDialogOpen] = useState(false);
 
     useEffect(() => {
         const draftId = searchParams.get('draft');
@@ -138,7 +144,6 @@ export default function NewInventoryPage() {
         setDrafts([...otherDrafts, newDraft]);
         setActiveDraftId(newDraft.id);
         toast({ title: "Brouillon sauvegardé", description: `L'inventaire "${name}" a été sauvegardé localement.` });
-        setIsDraftDialog(false);
     };
 
     const handleSaveInventory = async () => {
@@ -160,8 +165,6 @@ export default function NewInventoryPage() {
                 if(activeDraftId) {
                     setDrafts(drafts.filter(d => d.id !== activeDraftId));
                 }
-                toast({ title: "Exportation...", description: "Le fichier d'inventaire est en cours de téléchargement." });
-                await api.exportInventaire(newInventory.inventaireId);
                 router.push(`/inventories/${newInventory.inventaireId}`);
             } else {
                  setIsSaving(false);
@@ -270,15 +273,15 @@ export default function NewInventoryPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="border-t pt-6 flex justify-between">
-                            <AlertDialog open={isDraftDialog} onOpenChange={setIsDraftDialog}>
-                                <AlertDialogTrigger asChild>
+                            <Dialog open={isDraftDialogOpen} onOpenChange={setIsDraftDialogOpen}>
+                                <DialogTrigger asChild>
                                     <Button variant="outline" disabled={scannedItems.length === 0 || isSaving}>
                                         <FileDown className="h-4 w-4 mr-2" />
                                         Sauvegarder le brouillon
                                     </Button>
-                                </AlertDialogTrigger>
-                                <SaveDraftDialog onSave={handleSaveDraft} />
-                            </AlertDialog>
+                                </DialogTrigger>
+                                <SaveDraftDialog onSave={handleSaveDraft} onOpenChange={setIsDraftDialogOpen} />
+                            </Dialog>
 
                            <AlertDialog>
                             <AlertDialogTrigger asChild>
