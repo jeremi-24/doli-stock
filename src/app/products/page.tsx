@@ -35,7 +35,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/app-provider";
-import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal, Hand, Tag, Building2, DollarSign, Boxes, AlertTriangle, Hash } from "lucide-react";
+import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal, Hand, Tag, Building2, DollarSign, Boxes, AlertTriangle, Hash, Printer } from "lucide-react";
 import type { Produit, Categorie, LieuStock, AssignationPayload } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,6 +45,8 @@ import * as z from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import * as api from "@/lib/api";
+import { Label } from "@/components/ui/label";
 
 const produitSchema = z.object({
     nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -175,6 +177,83 @@ function AssignationDialog({
     );
 }
 
+function PrintBarcodeDialog({
+    produit,
+    open,
+    onOpenChange
+}: {
+    produit: Produit | null,
+    open: boolean,
+    onOpenChange: (open: boolean) => void
+}) {
+    const { toast } = useToast();
+    const [quantity, setQuantity] = React.useState(1);
+    const [isPrinting, setIsPrinting] = React.useState(false);
+
+    React.useEffect(() => {
+        if(open) {
+            setQuantity(1);
+        }
+    }, [open]);
+
+    const handlePrint = async () => {
+        if (!produit) return;
+        setIsPrinting(true);
+        try {
+            const pdfBlob = await api.printBarcodes({ produitId: produit.id, quantite: quantity });
+            const url = window.URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `codes-barres-${produit.nom.replace(/ /g, '_')}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            onOpenChange(false);
+            toast({ title: "PDF généré", description: `Le fichier d'étiquettes pour ${produit.nom} est en cours de téléchargement.`});
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+            toast({ variant: "destructive", title: "Erreur d'impression", description: errorMessage });
+        } finally {
+            setIsPrinting(false);
+        }
+    };
+
+    if (!produit) return null;
+
+    return (
+         <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="font-headline">Imprimer les étiquettes pour "{produit.nom}"</DialogTitle>
+                    <DialogDescription>
+                        Combien d'étiquettes de code-barres souhaitez-vous imprimer ?
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Label htmlFor="quantity">Quantité</Label>
+                    <Input 
+                        id="quantity"
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => setQuantity(Number(e.target.value))}
+                        min="1"
+                        className="mt-2"
+                        disabled={isPrinting}
+                    />
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost" disabled={isPrinting}>Annuler</Button></DialogClose>
+                    <Button onClick={handlePrint} disabled={isPrinting || quantity < 1}>
+                        {isPrinting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Printer className="mr-2 h-4 w-4"/>}
+                        {isPrinting ? "Génération..." : "Imprimer"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 const COLUMN_NAMES: Record<string, string> = {
     'ref': 'Référence',
     'prix': 'Prix (Unité)',
@@ -193,8 +272,10 @@ export default function ProductsPage() {
     
     const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
     const [isAssignDialogOpen, setIsAssignDialogOpen] = React.useState(false);
+    const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState(false);
     const [editingProduit, setEditingProduit] = React.useState<Produit | null>(null);
     const [viewingProduct, setViewingProduct] = React.useState<Produit | null>(null);
+    const [printingProduct, setPrintingProduct] = React.useState<Produit | null>(null);
     
     const [isLoading, setIsLoading] = React.useState(false);
     
@@ -244,6 +325,11 @@ export default function ProductsPage() {
     const handleEdit = (produit: Produit) => {
         setEditingProduit(produit);
         setIsFormDialogOpen(true);
+    };
+
+    const handlePrint = (produit: Produit) => {
+        setPrintingProduct(produit);
+        setIsPrintDialogOpen(true);
     };
     
     const handleSelectAll = (checked: boolean | string) => {
@@ -464,6 +550,9 @@ export default function ProductsPage() {
                                                         {canUpdate && <DropdownMenuItem onClick={() => handleEdit(produit)}>
                                                             <Pencil className="mr-2 h-4 w-4" /> Modifier
                                                         </DropdownMenuItem>}
+                                                        <DropdownMenuItem onClick={() => handlePrint(produit)}>
+                                                            <Printer className="mr-2 h-4 w-4" /> Imprimer étiquettes
+                                                        </DropdownMenuItem>
                                                         {canDelete && <AlertDialog>
                                                             <AlertDialogTrigger asChild>
                                                                  <Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
@@ -560,6 +649,11 @@ export default function ProductsPage() {
                 categories={categories}
                 lieuxStock={lieuxStock}
                 onAssign={handleAssign}
+            />
+             <PrintBarcodeDialog
+                produit={printingProduct}
+                open={isPrintDialogOpen}
+                onOpenChange={setIsPrintDialogOpen}
             />
         </div>
     );

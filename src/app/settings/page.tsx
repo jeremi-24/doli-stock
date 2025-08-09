@@ -27,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
+import { MultiBarcodePrintDialog } from "@/components/multi-barcode-print-dialog";
 
 
 const organisationSchema = z.object({
@@ -814,125 +815,19 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
   );
 }
 
-function PrintRequestDialog({ open, onOpenChange, products }: { open: boolean, onOpenChange: (open: boolean) => void, products: Produit[] }) {
-  const { toast } = useToast();
-  const [selectedProductId, setSelectedProductId] = React.useState<string | undefined>();
-  const [quantity, setQuantity] = React.useState<number>(1);
-  const [isPrinting, setIsPrinting] = React.useState(false);
-
-  React.useEffect(() => {
-    if (open) {
-      setSelectedProductId(undefined);
-      setQuantity(1);
-    }
-  }, [open]);
-
-  const handlePrintRequest = async () => {
-    if (!selectedProductId || quantity <= 0) {
-      toast({ variant: "destructive", title: "Informations manquantes", description: "Veuillez sélectionner un produit et entrer une quantité valide." });
-      return;
-    }
-
-    const selectedProduct = products.find(p => p.id === parseInt(selectedProductId, 10));
-
-    if (!selectedProduct) {
-        toast({ variant: "destructive", title: "Produit non trouvé", description: "Le produit sélectionné n'existe pas." });
-        return;
-    }
-
-    const payload ={
-        produitNom: selectedProduct.nom,
-        quantite: quantity,
-    };
-
-    setIsPrinting(true);
-    try {
-      const pdfBlob = await api.printBarcodes(payload);
-      const url = window.URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `codes-barres-${new Date().toISOString().slice(0,10)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-      onOpenChange(false);
-      toast({ title: "PDF généré avec succès", description: "Le téléchargement de votre fichier de codes-barres a commencé." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Échec de l'impression", description: error.message });
-    } finally {
-      setIsPrinting(false);
-    }
-  };
-  
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-headline">Imprimer des codes-barres</DialogTitle>
-          <DialogDescription>
-            Choisissez un produit et spécifiez le nombre d'étiquettes à imprimer.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-                <Label htmlFor="product-select">Produit</Label>
-                <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={isPrinting}>
-                    <SelectTrigger id="product-select">
-                        <SelectValue placeholder="Sélectionner un produit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {products.map((produit) => (
-                             <SelectItem key={produit.id} value={String(produit.id)}>{produit.nom}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div className="grid gap-2">
-                <Label htmlFor="quantity-input">Quantité</Label>
-                <Input
-                    id="quantity-input"
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 1)}
-                    min="1"
-                    disabled={isPrinting}
-                />
-            </div>
-        </div>
-        <DialogFooter>
-            <DialogClose asChild><Button variant="ghost" disabled={isPrinting}>Annuler</Button></DialogClose>
-            <Button onClick={handlePrintRequest} disabled={isPrinting || !selectedProductId || quantity <= 0}>
-                {isPrinting ? "Génération..." : <><Printer className="h-4 w-4 mr-2" />Générer le PDF</>}
-            </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function SettingsPage() {
-  const { addMultipleProduits, hasPermission } = useApp();
+  const { addMultipleProduits, hasPermission, produits } = useApp();
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
-  const [isPrintRequestDialogOpen, setIsPrintRequestDialogOpen] = React.useState(false);
-  const [produits, setProduits] = React.useState<Produit[]>([]);
+  const [isMultiPrintDialogOpen, setIsMultiPrintDialogOpen] = React.useState(false);
+
 
   const canImport = React.useMemo(() => hasPermission('PRODUIT_IMPORT'), [hasPermission]);
 
-  React.useEffect(() => {
-    if (canImport) {
-        api.getProducts().then(setProduits);
-    }
-  }, [canImport]);
 
   const handleImportSuccess = (importedData: any[]) => {
     addMultipleProduits(importedData);
   };
   
-  const handlePrintAll = () => { 
-    setIsPrintRequestDialogOpen(true); 
-  };
-
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
@@ -961,9 +856,9 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="font-headline">Import et Impression</CardTitle>
-                <CardDescription>Gérez l'importation de vos données et imprimez des étiquettes.</CardDescription>
+                <CardDescription>Gérez l'importation de vos données et l'impression en masse.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4 pt-6">
+              <CardContent className="space-y-6 pt-6">
                 <div className="space-y-2">
                     <h3 className="font-medium">Importer des produits</h3>
                     <p className="text-sm text-muted-foreground">
@@ -974,14 +869,14 @@ export default function SettingsPage() {
                         Importer un fichier
                     </Button>
                 </div>
-                <div className="space-y-2 pt-4 border-t">
-                    <h3 className="font-medium">Imprimer les codes-barres</h3>
+                 <div className="space-y-2">
+                    <h3 className="font-medium">Imprimer plusieurs codes-barres</h3>
                     <p className="text-sm text-muted-foreground">
-                        Générez un fichier PDF avec les étiquettes de codes-barres pour vos produits.
+                        Générez un PDF d'étiquettes pour plusieurs produits à la fois.
                     </p>
-                    <Button variant="outline" onClick={handlePrintAll} disabled={produits.length === 0}>
+                    <Button onClick={() => setIsMultiPrintDialogOpen(true)}>
                         <Printer className="mr-2 h-4 w-4"/>
-                        Imprimer des codes-barres
+                        Imprimer plusieurs codes-barres
                     </Button>
                 </div>
               </CardContent>
@@ -998,7 +893,11 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
       <ImportDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} onImportSuccess={handleImportSuccess} />
-      <PrintRequestDialog open={isPrintRequestDialogOpen} onOpenChange={setIsPrintRequestDialogOpen} products={produits} />
+       <MultiBarcodePrintDialog 
+        open={isMultiPrintDialogOpen} 
+        onOpenChange={setIsMultiPrintDialogOpen} 
+        allProducts={produits}
+      />
     </div>
   );
 }

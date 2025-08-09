@@ -1,6 +1,6 @@
 
 
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload, Notification } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload, Notification, BarcodePrintRequest } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -182,6 +182,9 @@ export async function searchProducts(query: string): Promise<Produit[]> {
 export async function getProductByBarcode(codeBarre: string): Promise<Produit | null> {
     return apiFetch(`/produits/code/${codeBarre}`);
 }
+export async function getProductByRef(ref: string): Promise<Produit | null> {
+    return apiFetch(`/produits/ref/${encodeURIComponent(ref)}`);
+}
 export async function createProduct(data: any): Promise<any> {
   return apiFetch('/produits', { method: 'POST', body: JSON.stringify(data) });
 }
@@ -229,13 +232,21 @@ export async function importProducts(file: File): Promise<Produit[]> {
     throw error;
   }
 };
-export async function printBarcodes(data: { produitNom: string, quantite: number }): Promise<Blob> {
+export async function printBarcodes(data: BarcodePrintRequest): Promise<Blob> {
     return apiFetch('/barcode/print', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Accept': 'application/pdf' },
     });
 }
+export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promise<Blob> {
+    return apiFetch('/barcode/print-multiple', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Accept': 'application/pdf' },
+    });
+}
+
 
 // ========== Stock API ==========
 export async function getStocks(): Promise<Stock[]> {

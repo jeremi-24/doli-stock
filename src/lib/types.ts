@@ -50,6 +50,12 @@ export type AssignationPayload = {
     lieuStockId?: number;
 };
 
+// ----- Barcode Types -----
+export type BarcodePrintRequest = {
+  produitId: number;
+  quantite: number;
+};
+
 // ----- Inventory Types -----
 export type InventaireLigne = {
     produitId: number;
