@@ -36,7 +36,7 @@ function SaveDraftDialog({ onSave, onOpenChange, initialName }: { onSave: (name:
     return (
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Renommer le brouillon</DialogTitle>
+                <DialogTitle>Sauvegarder le brouillon</DialogTitle>
                 <DialogDescription>Donnez un nom à ce brouillon d'inventaire pour le retrouver plus tard.</DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -70,39 +70,6 @@ export default function NewInventoryPage() {
     const [isFirstInventory, setIsFirstInventory] = useState(false);
     const [isDraftDialogOpen, setIsDraftDialogOpen] = useState(false);
 
-    const autoSaveDraft = useCallback((items: ScannedProduit[]) => {
-      let currentDraftId = activeDraftId;
-      
-      // If no active draft, but we have items, create a new one
-      if (!currentDraftId && items.length > 0) {
-        const newDraftId = String(Date.now());
-        const newDraft = {
-          id: newDraftId,
-          name: `Brouillon auto du ${new Date().toLocaleString('fr-FR')}`,
-          date: new Date().toISOString(),
-          items: items,
-        };
-        setDrafts(prev => [...prev, newDraft]);
-        setActiveDraftId(newDraftId);
-        currentDraftId = newDraftId;
-        return;
-      }
-      
-      if (currentDraftId) {
-        // If cart is empty, remove the draft
-        if (items.length === 0) {
-          setDrafts(prev => prev.filter(d => d.id !== currentDraftId));
-          setActiveDraftId(null);
-        } else {
-          // Otherwise, update the existing draft
-          setDrafts(prev => prev.map(d => 
-            d.id === currentDraftId ? { ...d, items: items, date: new Date().toISOString() } : d
-          ));
-        }
-      }
-
-    }, [activeDraftId, setDrafts]);
-
 
     useEffect(() => {
         const draftId = searchParams.get('draft');
@@ -113,25 +80,12 @@ export default function NewInventoryPage() {
                 setActiveDraftId(draft.id);
                 if(searchParams.get('loaded') !== 'true') {
                     toast({ title: `Brouillon "${draft.name}" chargé.` });
-                    // Prevent re-toasting on hot-reloads
                     router.replace(`/inventories/new?draft=${draftId}&loaded=true`, { scroll: false });
                 }
             }
         }
     }, [searchParams, drafts, toast, router]);
 
-    // Auto-save effect
-    useEffect(() => {
-        // Only run auto-save if we're not currently loading a draft from URL
-        if (!searchParams.get('draft')) {
-            autoSaveDraft(scannedItems);
-        } else {
-             // If we are on a draft page, still update it
-            if(activeDraftId) {
-                autoSaveDraft(scannedItems);
-            }
-        }
-    }, [scannedItems, autoSaveDraft, searchParams, activeDraftId]);
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
@@ -192,10 +146,26 @@ export default function NewInventoryPage() {
         setScannedItems(newItems);
     };
     
-    const handleRenameDraft = (name: string) => {
-        if (activeDraftId) {
-            setDrafts(drafts.map(d => d.id === activeDraftId ? { ...d, name } : d));
-            toast({ title: "Brouillon renommé", description: `Le brouillon a été renommé en "${name}".` });
+    const handleSaveDraft = (name: string) => {
+        let currentDraftId = activeDraftId;
+        
+        if (currentDraftId) {
+            // Update existing draft
+            setDrafts(drafts.map(d => d.id === currentDraftId ? { ...d, name, items: scannedItems, date: new Date().toISOString() } : d));
+            toast({ title: "Brouillon mis à jour", description: `Le brouillon "${name}" a été sauvegardé.` });
+        } else {
+            // Create new draft
+            const newDraftId = String(Date.now());
+            const newDraft = {
+                id: newDraftId,
+                name: name,
+                date: new Date().toISOString(),
+                items: scannedItems,
+            };
+            setDrafts(prev => [...prev, newDraft]);
+            setActiveDraftId(newDraftId);
+            router.replace(`/inventories/new?draft=${newDraftId}&loaded=true`, { scroll: false });
+            toast({ title: "Brouillon sauvegardé", description: `Le brouillon "${name}" a été créé.` });
         }
     };
 
@@ -334,10 +304,10 @@ export default function NewInventoryPage() {
                                 <DialogTrigger asChild>
                                     <Button variant="outline" disabled={scannedItems.length === 0 || isSaving}>
                                         <FileDown className="h-4 w-4 mr-2" />
-                                        Renommer le brouillon
+                                        Sauvegarder le brouillon
                                     </Button>
                                 </DialogTrigger>
-                                <SaveDraftDialog onSave={handleRenameDraft} onOpenChange={setIsDraftDialogOpen} initialName={activeDraft?.name}/>
+                                <SaveDraftDialog onSave={handleSaveDraft} onOpenChange={setIsDraftDialogOpen} initialName={activeDraft?.name}/>
                             </Dialog>
 
                            <AlertDialog>
