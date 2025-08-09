@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { Dialog, DialogTrigger, DialogClose, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 function SaveDraftDialog({ onSave, onOpenChange }: { onSave: (name: string) => void, onOpenChange: (open: boolean) => void }) {
     const [name, setName] = useState(`Brouillon ${new Date().toLocaleDateString('fr-FR')}`);
