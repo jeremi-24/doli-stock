@@ -81,6 +81,7 @@ export type Inventaire = {
 export type ScannedProduit = {
   produitId: number;
   nomProduit: string;
+  refProduit: string;
   qteScanne: number;
   lieuStockNom: string;
   barcode: string;
@@ -343,3 +344,5 @@ export interface Notification {
   commandeId?: number;
   statut?: string;
 }
+
+    

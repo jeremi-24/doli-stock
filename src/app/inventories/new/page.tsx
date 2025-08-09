@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -69,57 +70,6 @@ export default function NewInventoryPage() {
     const [isFirstInventory, setIsFirstInventory] = useState(false);
     const [isDraftDialogOpen, setIsDraftDialogOpen] = useState(false);
 
-    // Ref pour éviter les boucles infinies d'auto-save
-    const lastAutoSaveRef = useRef<string>('');
-    const autoSaveTimeoutRef = useRef<NodeJS.Timeout>();
-
-    // Auto-save function pour les brouillons avec protection contre les boucles
-    const autoSaveDraft = useCallback(() => {
-        if (activeDraftId && scannedItems.length > 0) {
-            const itemsHash = JSON.stringify(scannedItems.map(item => ({ 
-                produitId: item.produitId, 
-                qteScanne: item.qteScanne, 
-                typeQuantiteScanne: item.typeQuantiteScanne 
-            })));
-            
-            // Éviter de sauvegarder si les données n'ont pas changé
-            if (itemsHash === lastAutoSaveRef.current) {
-                return;
-            }
-            
-            lastAutoSaveRef.current = itemsHash;
-            
-            // Debounce l'auto-save pour éviter trop de mises à jour
-            if (autoSaveTimeoutRef.current) {
-                clearTimeout(autoSaveTimeoutRef.current);
-            }
-            
-            autoSaveTimeoutRef.current = setTimeout(() => {
-                setDrafts(prevDrafts => 
-                    prevDrafts.map(d => 
-                        d.id === activeDraftId 
-                            ? { ...d, items: scannedItems, date: new Date().toISOString() } 
-                            : d
-                    )
-                );
-            }, 500); // Attendre 500ms avant de sauvegarder
-        }
-    }, [activeDraftId, scannedItems, setDrafts]);
-
-    // Auto-save chaque fois que scannedItems change (si on a un brouillon actif)
-    useEffect(() => {
-        if (activeDraftId) {
-            autoSaveDraft();
-        }
-        
-        // Cleanup du timeout au démontage
-        return () => {
-            if (autoSaveTimeoutRef.current) {
-                clearTimeout(autoSaveTimeoutRef.current);
-            }
-        };
-    }, [scannedItems, autoSaveDraft, activeDraftId]);
-
     useEffect(() => {
         const draftId = searchParams.get('draft');
         if (draftId) {
@@ -151,6 +101,7 @@ export default function NewInventoryPage() {
                     {
                         produitId: product.id,
                         nomProduit: product.nom,
+                        refProduit: product.ref,
                         lieuStockNom: product.lieuStockNom || 'N/A',
                         qteScanne: quantity,
                         barcode: product.codeBarre,
@@ -160,18 +111,10 @@ export default function NewInventoryPage() {
             }
             setScannedItems(newItems);
             
-            // Afficher un message différent selon si c'est auto-sauvé ou pas
-            if (activeDraftId) {
-                toast({ 
-                    title: "Produit ajouté et brouillon mis à jour", 
-                    description: `${quantity} x ${product.nom} (${scanType})` 
-                });
-            } else {
-                toast({ 
-                    title: "Produit ajouté", 
-                    description: `${quantity} x ${product.nom} (${scanType})` 
-                });
-            }
+            toast({ 
+                title: "Produit ajouté", 
+                description: `${quantity} x ${product.nom} (${scanType})` 
+            });
         };
 
         if (productCache.has(barcode)) {
@@ -204,31 +147,15 @@ export default function NewInventoryPage() {
     const handleRemoveItem = (produitId: number, type: 'UNITE' | 'CARTON') => {
         const newItems = scannedItems.filter(item => !(item.produitId === produitId && item.typeQuantiteScanne === type));
         setScannedItems(newItems);
-        
-        // Message différent si auto-sauvé
-        if (activeDraftId) {
-            toast({ 
-                title: "Produit retiré et brouillon mis à jour",
-                description: "Le brouillon a été automatiquement sauvegardé."
-            });
-        }
     };
     
     const handleSaveDraft = (name: string) => {
         let currentDraftId = activeDraftId;
         
         if (currentDraftId) {
-            // Update existing draft - bypass auto-save pour éviter les conflits
             setDrafts(drafts.map(d => d.id === currentDraftId ? { ...d, name, items: scannedItems, date: new Date().toISOString() } : d));
-            // Mettre à jour le hash pour éviter un auto-save immédiat
-            lastAutoSaveRef.current = JSON.stringify(scannedItems.map(item => ({ 
-                produitId: item.produitId, 
-                qteScanne: item.qteScanne, 
-                typeQuantiteScanne: item.typeQuantiteScanne 
-            })));
             toast({ title: "Brouillon mis à jour", description: `Le brouillon "${name}" a été sauvegardé.` });
         } else {
-            // Create new draft
             const newDraftId = String(Date.now());
             const newDraft = {
                 id: newDraftId,
@@ -238,16 +165,10 @@ export default function NewInventoryPage() {
             };
             setDrafts(prev => [...prev, newDraft]);
             setActiveDraftId(newDraftId);
-            // Initialiser le hash pour le nouveau brouillon
-            lastAutoSaveRef.current = JSON.stringify(scannedItems.map(item => ({ 
-                produitId: item.produitId, 
-                qteScanne: item.qteScanne, 
-                typeQuantiteScanne: item.typeQuantiteScanne 
-            })));
             router.replace(`/inventories/new?draft=${newDraftId}&loaded=true`, { scroll: false });
             toast({ 
                 title: "Brouillon sauvegardé", 
-                description: `Le brouillon "${name}" a été créé. Les modifications seront désormais sauvegardées automatiquement.` 
+                description: `Le brouillon "${name}" a été créé.` 
             });
         }
     };
@@ -261,14 +182,13 @@ export default function NewInventoryPage() {
         setIsSaving(true);
         const payload = {
             charge: currentUser?.email || "Utilisateur inconnu",
-            produits: scannedItems.map(({ nomProduit, barcode, ...item}) => item)
+            produits: scannedItems.map(({ nomProduit, barcode, refProduit, ...item}) => item)
         };
         
         try {
             const newInventory = await createInventaire(payload, isFirstInventory);
             
             if (newInventory && newInventory.inventaireId) {
-                // Clear the successful draft
                 if(activeDraftId) {
                     setDrafts(drafts.filter(d => d.id !== activeDraftId));
                 }
@@ -290,10 +210,6 @@ export default function NewInventoryPage() {
                 {activeDraft && (
                     <div className="ml-4 flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">Brouillon: {activeDraft.name}</span>
-                        <div className="flex items-center gap-1 text-xs text-green-600">
-                            <Save className="h-3 w-3" />
-                            Auto-sauvegarde
-                        </div>
                     </div>
                 )}
             </div>
@@ -355,7 +271,6 @@ export default function NewInventoryPage() {
                             <CardTitle className="font-headline flex items-center gap-2"><UnitIcon />Produits Scannés</CardTitle>
                             <CardDescription>
                                 Liste des produits comptabilisés dans cet inventaire.
-                                {activeDraftId && <span className="text-green-600 ml-2">• Sauvegarde automatique activée</span>}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -364,6 +279,7 @@ export default function NewInventoryPage() {
                                   <TableHeader>
                                     <TableRow>
                                       <TableHead>Produit</TableHead>
+                                      <TableHead>Référence</TableHead>
                                       <TableHead>Lieu</TableHead>
                                       <TableHead className="w-[180px] text-center">Quantité Scannée</TableHead>
                                       <TableHead className="w-[50px]"></TableHead>
@@ -373,6 +289,7 @@ export default function NewInventoryPage() {
                                     {scannedItems.length > 0 ? scannedItems.map(item => (
                                       <TableRow key={`${item.produitId}-${item.typeQuantiteScanne}`}>
                                         <TableCell className="font-medium">{item.nomProduit}</TableCell>
+                                        <TableCell className="text-muted-foreground">{item.refProduit}</TableCell>
                                         <TableCell>{item.lieuStockNom}</TableCell>
                                         <TableCell className="text-center font-semibold">
                                             <div className="flex items-center justify-center gap-2">
@@ -387,7 +304,7 @@ export default function NewInventoryPage() {
                                         </TableCell>
                                       </TableRow>
                                     )) : (
-                                      <TableRow><TableCell colSpan={4} className="h-24 text-center">Aucun produit scanné.</TableCell></TableRow>
+                                      <TableRow><TableCell colSpan={5} className="h-24 text-center">Aucun produit scanné.</TableCell></TableRow>
                                     )}
                                   </TableBody>
                                 </Table>
@@ -440,3 +357,4 @@ export default function NewInventoryPage() {
         </div>
     )
 }
+    
