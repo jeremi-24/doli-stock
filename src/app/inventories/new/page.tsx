@@ -97,7 +97,6 @@ export default function NewInventoryPage() {
                 newItems[existingItemIndex].qteScanne += quantity;
             } else {
                 newItems = [
-                    ...scannedItems,
                     {
                         produitId: product.id,
                         nomProduit: product.nom,
@@ -106,7 +105,8 @@ export default function NewInventoryPage() {
                         qteScanne: quantity,
                         barcode: product.codeBarre,
                         typeQuantiteScanne: scanType,
-                    }
+                    },
+                    ...scannedItems,
                 ];
             }
             setScannedItems(newItems);
@@ -357,4 +357,6 @@ export default function NewInventoryPage() {
         </div>
     )
 }
+    
+
     
