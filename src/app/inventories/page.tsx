@@ -151,7 +151,7 @@ export default function InventoriesPage() {
                         <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/${inv.inventaireId}`)}>
                             <Eye className="h-4 w-4" /><span className="sr-only">Voir les détails</span>
                         </Button>
-                        <Button variant="ghost" size="icon" disabled>
+                        <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/new?edit=${inv.inventaireId}`)}>
                             <Pencil className="h-4 w-4" /><span className="sr-only">Modifier</span>
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleExport(inv.inventaireId)} disabled={exportingId === inv.inventaireId}>

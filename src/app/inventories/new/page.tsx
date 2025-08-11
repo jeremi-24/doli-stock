@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { Dialog, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function SaveDraftDialog({ onSave, onOpenChange, initialName }: { onSave: (name: string) => void, onOpenChange: (open: boolean) => void, initialName?: string }) {
     const [name, setName] = useState(initialName || `Brouillon ${new Date().toLocaleDateString('fr-FR')}`);
@@ -52,13 +53,17 @@ function SaveDraftDialog({ onSave, onOpenChange, initialName }: { onSave: (name:
 }
 
 export default function NewInventoryPage() {
-    const { createInventaire, currentUser } = useApp();
+    const { createInventaire, updateInventaire, currentUser } = useApp();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
 
+    const [mode, setMode] = useState<'new' | 'edit_draft' | 'edit_final'>('new');
+    const [pageIsLoading, setPageIsLoading] = useState(true);
+
     const [drafts, setDrafts] = useLocalStorage<any[]>('inventory_drafts', []);
     const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+    const [editingInventoryId, setEditingInventoryId] = useState<number | null>(null);
 
     const [scannedItems, setScannedItems] = useState<ScannedProduit[]>([]);
     const [barcode, setBarcode] = useState("");
@@ -72,18 +77,48 @@ export default function NewInventoryPage() {
 
     useEffect(() => {
         const draftId = searchParams.get('draft');
-        if (draftId) {
-            const draft = drafts.find(d => d.id === draftId);
-            if (draft) {
-                setScannedItems(draft.items);
-                setActiveDraftId(draft.id);
-                if(searchParams.get('loaded') !== 'true') {
-                    toast({ title: `Brouillon "${draft.name}" chargé.` });
-                    router.replace(`/inventories/new?draft=${draftId}&loaded=true`, { scroll: false });
+        const editId = searchParams.get('edit');
+        
+        const loadData = async () => {
+            if (editId) {
+                setMode('edit_final');
+                setEditingInventoryId(Number(editId));
+                try {
+                    const inventoryData = await api.getInventaire(Number(editId));
+                    const items: ScannedProduit[] = inventoryData.lignes.map(ligne => ({
+                        produitId: ligne.produitId,
+                        nomProduit: ligne.nomProduit,
+                        refProduit: 'N/A', // Ref not available in InventaireLigne, might need API update
+                        lieuStockNom: ligne.lieuStockNom,
+                        qteScanne: ligne.qteScanneTotaleUnites,
+                        barcode: 'N/A', // Barcode not available
+                        typeQuantiteScanne: 'UNITE', // Assume UNIT for simplicity on edit
+                    }));
+                    setScannedItems(items);
+                    toast({ title: `Modification de l'inventaire N°${editId}` });
+                } catch (error) {
+                    toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les données de l\'inventaire.' });
+                    router.push('/inventories');
                 }
+            } else if (draftId) {
+                const draft = drafts.find(d => d.id === draftId);
+                if (draft) {
+                    setMode('edit_draft');
+                    setScannedItems(draft.items);
+                    setActiveDraftId(draft.id);
+                    if(searchParams.get('loaded') !== 'true') {
+                        toast({ title: `Brouillon "${draft.name}" chargé.` });
+                        router.replace(`/inventories/new?draft=${draftId}&loaded=true`, { scroll: false });
+                    }
+                }
+            } else {
+                setMode('new');
             }
-        }
-    }, [searchParams, drafts, toast, router]);
+            setPageIsLoading(false);
+        };
+
+        loadData();
+    }, [searchParams, drafts, router, toast]);
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
@@ -150,6 +185,10 @@ export default function NewInventoryPage() {
     };
     
     const handleSaveDraft = (name: string) => {
+        if (mode === 'edit_final') {
+            toast({ variant: 'destructive', title: 'Action impossible', description: 'Vous ne pouvez pas sauvegarder un inventaire finalisé comme brouillon.'});
+            return;
+        }
         let currentDraftId = activeDraftId;
         
         if (currentDraftId) {
@@ -186,13 +225,18 @@ export default function NewInventoryPage() {
         };
         
         try {
-            const newInventory = await createInventaire(payload, isFirstInventory);
+            let resultInventory = null;
+            if (mode === 'edit_final' && editingInventoryId) {
+                resultInventory = await updateInventaire(editingInventoryId, payload);
+            } else {
+                resultInventory = await createInventaire(payload, isFirstInventory);
+            }
             
-            if (newInventory && newInventory.inventaireId) {
+            if (resultInventory && resultInventory.inventaireId) {
                 if(activeDraftId) {
                     setDrafts(drafts.filter(d => d.id !== activeDraftId));
                 }
-                router.push(`/inventories/${newInventory.inventaireId}`);
+                router.push(`/inventories/${resultInventory.inventaireId}`);
             } else {
                  setIsSaving(false);
             }
@@ -202,11 +246,30 @@ export default function NewInventoryPage() {
     };
     
     const activeDraft = drafts.find(d => d.id === activeDraftId);
+    
+    const pageTitle = useMemo(() => {
+        if (mode === 'edit_final') return `Modifier l'Inventaire N°${editingInventoryId}`;
+        if (mode === 'edit_draft') return "Modifier un Brouillon";
+        return "Nouvel Inventaire";
+    }, [mode, editingInventoryId]);
+
+
+    if(pageIsLoading) {
+        return (
+            <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+                <Skeleton className="h-10 w-64" />
+                <div className="grid gap-8 md:grid-cols-3">
+                    <Skeleton className="h-64 md:col-span-1" />
+                    <Skeleton className="h-96 md:col-span-2" />
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center">
-                <h1 className="font-headline text-3xl font-semibold">Nouvel Inventaire</h1>
+                <h1 className="font-headline text-3xl font-semibold">{pageTitle}</h1>
                 {activeDraft && (
                     <div className="ml-4 flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">Brouillon: {activeDraft.name}</span>
@@ -313,7 +376,7 @@ export default function NewInventoryPage() {
                         <CardFooter className="border-t pt-6 flex justify-between">
                             <Dialog open={isDraftDialogOpen} onOpenChange={setIsDraftDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="outline" disabled={scannedItems.length === 0 || isSaving}>
+                                    <Button variant="outline" disabled={scannedItems.length === 0 || isSaving || mode === 'edit_final'}>
                                         <FileDown className="h-4 w-4 mr-2" />
                                         {activeDraftId ? "Renommer le brouillon" : "Sauvegarder le brouillon"}
                                     </Button>
@@ -336,7 +399,7 @@ export default function NewInventoryPage() {
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="flex items-center space-x-2 py-2">
-                                    <Checkbox id="isFirstInventory" checked={isFirstInventory} onCheckedChange={(checked) => setIsFirstInventory(!!checked)} />
+                                    <Checkbox id="isFirstInventory" checked={isFirstInventory} onCheckedChange={(checked) => setIsFirstInventory(!!checked)} disabled={mode === 'edit_final'} />
                                     <label
                                         htmlFor="isFirstInventory"
                                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
