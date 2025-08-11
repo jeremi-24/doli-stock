@@ -35,7 +35,7 @@ interface AppContextType {
   deleteFacture: (factureId: number) => Promise<void>;
   createInventaire: (payload: InventairePayload) => Promise<Inventaire | null>;
   updateInventaire: (id: number, payload: InventairePayload) => Promise<Inventaire | null>;
-  confirmInventaire: (id: number) => Promise<Inventaire | null>;
+  confirmInventaire: (id: number, premier: boolean) => Promise<Inventaire | null>;
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   createCommande: (payload: CommandePayload) => Promise<Commande | null>;
   createVente: (payload: VenteDirectePayload) => Promise<Vente | null>;
@@ -331,12 +331,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshAllData, toast, handleGenericError]);
 
-  const confirmInventaire = useCallback(async (id: number): Promise<Inventaire | null> => {
+  const confirmInventaire = useCallback(async (id: number, premier: boolean): Promise<Inventaire | null> => {
     try {
-      const confirmedInventaire = await api.confirmInventaire(id);
+      const confirmedInventaire = await api.confirmInventaire(id, premier);
       await refreshAllData();
       toast({ title: "Inventaire confirmé et appliqué au stock !" });
-      return confirmedInventaire;
+      if (confirmedInventaire) {
+        return confirmedInventaire;
+      }
+      return await api.getInventaire(id);
     } catch (error) {
       handleGenericError(error, "Erreur de confirmation d'inventaire");
       return null;

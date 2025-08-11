@@ -297,9 +297,9 @@ export async function recalculateInventaire(id: number, data: InventairePayload)
   const result = await apiFetch(`/inventaire/${id}/calculer`, { method: 'PUT', body: JSON.stringify(data) });
   return mapInventaireResponse(result) as Inventaire;
 }
-export async function confirmInventaire(id: number): Promise<Inventaire> {
-  const result = await apiFetch(`/inventaire/${id}/confirmer`, { method: 'POST' });
-  return mapInventaireResponse(result) as Inventaire;
+export async function confirmInventaire(id: number, premier: boolean): Promise<Inventaire | null> {
+  const result = await apiFetch(`/inventaire/${id}/confirmer?premier=${premier}`, { method: 'POST' });
+  return mapInventaireResponse(result);
 }
 export async function exportInventaire(id: number): Promise<void> {
   const blob = await apiFetch(`/inventaire/${id}/export`, {

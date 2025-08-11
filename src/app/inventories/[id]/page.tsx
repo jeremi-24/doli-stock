@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Calendar, Check, X, MoveRight, Package as UnitIcon, Box, Loader2, FileUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Check, X, MoveRight, Package as UnitIcon, Box, Loader2, FileUp, AlertTriangle, CheckCircle, FilePenLine } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import type { Inventaire, InventaireLigne } from '@/lib/types';
@@ -54,11 +54,11 @@ export default function InventoryDetailPage() {
     fetchInventory();
   }, [fetchInventory]);
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (isPremier: boolean) => {
       if (!inventory) return;
       setIsConfirming(true);
       try {
-          const result = await confirmInventaire(inventory.id);
+          const result = await confirmInventaire(inventory.id, isPremier);
           if(result) {
             setInventory(result);
           }
@@ -206,33 +206,59 @@ export default function InventoryDetailPage() {
                 </Table>
             </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex justify-between items-center">
             <Button variant="outline" onClick={() => router.push('/inventories')}>
                 Retour à l'historique
             </Button>
             {!isConfirmed && (
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button disabled={isConfirming}>
-                            {isConfirming ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileUp className="h-4 w-4 mr-2" />}
-                            {isConfirming ? "Confirmation en cours..." : "Confirmer et Appliquer au Stock"}
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Cette action mettra définitivement à jour les niveaux de stock en fonction des écarts calculés. Cette opération est irréversible.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleConfirm}>
-                                Oui, appliquer au stock
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                 <div className="flex items-center gap-2">
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline" disabled={isConfirming}>
+                                {isConfirming ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FilePenLine className="h-4 w-4 mr-2" />}
+                                {isConfirming ? "Confirmation..." : "Définir comme Nouvelle Quantité"}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Définir comme premier inventaire ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Cette action ignorera le stock précédent et définira les quantités scannées comme le nouveau stock de référence. 
+                                    Ceci est utile pour un premier inventaire. L'opération est irréversible.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleConfirm(true)}>
+                                    Oui, définir comme nouvelle quantité
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" disabled={isConfirming}>
+                                {isConfirming ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileUp className="h-4 w-4 mr-2" />}
+                                {isConfirming ? "Confirmation..." : "Appliquer les Écarts au Stock"}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmer et appliquer au stock ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Cette action mettra définitivement à jour les niveaux de stock en fonction des écarts calculés. Cette opération est irréversible.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleConfirm(false)}>
+                                    Oui, appliquer les écarts
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                 </div>
             )}
         </CardFooter>
       </Card>
