@@ -273,7 +273,13 @@ export async function getInventaire(id: number): Promise<Inventaire> {
   return apiFetch(`/inventaire/${id}`);
 }
 export async function calculateInventaire(data: InventairePayload): Promise<Inventaire> {
-  return apiFetch('/inventaire/calculer', { method: 'POST', body: JSON.stringify(data) });
+  const result = await apiFetch('/inventaire/calculer', { method: 'POST', body: JSON.stringify(data) });
+  // Map inventaireId to id for consistency
+  if(result && result.inventaireId) {
+    result.id = result.inventaireId;
+    delete result.inventaireId;
+  }
+  return result;
 }
 export async function recalculateInventaire(id: number, data: InventairePayload): Promise<Inventaire> {
   return apiFetch(`/inventaire/${id}/calculer`, { method: 'PUT', body: JSON.stringify(data) });
@@ -363,4 +369,21 @@ export async function getNotificationsByUserId(userId: number): Promise<Notifica
 
 export async function markNotificationAsRead(id: number): Promise<void> {
     return apiFetch(`/notifications/${id}/lu`, { method: 'PUT' });
+}
+
+// ========== Facture Modeles API ==========
+export async function getFactureModeles(): Promise<any[]> {
+    return apiFetch('/facture-modeles');
+}
+
+export async function addFactureModele(data: any): Promise<any> {
+    return apiFetch('/facture-modeles', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function updateFactureModele(data: any): Promise<any> {
+    return apiFetch(`/facture-modeles/${data.id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export async function deleteFactureModele(id: string): Promise<any> {
+    return apiFetch(`/facture-modeles/${id}`, { method: 'DELETE' });
 }

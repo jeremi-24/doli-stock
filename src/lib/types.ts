@@ -75,7 +75,7 @@ export type InventaireLigne = {
     ecartUnites: number;
 };
 export type Inventaire = {
-  id: number; // Changed from inventaireId to id to match API response
+  id: number;
   charge: string;
   date: string;
   lignes: InventaireLigne[];
@@ -348,4 +348,13 @@ export interface Notification {
   statut?: string;
 }
 
+export type FactureModele = {
+  id: string;
+  nom: string;
+  logoUrl?: string;
+  header?: string;
+  footer?: string;
+  color?: string;
+};
     
+

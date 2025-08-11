@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VenteDirectePayload, Vente, CommandeStatus, Notification } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VenteDirectePayload, Vente, CommandeStatus, Notification, FactureModele } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -59,6 +59,11 @@ interface AppContextType {
   hasPermission: (action: string) => boolean;
   scannedProductDetails: any | null;
   setScannedProductDetails: (details: any | null) => void;
+  factureModeles: FactureModele[];
+  addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
+  updateFactureModele: (modele: FactureModele) => Promise<void>;
+  deleteFactureModele: (id: string) => Promise<void>;
+
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -75,6 +80,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [factures, setFactures] = useState<Facture[]>([]);
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [bonLivraisons, setBonLivraisons] = useState<BonLivraison[]>([]);
+  const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [shopInfo, setShopInfoState] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
   const [token, setToken] = useState<string | null>(null);
@@ -126,6 +132,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [handleFetchError]);
 
+  const fetchFactureModeles = useCallback(async () => {
+    try {
+        const data = await api.getFactureModeles();
+        setFactureModeles(data || []);
+    } catch (error) {
+        handleFetchError(error, 'Modèles de Facture');
+    }
+  }, [handleFetchError]);
+
   const refreshAllData = useCallback(async () => {
     if (!currentUser) return;
     
@@ -163,10 +178,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetchCommandesPromise,
       fetchLivraisonsPromise,
       fetchFactures(),
+      fetchFactureModeles(),
     ];
 
     await Promise.allSettled(dataFetchPromises);
-  }, [handleFetchError, fetchFactures, currentUser]);
+  }, [handleFetchError, fetchFactures, fetchFactureModeles, currentUser]);
 
 
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
@@ -368,9 +384,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast({ title: "Vente finalisée !", description: `Le stock a été mis à jour.`});
       return newVente;
     } catch (error) {
-         // Error is handled in context
-    } finally {
-        //setIsSaving(false);
+         handleGenericError(error, 'Erreur de vente');
+         return null;
     }
   }, [refreshAllData, toast, handleGenericError]);
 
@@ -445,9 +460,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         handleGenericError(error, "Erreur de validation (Étape 2)");
     }
   }, [refreshAllData, toast, handleGenericError]);
+  
+  const addFactureModele = useCallback(async (data: Omit<FactureModele, 'id'>) => {
+    try { await api.addFactureModele(data); await fetchFactureModeles(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+  }, [fetchFactureModeles, handleGenericError]);
+  const updateFactureModele = useCallback(async (data: FactureModele) => {
+    try { await api.updateFactureModele(data); await fetchFactureModeles(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+  }, [fetchFactureModeles, handleGenericError]);
+  const deleteFactureModele = useCallback(async (id: string) => {
+    try { await api.deleteFactureModele(id); await fetchFactureModeles(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
+  }, [fetchFactureModeles, handleGenericError]);
+
 
   const value = useMemo(() => ({
-    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, fetchFactures,
+    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures, fetchFactureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
@@ -459,8 +485,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isMounted, isAuthenticated: !!token, currentUser,
     login, logout, hasPermission,
     scannedProductDetails, setScannedProductDetails,
+    addFactureModele, updateFactureModele, deleteFactureModele,
   }), [
-    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, fetchFactures,
+    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures, fetchFactureModeles,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
@@ -469,7 +496,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
     shopInfo, setShopInfo, themeColors, setThemeColors,
-    isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout
+    isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout,
+    addFactureModele, updateFactureModele, deleteFactureModele,
   ]);
 
   return (

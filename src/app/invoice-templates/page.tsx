@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FileSignature, PlusCircle, MoreHorizontal, Pencil, Trash2, Eye } from 'lucide-react';
 import type { FactureModele } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import * as api from '@/lib/api';
 
 const colorRegex = /^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/;
 const colorSchema = z.string().regex(colorRegex, "Format invalide. Utilisez 'H S% L%'").optional().or(z.literal(''));
@@ -76,8 +77,9 @@ function InvoicePreview({ logoUrl, header, footer, color }: Partial<Omit<Facture
 }
 
 export default function InvoiceTemplatesPage() {
-    const { factureModeles, addFactureModele, updateFactureModele, deleteFactureModele, isMounted } = useApp();
     const { toast } = useToast();
+    const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
+    const [isMounted, setIsMounted] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingModele, setEditingModele] = useState<FactureModele | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -88,6 +90,23 @@ export default function InvoiceTemplatesPage() {
     });
     
     const watchedValues = form.watch();
+
+    const fetchModeles = async () => {
+        setIsLoading(true);
+        try {
+            const data = await api.getFactureModeles();
+            setFactureModeles(data);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de charger les modèles." });
+        } finally {
+            setIsLoading(false);
+            setIsMounted(true);
+        }
+    }
+
+    useEffect(() => {
+        fetchModeles();
+    }, []);
 
     useEffect(() => {
         if (isDialogOpen) {
@@ -119,12 +138,13 @@ export default function InvoiceTemplatesPage() {
         setIsLoading(true);
         try {
             if (editingModele) {
-                await updateFactureModele({ ...editingModele, ...values });
+                await api.updateFactureModele({ ...editingModele, ...values });
                 toast({ title: "Modèle mis à jour" });
             } else {
-                await addFactureModele(values);
+                await api.addFactureModele(values);
                 toast({ title: "Modèle ajouté" });
             }
+            fetchModeles();
             setIsDialogOpen(false);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue.';
@@ -137,8 +157,9 @@ export default function InvoiceTemplatesPage() {
     const handleDelete = async (modeleId: string) => {
         setIsLoading(true);
         try {
-            await deleteFactureModele(modeleId);
+            await api.deleteFactureModele(modeleId);
             toast({ title: "Modèle supprimé" });
+            fetchModeles();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue.';
             toast({ variant: 'destructive', title: 'Erreur', description: errorMessage });
