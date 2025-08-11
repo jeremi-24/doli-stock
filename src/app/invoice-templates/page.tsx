@@ -122,7 +122,7 @@ export default function InvoiceTemplatesPage() {
         setIsDialogOpen(true);
     };
 
-    const onSubmit = async (values: z.infer<typeof modeleSchema>>) => {
+    const onSubmit = async (values: z.infer<typeof modeleSchema>) => {
         setIsLoading(true);
         try {
             if (editingModele) {
@@ -290,4 +290,6 @@ export default function InvoiceTemplatesPage() {
         </div>
     );
 }
+    
+
     

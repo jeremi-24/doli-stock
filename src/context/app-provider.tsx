@@ -132,15 +132,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [handleFetchError]);
 
-  const fetchFactureModeles = useCallback(async () => {
-    // try {
-    //     const data = await api.getFactureModeles();
-    //     setFactureModeles(data || []);
-    // } catch (error) {
-    //     handleFetchError(error, 'Modèles de Facture');
-    // }
-  }, []);
-
   const refreshAllData = useCallback(async () => {
     if (!currentUser) return;
     
@@ -178,11 +169,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetchCommandesPromise,
       fetchLivraisonsPromise,
       fetchFactures(),
-      // fetchFactureModeles(),
     ];
 
     await Promise.allSettled(dataFetchPromises);
-  }, [handleFetchError, fetchFactures, fetchFactureModeles, currentUser]);
+  }, [handleFetchError, fetchFactures, currentUser]);
 
 
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
@@ -476,7 +466,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   const value = useMemo(() => ({
-    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures, fetchFactureModeles,
+    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
@@ -490,7 +480,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     scannedProductDetails, setScannedProductDetails,
     addFactureModele, updateFactureModele, deleteFactureModele,
   }), [
-    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures, fetchFactureModeles,
+    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
