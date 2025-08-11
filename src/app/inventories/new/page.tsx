@@ -113,17 +113,17 @@ export default function NewInventoryPage() {
         
         const loadData = async () => {
             setPageIsLoading(true);
-            if (editId) {
-                setMode('edit_final');
-                const id = Number(editId);
-                setEditingInventoryId(id);
-                try {
+            try {
+                if (editId) {
+                    setMode('edit_final');
+                    const id = Number(editId);
+                    setEditingInventoryId(id);
                     const inventoryData = await api.getInventaire(id);
                     if (!inventoryData) throw new Error("Inventaire non trouvé.");
-                    const items: ScannedProduit[] = inventoryData.lignes.map(ligne => ({
+                    const items: ScannedProduit[] = inventoryData.lignes.map((ligne: any) => ({
                         produitId: ligne.produitId,
                         nomProduit: ligne.nomProduit,
-                        refProduit: 'N/A',
+                        refProduit: ligne.refProduit || 'N/A',
                         lieuStockNom: ligne.lieuStockNom,
                         qteScanne: ligne.qteScanneTotaleUnites,
                         barcode: 'N/A',
@@ -131,32 +131,33 @@ export default function NewInventoryPage() {
                     }));
                     setScannedItems(items.reverse());
                     toast({ title: `Modification de l'inventaire N°${editId}` });
-                } catch (error) {
-                    toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les données de l\'inventaire.' });
-                    router.push('/inventories');
-                }
-            } else if (draftId) {
-                const draft = drafts.find(d => d.id === draftId);
-                if (draft) {
-                    setMode('edit_draft');
-                    setScannedItems(draft.items);
-                    setActiveDraftId(draft.id);
-                    if(searchParams.get('loaded') !== 'true') {
-                        toast({ title: `Brouillon "${draft.name}" chargé.` });
-                        router.replace(`/inventories/new?draft=${draftId}&loaded=true`, { scroll: false });
+                } else if (draftId) {
+                    const draft = drafts.find(d => d.id === draftId);
+                    if (draft) {
+                        setMode('edit_draft');
+                        setScannedItems(draft.items);
+                        setActiveDraftId(draft.id);
+                        if(searchParams.get('loaded') !== 'true') {
+                            toast({ title: `Brouillon "${draft.name}" chargé.` });
+                            router.replace(`/inventories/new?draft=${draftId}&loaded=true`, { scroll: false });
+                        }
+                    } else {
+                         router.push('/inventories/new');
                     }
-                } else if(drafts.length > 0) { // handle case where draftId is invalid but drafts exist
-                     router.push('/inventories/new');
+                } else {
+                    setMode('new');
                 }
-            } else {
-                setMode('new');
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les données.' });
+                router.push('/inventories');
+            } finally {
+                setPageIsLoading(false);
             }
-            setPageIsLoading(false);
         };
 
         loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams, drafts]); // Added drafts dependency
+    }, [searchParams, drafts]); // Run when searchParams or drafts change
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
@@ -299,7 +300,7 @@ export default function NewInventoryPage() {
                 throw new Error("Le JSON doit contenir une clé 'lignes' avec un tableau de produits.");
             }
 
-            const newItems: ScannedProduit[] = data.lignes.map((ligne: InventaireLigne) => {
+            const newItems: ScannedProduit[] = data.lignes.map((ligne: any) => {
                 if (!ligne.produitId || !ligne.nomProduit || typeof ligne.qteScanneTotaleUnites === 'undefined') {
                     console.warn("Ligne JSON ignorée (champs manquants):", ligne);
                     return null;
@@ -307,11 +308,11 @@ export default function NewInventoryPage() {
                 return {
                     produitId: ligne.produitId,
                     nomProduit: ligne.nomProduit,
-                    refProduit: 'N/A', // Non disponible dans ce format
+                    refProduit: ligne.ref || 'N/A',
                     lieuStockNom: ligne.lieuStockNom || 'N/A',
                     qteScanne: ligne.qteScanneTotaleUnites,
-                    barcode: 'N/A', // Non disponible dans ce format
-                    typeQuantiteScanne: 'UNITE', // On importe tout en unités pour la simplicité
+                    barcode: 'N/A', // Not available in this format
+                    typeQuantiteScanne: 'UNITE', // Import all as units for simplicity
                 };
             }).filter(Boolean);
 
