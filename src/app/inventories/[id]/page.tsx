@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/context/app-provider';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-
+import * as api from '@/lib/api';
 
 export default function InventoryDetailPage() {
   const { id } = useParams();
@@ -28,27 +28,30 @@ export default function InventoryDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
 
-  const fetchInventory = async () => {
-    if (id) {
-        try {
-            setIsLoading(true);
-            const { getInventaire } = await import('@/lib/api');
-            const data = await getInventaire(Number(id));
-            setInventory(data);
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-            toast({ variant: 'destructive', title: 'Erreur', description: `Impossible de charger l'inventaire: ${errorMessage}` });
-            router.push('/inventories');
-        } finally {
-            setIsLoading(false);
-        }
+  const fetchInventory = useCallback(async () => {
+    const inventoryId = Number(id);
+    if (isNaN(inventoryId)) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Identifiant d\'inventaire invalide.' });
+      router.push('/inventories');
+      return;
     }
-  };
+    
+    try {
+        setIsLoading(true);
+        const data = await api.getInventaire(inventoryId);
+        setInventory(data);
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: 'Erreur', description: `Impossible de charger l'inventaire: ${errorMessage}` });
+        router.push('/inventories');
+    } finally {
+        setIsLoading(false);
+    }
+  }, [id, router, toast]);
 
   useEffect(() => {
     fetchInventory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, router, toast]);
+  }, [fetchInventory]);
 
   const handleConfirm = async () => {
       if (!inventory) return;
