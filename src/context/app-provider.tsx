@@ -133,13 +133,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [handleFetchError]);
 
   const fetchFactureModeles = useCallback(async () => {
-    try {
-        const data = await api.getFactureModeles();
-        setFactureModeles(data || []);
-    } catch (error) {
-        handleFetchError(error, 'Modèles de Facture');
-    }
-  }, [handleFetchError]);
+    // try {
+    //     const data = await api.getFactureModeles();
+    //     setFactureModeles(data || []);
+    // } catch (error) {
+    //     handleFetchError(error, 'Modèles de Facture');
+    // }
+  }, []);
 
   const refreshAllData = useCallback(async () => {
     if (!currentUser) return;
@@ -178,7 +178,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetchCommandesPromise,
       fetchLivraisonsPromise,
       fetchFactures(),
-      fetchFactureModeles(),
+      // fetchFactureModeles(),
     ];
 
     await Promise.allSettled(dataFetchPromises);

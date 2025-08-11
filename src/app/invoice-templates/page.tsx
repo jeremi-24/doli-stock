@@ -78,7 +78,7 @@ function InvoicePreview({ logoUrl, header, footer, color }: Partial<Omit<Facture
 
 export default function InvoiceTemplatesPage() {
     const { toast } = useToast();
-    const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
+    const { factureModeles, addFactureModele, updateFactureModele, deleteFactureModele } = useApp();
     const [isMounted, setIsMounted] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingModele, setEditingModele] = useState<FactureModele | null>(null);
@@ -91,21 +91,9 @@ export default function InvoiceTemplatesPage() {
     
     const watchedValues = form.watch();
 
-    const fetchModeles = async () => {
-        setIsLoading(true);
-        try {
-            const data = await api.getFactureModeles();
-            setFactureModeles(data);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de charger les modèles." });
-        } finally {
-            setIsLoading(false);
-            setIsMounted(true);
-        }
-    }
-
     useEffect(() => {
-        fetchModeles();
+        // fetchModeles();
+        setIsMounted(true);
     }, []);
 
     useEffect(() => {
@@ -134,17 +122,16 @@ export default function InvoiceTemplatesPage() {
         setIsDialogOpen(true);
     };
 
-    const onSubmit = async (values: z.infer<typeof modeleSchema>) => {
+    const onSubmit = async (values: z.infer<typeof modeleSchema>>) => {
         setIsLoading(true);
         try {
             if (editingModele) {
-                await api.updateFactureModele({ ...editingModele, ...values });
+                await updateFactureModele({ ...editingModele, ...values });
                 toast({ title: "Modèle mis à jour" });
             } else {
-                await api.addFactureModele(values);
+                await addFactureModele(values);
                 toast({ title: "Modèle ajouté" });
             }
-            fetchModeles();
             setIsDialogOpen(false);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue.';
@@ -157,9 +144,8 @@ export default function InvoiceTemplatesPage() {
     const handleDelete = async (modeleId: string) => {
         setIsLoading(true);
         try {
-            await api.deleteFactureModele(modeleId);
+            await deleteFactureModele(modeleId);
             toast({ title: "Modèle supprimé" });
-            fetchModeles();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue.';
             toast({ variant: 'destructive', title: 'Erreur', description: errorMessage });

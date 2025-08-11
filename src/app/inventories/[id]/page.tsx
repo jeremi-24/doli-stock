@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { useApp } from '@/context/app-provider';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import * as api from '@/lib/api';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function InventoryDetailPage() {
   const { id } = useParams();
@@ -24,7 +25,7 @@ export default function InventoryDetailPage() {
   const { toast } = useToast();
   const { confirmInventaire } = useApp();
   
-  const [inventory, setInventory] = useState<Inventaire | null>(null);
+  const [inventory, setInventory] = useState<Inventaire | null | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
 
@@ -91,7 +92,7 @@ export default function InventoryDetailPage() {
   )
 
 
-  if (isLoading || !inventory) {
+  if (isLoading || inventory === undefined) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <Skeleton className="h-10 w-48" />
@@ -108,6 +109,24 @@ export default function InventoryDetailPage() {
             <Skeleton className="h-10 w-32" />
            </CardFooter>
         </Card>
+      </div>
+    );
+  }
+
+  if (inventory === null) {
+     return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 md:p-8">
+        <Alert variant="destructive" className="max-w-lg">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Inventaire introuvable</AlertTitle>
+            <AlertDescription>
+                L'inventaire que vous cherchez n'existe pas ou a été supprimé.
+            </AlertDescription>
+        </Alert>
+        <Button onClick={() => router.push('/inventories')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retourner aux inventaires
+        </Button>
       </div>
     );
   }
