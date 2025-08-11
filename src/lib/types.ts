@@ -356,5 +356,3 @@ export type FactureModele = {
   footer?: string;
   color?: string;
 };
-    
-

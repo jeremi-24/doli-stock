@@ -1,6 +1,6 @@
 
 
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload, Notification, BarcodePrintRequest } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload, Notification, BarcodePrintRequest, FactureModele } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -266,26 +266,44 @@ export async function annulerVente(id: number): Promise<void> {
 
 
 // ========== Inventaires API ==========
+const mapInventaireResponse = (result: any): Inventaire | null => {
+  if (!result) return null;
+
+  const mappedResult = { ...result };
+
+  if (mappedResult.inventaireId) {
+    mappedResult.id = mappedResult.inventaireId;
+    delete mappedResult.inventaireId;
+  }
+
+  if (mappedResult.status) {
+    mappedResult.statut = mappedResult.status;
+    delete mappedResult.status;
+  }
+  
+  return mappedResult as Inventaire;
+};
+
+
 export async function getInventaires(): Promise<Inventaire[]> {
-  return apiFetch('/inventaire');
+  const results = await apiFetch('/inventaire');
+  return results ? results.map(mapInventaireResponse) : [];
 }
 export async function getInventaire(id: number): Promise<Inventaire> {
-  return apiFetch(`/inventaire/${id}`);
+  const result = await apiFetch(`/inventaire/${id}`);
+  return mapInventaireResponse(result) as Inventaire;
 }
 export async function calculateInventaire(data: InventairePayload): Promise<Inventaire> {
   const result = await apiFetch('/inventaire/calculer', { method: 'POST', body: JSON.stringify(data) });
-  // Map inventaireId to id for consistency
-  if(result && result.inventaireId) {
-    result.id = result.inventaireId;
-    delete result.inventaireId;
-  }
-  return result;
+  return mapInventaireResponse(result) as Inventaire;
 }
 export async function recalculateInventaire(id: number, data: InventairePayload): Promise<Inventaire> {
-  return apiFetch(`/inventaire/${id}/calculer`, { method: 'PUT', body: JSON.stringify(data) });
+  const result = await apiFetch(`/inventaire/${id}/calculer`, { method: 'PUT', body: JSON.stringify(data) });
+  return mapInventaireResponse(result) as Inventaire;
 }
 export async function confirmInventaire(id: number): Promise<Inventaire> {
-  return apiFetch(`/inventaire/${id}/confirmer`, { method: 'POST' });
+  const result = await apiFetch(`/inventaire/${id}/confirmer`, { method: 'POST' });
+  return mapInventaireResponse(result) as Inventaire;
 }
 export async function exportInventaire(id: number): Promise<void> {
   const blob = await apiFetch(`/inventaire/${id}/export`, {
@@ -372,7 +390,7 @@ export async function markNotificationAsRead(id: number): Promise<void> {
 }
 
 // ========== Facture Modeles API ==========
-export async function getFactureModeles(): Promise<any[]> {
+export async function getFactureModeles(): Promise<FactureModele[]> {
     return apiFetch('/facture-modeles');
 }
 

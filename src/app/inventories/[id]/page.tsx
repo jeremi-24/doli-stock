@@ -145,7 +145,7 @@ export default function InventoryDetailPage() {
         <CardContent>
             <div className="border rounded-lg">
                 <Table>
-                    <TableHeader className='bg-gray-100' >
+                    <TableHeader className='bg-gray-100/50' >
                         <TableRow>
                             <TableHead rowSpan={2} className="align-middle">Produit</TableHead>
                             <TableHead rowSpan={2} className="align-middle">Lieu de Stock</TableHead>
