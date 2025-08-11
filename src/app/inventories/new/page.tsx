@@ -9,16 +9,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '@/context/app-provider';
-import type { ScannedProduit, Produit } from '@/lib/types';
+import type { ScannedProduit, Produit, InventaireLigne } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, FileDown } from 'lucide-react';
+import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, FileDown, ClipboardPaste } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { Dialog, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 
 function SaveDraftDialog({ onSave, onOpenChange, initialName }: { onSave: (name: string) => void, onOpenChange: (open: boolean) => void, initialName?: string }) {
     const [name, setName] = useState(initialName || `Brouillon ${new Date().toLocaleDateString('fr-FR')}`);
@@ -52,6 +53,36 @@ function SaveDraftDialog({ onSave, onOpenChange, initialName }: { onSave: (name:
     )
 }
 
+function JSONImportDialog({ onImport, onOpenChange }: { onImport: (jsonString: string) => void, onOpenChange: (open: boolean) => void }) {
+    const [jsonString, setJsonString] = useState('');
+    
+    const handleImport = () => {
+        onImport(jsonString);
+        onOpenChange(false);
+    }
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Coller le JSON de l'inventaire</DialogTitle>
+                <DialogDescription>Collez le contenu JSON (objet avec une clé "lignes") pour charger les produits.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Textarea
+                    placeholder='Collez votre JSON ici...'
+                    value={jsonString}
+                    onChange={(e) => setJsonString(e.target.value)}
+                    className="min-h-[200px] font-mono text-xs"
+                />
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
+                <Button onClick={handleImport} disabled={!jsonString}>Charger les données</Button>
+            </DialogFooter>
+        </DialogContent>
+    );
+}
+
 export default function NewInventoryPage() {
     const { createInventaire, updateInventaire, currentUser } = useApp();
     const router = useRouter();
@@ -74,6 +105,7 @@ export default function NewInventoryPage() {
     const [productCache, setProductCache] = useState<Map<string, Produit>>(new Map());
     const [isFirstInventory, setIsFirstInventory] = useState(false);
     const [isDraftDialogOpen, setIsDraftDialogOpen] = useState(false);
+    const [isJsonDialogOpen, setIsJsonDialogOpen] = useState(false);
 
     useEffect(() => {
         const draftId = searchParams.get('draft');
@@ -83,19 +115,19 @@ export default function NewInventoryPage() {
             setPageIsLoading(true);
             if (editId) {
                 setMode('edit_final');
-                setEditingInventoryId(Number(editId));
+                const id = Number(editId);
+                setEditingInventoryId(id);
                 try {
-                    const inventoryData = await api.getInventaire(Number(editId));
+                    const inventoryData = await api.getInventaire(id);
                     if (!inventoryData) throw new Error("Inventaire non trouvé.");
-                    // Convertir les lignes d'inventaire en `ScannedProduit`
                     const items: ScannedProduit[] = inventoryData.lignes.map(ligne => ({
                         produitId: ligne.produitId,
                         nomProduit: ligne.nomProduit,
-                        refProduit: 'N/A', // La référence n'est pas dans les lignes, ok pour la modif
+                        refProduit: 'N/A',
                         lieuStockNom: ligne.lieuStockNom,
                         qteScanne: ligne.qteScanneTotaleUnites,
-                        barcode: 'N/A', // Le code barre n'est pas dans les lignes, ok pour la modif
-                        typeQuantiteScanne: 'UNITE', // On consolide en unités pour la modification
+                        barcode: 'N/A',
+                        typeQuantiteScanne: 'UNITE',
                     }));
                     setScannedItems(items.reverse());
                     toast({ title: `Modification de l'inventaire N°${editId}` });
@@ -113,7 +145,7 @@ export default function NewInventoryPage() {
                         toast({ title: `Brouillon "${draft.name}" chargé.` });
                         router.replace(`/inventories/new?draft=${draftId}&loaded=true`, { scroll: false });
                     }
-                } else {
+                } else if(drafts.length > 0) { // handle case where draftId is invalid but drafts exist
                      router.push('/inventories/new');
                 }
             } else {
@@ -124,7 +156,7 @@ export default function NewInventoryPage() {
 
         loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
+    }, [searchParams, drafts]); // Added drafts dependency
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
@@ -260,13 +292,44 @@ export default function NewInventoryPage() {
         }
     };
     
+    const handleJsonImport = (jsonString: string) => {
+        try {
+            const data = JSON.parse(jsonString);
+            if (!data.lignes || !Array.isArray(data.lignes)) {
+                throw new Error("Le JSON doit contenir une clé 'lignes' avec un tableau de produits.");
+            }
+
+            const newItems: ScannedProduit[] = data.lignes.map((ligne: InventaireLigne) => {
+                if (!ligne.produitId || !ligne.nomProduit || typeof ligne.qteScanneTotaleUnites === 'undefined') {
+                    console.warn("Ligne JSON ignorée (champs manquants):", ligne);
+                    return null;
+                }
+                return {
+                    produitId: ligne.produitId,
+                    nomProduit: ligne.nomProduit,
+                    refProduit: 'N/A', // Non disponible dans ce format
+                    lieuStockNom: ligne.lieuStockNom || 'N/A',
+                    qteScanne: ligne.qteScanneTotaleUnites,
+                    barcode: 'N/A', // Non disponible dans ce format
+                    typeQuantiteScanne: 'UNITE', // On importe tout en unités pour la simplicité
+                };
+            }).filter(Boolean);
+
+            setScannedItems(newItems);
+            toast({ title: 'Importation JSON réussie', description: `${newItems.length} produits chargés dans le panier.` });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de l'analyse du JSON.";
+            toast({ variant: 'destructive', title: "Erreur d'importation JSON", description: errorMessage });
+        }
+    };
+
     const activeDraft = useMemo(() => drafts.find(d => d.id === activeDraftId), [drafts, activeDraftId]);
     
     const pageTitle = useMemo(() => {
         if (mode === 'edit_final') return `Modifier l'Inventaire N°${editingInventoryId}`;
-        if (mode === 'edit_draft') return "Modifier un Brouillon";
+        if (activeDraft?.name) return `Brouillon: ${activeDraft.name}`;
         return "Nouvel Inventaire";
-    }, [mode, editingInventoryId]);
+    }, [mode, editingInventoryId, activeDraft]);
 
 
     if(pageIsLoading) {
@@ -285,11 +348,6 @@ export default function NewInventoryPage() {
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center">
                 <h1 className="font-headline text-3xl font-semibold">{pageTitle}</h1>
-                {activeDraft && (
-                    <div className="ml-4 flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Brouillon: {activeDraft.name}</span>
-                    </div>
-                )}
             </div>
 
             <div className="grid gap-8 md:grid-cols-3">
@@ -388,16 +446,28 @@ export default function NewInventoryPage() {
                                 </Table>
                             </div>
                         </CardContent>
-                        <CardFooter className="border-t pt-6 flex justify-between">
-                            <Dialog open={isDraftDialogOpen} onOpenChange={setIsDraftDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" disabled={scannedItems.length === 0 || isSaving || mode === 'edit_final'}>
-                                        <FileDown className="h-4 w-4 mr-2" />
-                                        {activeDraftId ? "Renommer le brouillon" : "Sauvegarder le brouillon"}
-                                    </Button>
-                                </DialogTrigger>
-                                <SaveDraftDialog onSave={handleSaveDraft} onOpenChange={setIsDraftDialogOpen} initialName={activeDraft?.name}/>
-                            </Dialog>
+                        <CardFooter className="border-t pt-6 flex justify-between items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                                <Dialog open={isDraftDialogOpen} onOpenChange={setIsDraftDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" disabled={scannedItems.length === 0 || isSaving || mode === 'edit_final'}>
+                                            <FileDown className="h-4 w-4 mr-2" />
+                                            {activeDraftId ? "Renommer" : "Sauvegarder"}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <SaveDraftDialog onSave={handleSaveDraft} onOpenChange={setIsDraftDialogOpen} initialName={activeDraft?.name}/>
+                                </Dialog>
+
+                                <Dialog open={isJsonDialogOpen} onOpenChange={setIsJsonDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" disabled={isSaving}>
+                                            <ClipboardPaste className="h-4 w-4 mr-2" />
+                                            Coller JSON
+                                        </Button>
+                                    </DialogTrigger>
+                                    <JSONImportDialog onImport={handleJsonImport} onOpenChange={setIsJsonDialogOpen} />
+                                </Dialog>
+                            </div>
 
                            <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -435,5 +505,3 @@ export default function NewInventoryPage() {
         </div>
     );
 }
-
-    
