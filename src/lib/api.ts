@@ -276,6 +276,10 @@ export async function createInventaire(data: InventairePayload, isFirst: boolean
   return apiFetch(`/inventaire?premier=${isFirst}`, { method: 'POST', body: JSON.stringify(data) });
 }
 
+export async function updateInventaire(id: number, data: InventairePayload): Promise<Inventaire> {
+  return apiFetch(`/inventaire/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
 export async function exportInventaire(id: number): Promise<void> {
   const blob = await apiFetch(`/inventaire/${id}/export`, {
     method: 'GET',
