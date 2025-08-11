@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,19 +32,30 @@ function DocumentViewer() {
     const invoiceRef = useRef<HTMLDivElement>(null);
     const deliverySlipRef = useRef<HTMLDivElement>(null);
 
+    const loadDocuments = useCallback(() => {
+        if (isMounted) {
+            setIsLoading(true);
+            const commandeId = Number(id);
+            if (isNaN(commandeId)) {
+                toast({ variant: 'destructive', title: 'ID de commande invalide' });
+                setIsLoading(false);
+                return;
+            }
+
+            const foundCommande = commandes.find(c => c.id === commandeId);
+            const foundFacture = factures.find(f => f.commandeId === commandeId);
+            const foundBonLivraison = bonLivraisons.find(bl => bl.commandeId === commandeId);
+
+            setCommande(foundCommande ?? null);
+            setFacture(foundFacture ?? null);
+            setBonLivraison(foundBonLivraison ?? null);
+            setIsLoading(false);
+        }
+    }, [id, isMounted, commandes, factures, bonLivraisons, toast]);
+
     useEffect(() => {
-      if (isMounted) {
-        const commandeId = Number(id);
-        const foundCommande = commandes.find(c => c.id === commandeId);
-        const foundFacture = factures.find(f => f.commandeId === commandeId);
-        const foundBonLivraison = bonLivraisons.find(bl => bl.commandeId === commandeId);
-        
-        setCommande(foundCommande);
-        setFacture(foundFacture);
-        setBonLivraison(foundBonLivraison);
-        setIsLoading(false);
-      }
-    }, [id, isMounted, commandes, factures, bonLivraisons]);
+        loadDocuments();
+    }, [loadDocuments]);
 
     const handlePrint = async (elementRef: React.RefObject<HTMLDivElement>, documentTitle: string) => {
         if (!elementRef.current) {
@@ -100,7 +111,7 @@ function DocumentViewer() {
     }
 
 
-    if (isLoading || !isMounted) {
+    if (isLoading || commande === undefined) {
         return (
             <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
                 <div className="flex items-center justify-between">
@@ -115,7 +126,7 @@ function DocumentViewer() {
         );
     }
 
-    if (!commande || !facture || !bonLivraison) {
+    if (commande === null || facture === null || bonLivraison === null) {
       return (
          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 md:p-8">
             <Alert variant="destructive" className="max-w-lg">
@@ -191,5 +202,3 @@ function DocumentViewer() {
 }
 
 export default DocumentViewer;
-
-    

@@ -273,13 +273,17 @@ const mapInventaireResponse = (result: any): Inventaire | null => {
     mappedResult.id = mappedResult.inventaireId;
     delete mappedResult.inventaireId;
   }
+  if (mappedResult.status) { 
+    mappedResult.statut = mappedResult.status;
+    delete mappedResult.status;
+  }
   return mappedResult as Inventaire;
 };
 
 
 export async function getInventaires(): Promise<Inventaire[]> {
   const results = await apiFetch('/inventaire');
-  return results ? results.map(mapInventaireResponse) : [];
+  return Array.isArray(results) ? results.map(mapInventaireResponse).filter(Boolean) as Inventaire[] : [];
 }
 export async function getInventaire(id: number): Promise<Inventaire | null> {
   const result = await apiFetch(`/inventaire/${id}`);
