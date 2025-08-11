@@ -48,7 +48,7 @@ export default function InventoriesPage() {
         await api.exportInventaire(id);
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: "Erreur d'exportation", description: errorMessage });
+        toast({ variant: "destructive", title: "Erreur d'exportation", description: errorMessage });
     } finally {
         setExportingId(null);
     }
@@ -150,7 +150,10 @@ export default function InventoriesPage() {
                     <TableCell><Badge variant="outline">{inv.charge}</Badge></TableCell>
                     <TableCell>{inv.lignes.length}</TableCell>
                     <TableCell>
-                      <Badge variant={inv.statut === 'CONFIRME' ? 'default' : 'secondary'} className={cn(inv.statut === 'EN_ATTENTE_CONFIRMATION' && 'bg-orange-100 text-orange-800')}>
+                      <Badge variant={inv.statut === 'CONFIRME' ? 'default' : 'secondary'} className={cn(
+                          inv.statut === 'EN_ATTENTE_CONFIRMATION' && 'bg-orange-100 text-orange-800',
+                          inv.statut === 'CONFIRME' && 'bg-green-600 text-white'
+                      )}>
                         {inv.statut === 'CONFIRME' ? <CheckCircle className="h-3 w-3 mr-1" /> : <AlertCircle className="h-3 w-3 mr-1" />}
                         {inv.statut === 'CONFIRME' ? 'Confirmé' : 'En attente'}
                       </Badge>

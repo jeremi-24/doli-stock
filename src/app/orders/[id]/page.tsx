@@ -34,11 +34,11 @@ function DocumentViewer() {
 
     const loadDocuments = useCallback(() => {
         if (isMounted) {
-            setIsLoading(true);
             const commandeId = Number(id);
             if (isNaN(commandeId)) {
                 toast({ variant: 'destructive', title: 'ID de commande invalide' });
                 setIsLoading(false);
+                setCommande(null); // Explicitly set to null on error
                 return;
             }
 
@@ -106,12 +106,12 @@ function DocumentViewer() {
     };
     
     const handlePrintAll = async () => {
-        if (invoiceRef.current) await handlePrint(invoiceRef, `Facture-${facture?.idFacture || id}`);
-        if (deliverySlipRef.current) await handlePrint(deliverySlipRef, `BL-${bonLivraison?.id || id}`);
+        if (invoiceRef.current && facture) await handlePrint(invoiceRef, `Facture-${facture.idFacture}`);
+        if (deliverySlipRef.current && bonLivraison) await handlePrint(deliverySlipRef, `BL-${bonLivraison.id}`);
     }
 
 
-    if (isLoading || commande === undefined) {
+    if (isLoading || !isMounted) {
         return (
             <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
                 <div className="flex items-center justify-between">
@@ -126,7 +126,7 @@ function DocumentViewer() {
         );
     }
 
-    if (commande === null || facture === null || bonLivraison === null) {
+    if (!commande || !facture || !bonLivraison) {
       return (
          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 md:p-8">
             <Alert variant="destructive" className="max-w-lg">
@@ -160,10 +160,10 @@ function DocumentViewer() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => handlePrint(invoiceRef, `Facture-${facture?.idFacture || id}`)} disabled={isPrinting}>
+                    <Button variant="outline" onClick={() => handlePrint(invoiceRef, `Facture-${facture.idFacture}`)} disabled={isPrinting}>
                         {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer Facture
                     </Button>
-                    <Button variant="outline" onClick={() => handlePrint(deliverySlipRef, `BL-${bonLivraison?.id || id}`)} disabled={isPrinting}>
+                    <Button variant="outline" onClick={() => handlePrint(deliverySlipRef, `BL-${bonLivraison.id}`)} disabled={isPrinting}>
                         {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer BL
                     </Button>
                     <Button onClick={handlePrintAll} disabled={isPrinting}>
