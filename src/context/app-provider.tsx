@@ -33,7 +33,7 @@ interface AppContextType {
   updateClient: (id: number, client: Partial<Client>) => Promise<void>;
   deleteClient: (id: number) => Promise<void>;
   deleteFacture: (factureId: number) => Promise<void>;
-  createInventaire: (payload: InventairePayload) => Promise<Inventaire | null>;
+  createInventaire: (payload: InventairePayload, premier: boolean) => Promise<Inventaire | null>;
   updateInventaire: (id: number, payload: InventairePayload) => Promise<Inventaire | null>;
   confirmInventaire: (id: number, premier: boolean) => Promise<Inventaire | null>;
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
@@ -307,9 +307,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchFactures, toast, handleGenericError]);
 
-  const createInventaire = useCallback(async (payload: InventairePayload): Promise<Inventaire | null> => {
+  const createInventaire = useCallback(async (payload: InventairePayload, premier: boolean): Promise<Inventaire | null> => {
     try {
-      const calculatedInventaire = await api.calculateInventaire(payload);
+      const calculatedInventaire = await api.calculateInventaire(payload, premier);
       await refreshAllData();
       toast({ title: "Calcul des écarts terminé" });
       return calculatedInventaire;
@@ -336,10 +336,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const confirmedInventaire = await api.confirmInventaire(id, premier);
       await refreshAllData();
       toast({ title: "Inventaire confirmé et appliqué au stock !" });
-      if (confirmedInventaire) {
-        return confirmedInventaire;
-      }
-      return await api.getInventaire(id);
+      return confirmedInventaire;
     } catch (error) {
       handleGenericError(error, "Erreur de confirmation d'inventaire");
       return null;

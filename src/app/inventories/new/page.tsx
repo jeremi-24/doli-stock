@@ -87,14 +87,15 @@ export default function NewInventoryPage() {
                 try {
                     const inventoryData = await api.getInventaire(Number(editId));
                     if (!inventoryData) throw new Error("Inventaire non trouvé.");
+                    // Convertir les lignes d'inventaire en `ScannedProduit`
                     const items: ScannedProduit[] = inventoryData.lignes.map(ligne => ({
                         produitId: ligne.produitId,
                         nomProduit: ligne.nomProduit,
-                        refProduit: 'N/A',
+                        refProduit: 'N/A', // La référence n'est pas dans les lignes, ok pour la modif
                         lieuStockNom: ligne.lieuStockNom,
                         qteScanne: ligne.qteScanneTotaleUnites,
-                        barcode: 'N/A',
-                        typeQuantiteScanne: 'UNITE',
+                        barcode: 'N/A', // Le code barre n'est pas dans les lignes, ok pour la modif
+                        typeQuantiteScanne: 'UNITE', // On consolide en unités pour la modification
                     }));
                     setScannedItems(items.reverse());
                     toast({ title: `Modification de l'inventaire N°${editId}` });
@@ -243,7 +244,7 @@ export default function NewInventoryPage() {
             if (mode === 'edit_final' && editingInventoryId) {
                 resultInventory = await updateInventaire(editingInventoryId, payload);
             } else {
-                resultInventory = await createInventaire(payload);
+                resultInventory = await createInventaire(payload, isFirstInventory);
             }
             
             if (resultInventory && resultInventory.id) {
@@ -259,7 +260,7 @@ export default function NewInventoryPage() {
         }
     };
     
-    const activeDraft = drafts.find(d => d.id === activeDraftId);
+    const activeDraft = useMemo(() => drafts.find(d => d.id === activeDraftId), [drafts, activeDraftId]);
     
     const pageTitle = useMemo(() => {
         if (mode === 'edit_final') return `Modifier l'Inventaire N°${editingInventoryId}`;
@@ -371,7 +372,7 @@ export default function NewInventoryPage() {
                                         <TableCell className="text-center font-semibold">
                                             <div className="flex items-center justify-center gap-2">
                                                 {item.typeQuantiteScanne === 'CARTON' ? <Box className="h-4 w-4" /> : <UnitIcon className="h-4 w-4" />}
-                                                {item.qteScanne} {item.typeQuantiteScanne}
+                                                {item.qteScanne} {item.typeQuantiteScanne === 'UNITE' && item.qteScanne > 1 ? 'Unités' : item.typeQuantiteScanne}
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -432,7 +433,7 @@ export default function NewInventoryPage() {
                 </div>
             </div>
         </div>
-    )
+    );
 }
 
     

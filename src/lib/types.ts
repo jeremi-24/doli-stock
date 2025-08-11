@@ -66,7 +66,7 @@ export type InventaireLigne = {
     qteAvantScanTotaleUnites: number;
     qteScanneTotaleUnites: number;
     ecartTotalUnites: number;
-    typeQuantiteScanne: string;
+    typeQuantiteScanne: 'UNITE' | 'CARTON';
     qteAvantScanCartons: number;
     qteAvantScanUnitesRestantes: number;
     qteScanneCartons: number;
@@ -93,7 +93,6 @@ export type ScannedProduit = {
 export type InventaireProduitPayload = {
     produitId: number;
     qteScanne: number;
-    lieuStockNom: string;
     typeQuantiteScanne: 'UNITE' | 'CARTON';
 };
 export type InventairePayload = {
