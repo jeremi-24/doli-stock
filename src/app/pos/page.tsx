@@ -173,7 +173,10 @@ export default function POSPage() {
   const displayCategories = useMemo(() => ['Tout', ...categories.map(c => c.nom)], [categories]);
   const categoryNameToId = useMemo(() => new Map(categories.map(c => [c.nom, c.id])), [categories]);
   
-  const defaultClient = useMemo(() => clients.find(c => c.nom.toUpperCase() === 'CLIENT GENERIQUE'), [clients]);
+  const defaultClient = useMemo(() => {
+    if (!clients || clients.length === 0) return undefined;
+    return clients.find(c => c.nom && c.nom.toUpperCase() === 'CLIENT GENERIQUE');
+  }, [clients]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);

@@ -83,7 +83,7 @@ export default function InventoryDetailPage() {
   };
   
   const QteDisplay = ({ cartons, unites }: { cartons: number, unites: number }) => (
-    <div className="flex items-center justify-center gap-2 text-xs">
+    <div className="flex items-center justify-end gap-2 text-xs">
         {cartons > 0 && <span className="flex items-center gap-1"><Box className="h-3 w-3" />{cartons} C</span>}
         {unites > 0 && <span className="flex items-center gap-1"><UnitIcon className="h-3 w-3" />{unites} U</span>}
         {(cartons === 0 && unites === 0) && '0'}
