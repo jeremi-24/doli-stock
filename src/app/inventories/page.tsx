@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from "@/components/ui/badge";
 import type { Inventaire } from '@/lib/types';
 import * as api from '@/lib/api';
-import { PlusCircle, ClipboardList, Eye, Loader2, Download, Trash2, Edit } from 'lucide-react';
+import { PlusCircle, ClipboardList, Eye, Loader2, Download, Trash2, Edit, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -94,7 +94,7 @@ export default function InventoriesPage() {
                                     <TableCell className="text-right">{draft.items.length}</TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="outline" size="sm" onClick={() => router.push(`/inventories/new?draft=${draft.id}`)}>
-                                            <Edit className="h-4 w-4 mr-2"/> Continuer
+                                            <Pencil className="h-4 w-4 mr-2"/> Continuer
                                         </Button>
                                          <AlertDialog>
                                             <AlertDialogTrigger asChild>
@@ -150,6 +150,9 @@ export default function InventoriesPage() {
                     <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/${inv.inventaireId}`)}>
                             <Eye className="h-4 w-4" /><span className="sr-only">Voir les détails</span>
+                        </Button>
+                        <Button variant="ghost" size="icon" disabled>
+                            <Pencil className="h-4 w-4" /><span className="sr-only">Modifier</span>
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleExport(inv.inventaireId)} disabled={exportingId === inv.inventaireId}>
                            {exportingId === inv.inventaireId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
