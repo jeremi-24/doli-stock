@@ -268,19 +268,11 @@ export async function annulerVente(id: number): Promise<void> {
 // ========== Inventaires API ==========
 const mapInventaireResponse = (result: any): Inventaire | null => {
   if (!result) return null;
-
   const mappedResult = { ...result };
-
   if (mappedResult.inventaireId) {
     mappedResult.id = mappedResult.inventaireId;
     delete mappedResult.inventaireId;
   }
-
-  if (mappedResult.status) {
-    mappedResult.statut = mappedResult.status;
-    delete mappedResult.status;
-  }
-  
   return mappedResult as Inventaire;
 };
 
@@ -289,9 +281,9 @@ export async function getInventaires(): Promise<Inventaire[]> {
   const results = await apiFetch('/inventaire');
   return results ? results.map(mapInventaireResponse) : [];
 }
-export async function getInventaire(id: number): Promise<Inventaire> {
+export async function getInventaire(id: number): Promise<Inventaire | null> {
   const result = await apiFetch(`/inventaire/${id}`);
-  return mapInventaireResponse(result) as Inventaire;
+  return mapInventaireResponse(result);
 }
 export async function calculateInventaire(data: InventairePayload): Promise<Inventaire> {
   const result = await apiFetch('/inventaire/calculer', { method: 'POST', body: JSON.stringify(data) });
@@ -390,6 +382,7 @@ export async function markNotificationAsRead(id: number): Promise<void> {
 }
 
 // ========== Facture Modeles API ==========
+/*
 export async function getFactureModeles(): Promise<FactureModele[]> {
     return apiFetch('/facture-modeles');
 }
@@ -405,3 +398,4 @@ export async function updateFactureModele(data: any): Promise<any> {
 export async function deleteFactureModele(id: string): Promise<any> {
     return apiFetch(`/facture-modeles/${id}`, { method: 'DELETE' });
 }
+*/

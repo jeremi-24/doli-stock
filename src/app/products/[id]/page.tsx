@@ -33,12 +33,13 @@ export default function ProductDetailPage() {
     // Fallback for direct navigation/refresh
     else if (isMounted && id) {
       const foundProduit = produits.find(p => p.id === Number(id));
-      setProduit(foundProduit);
+      setProduit(foundProduit ?? null); // Explicitly set to null if not found
     }
   }, [id, produits, isMounted, scannedProductDetails, setScannedProductDetails]);
 
 
   const formatCurrency = (amount: number) => {
+    if (typeof amount !== 'number') return 'N/A';
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
 
@@ -74,12 +75,16 @@ export default function ProductDetailPage() {
   if (produit === null) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 md:p-8">
-        <AlertTriangle className="h-16 w-16 text-destructive" />
-        <h2 className="text-2xl font-bold">Produit non trouvé</h2>
-        <p className="text-muted-foreground">Le produit que vous cherchez n'existe pas ou a été supprimé.</p>
-        <Button onClick={() => router.push('/stock')}>
+        <Alert variant="destructive" className="max-w-lg text-center">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Produit non trouvé</AlertTitle>
+            <AlertDescription>
+                Le produit que vous cherchez n'existe pas ou a été supprimé.
+            </AlertDescription>
+        </Alert>
+        <Button onClick={() => router.push('/products')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Retourner au stock
+          Retourner aux produits
         </Button>
       </div>
     );
@@ -105,7 +110,7 @@ export default function ProductDetailPage() {
           <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 text-base">
             <div className="flex items-center justify-between border-b pb-2">
               <span className="text-muted-foreground flex items-center gap-2"><Package className="h-5 w-5"/>Quantité en stock</span>
-              <span className="font-semibold">{produit.qte}</span>
+              <span className="font-semibold">{produit.qte ?? 0}</span>
             </div>
              <div className="flex items-center justify-between border-b pb-2">
               <span className="text-muted-foreground flex items-center gap-2"><DollarSign className="h-5 w-5"/>Prix de vente</span>
@@ -113,7 +118,7 @@ export default function ProductDetailPage() {
             </div>
              <div className="flex items-center justify-between border-b pb-2">
               <span className="text-muted-foreground flex items-center gap-2"><AlertTriangle className="h-5 w-5"/>Seuil d'alerte</span>
-              <span className="font-semibold">{produit.qteMin}</span>
+              <span className="font-semibold">{produit.qteMin ?? 0}</span>
             </div>
             <div className="flex items-center justify-between border-b pb-2">
               <span className="text-muted-foreground flex items-center gap-2"><Tag className="h-5 w-5"/>Catégorie</span>
@@ -128,7 +133,7 @@ export default function ProductDetailPage() {
                <span className="font-mono text-sm">{produit.codeBarre}</span>
             </div>
           </div>
-          {produit.qte <= produit.qteMin && (
+          {(produit.qte ?? 0) <= (produit.qteMin ?? 0) && (
             <Alert variant="destructive" className="mt-6">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Alerte de stock faible</AlertTitle>
@@ -139,8 +144,8 @@ export default function ProductDetailPage() {
           )}
         </CardContent>
         <CardFooter>
-            <Button onClick={() => router.push('/stock')}>
-                Retourner à la liste du stock
+            <Button onClick={() => router.push('/products')}>
+                Retourner à la liste des produits
             </Button>
         </CardFooter>
       </Card>

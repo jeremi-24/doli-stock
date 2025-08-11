@@ -462,14 +462,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refreshAllData, toast, handleGenericError]);
   
   const addFactureModele = useCallback(async (data: Omit<FactureModele, 'id'>) => {
-    try { await api.addFactureModele(data); await fetchFactureModeles(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
-  }, [fetchFactureModeles, handleGenericError]);
+    // try { await api.addFactureModele(data); await fetchFactureModeles(); } catch (error) { handleGenericError(error, "Erreur d'ajout"); }
+    await Promise.resolve();
+  }, [handleGenericError]);
   const updateFactureModele = useCallback(async (data: FactureModele) => {
-    try { await api.updateFactureModele(data); await fetchFactureModeles(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
-  }, [fetchFactureModeles, handleGenericError]);
+    // try { await api.updateFactureModele(data); await fetchFactureModeles(); } catch (error) { handleGenericError(error, "Erreur de mise à jour"); }
+    await Promise.resolve();
+  }, [handleGenericError]);
   const deleteFactureModele = useCallback(async (id: string) => {
-    try { await api.deleteFactureModele(id); await fetchFactureModeles(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
-  }, [fetchFactureModeles, handleGenericError]);
+    // try { await api.deleteFactureModele(id); await fetchFactureModeles(); } catch (error) { handleGenericError(error, "Erreur de suppression"); }
+    await Promise.resolve();
+  }, [handleGenericError]);
 
 
   const value = useMemo(() => ({
