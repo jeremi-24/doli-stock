@@ -128,9 +128,18 @@ export default function NewInventoryPage() {
 
             let newItems;
             if (existingItemIndex > -1) {
-                newItems = [...scannedItems];
-                newItems[existingItemIndex].qteScanne += quantity;
+                // Item exists, update quantity and move to top
+                const updatedItem = {
+                    ...scannedItems[existingItemIndex],
+                    qteScanne: scannedItems[existingItemIndex].qteScanne + quantity
+                };
+                newItems = [
+                    updatedItem,
+                    ...scannedItems.slice(0, existingItemIndex),
+                    ...scannedItems.slice(existingItemIndex + 1)
+                ];
             } else {
+                // New item, add to top
                 newItems = [
                     {
                         produitId: product.id,
