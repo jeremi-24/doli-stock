@@ -80,19 +80,21 @@ export default function NewInventoryPage() {
         const editId = searchParams.get('edit');
         
         const loadData = async () => {
+            setPageIsLoading(true);
             if (editId) {
                 setMode('edit_final');
                 setEditingInventoryId(Number(editId));
                 try {
                     const inventoryData = await api.getInventaire(Number(editId));
+                    if (!inventoryData) throw new Error("Inventaire non trouvé.");
                     const items: ScannedProduit[] = inventoryData.lignes.map(ligne => ({
                         produitId: ligne.produitId,
                         nomProduit: ligne.nomProduit,
-                        refProduit: 'N/A', // Ref not available in InventaireLigne, might need API update
+                        refProduit: 'N/A',
                         lieuStockNom: ligne.lieuStockNom,
                         qteScanne: ligne.qteScanneTotaleUnites,
-                        barcode: 'N/A', // Barcode not available
-                        typeQuantiteScanne: 'UNITE', // Assume UNIT for simplicity on edit
+                        barcode: 'N/A',
+                        typeQuantiteScanne: 'UNITE',
                     }));
                     setScannedItems(items.reverse());
                     toast({ title: `Modification de l'inventaire N°${editId}` });
@@ -110,6 +112,8 @@ export default function NewInventoryPage() {
                         toast({ title: `Brouillon "${draft.name}" chargé.` });
                         router.replace(`/inventories/new?draft=${draftId}&loaded=true`, { scroll: false });
                     }
+                } else {
+                     router.push('/inventories/new');
                 }
             } else {
                 setMode('new');
@@ -118,7 +122,8 @@ export default function NewInventoryPage() {
         };
 
         loadData();
-    }, [searchParams, drafts, router, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
@@ -429,3 +434,5 @@ export default function NewInventoryPage() {
         </div>
     )
 }
+
+    

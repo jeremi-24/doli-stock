@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Calendar, Check, X, MoveRight, Package as UnitIcon, Box, Loader2, FileUp, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Check, X, MoveRight, Package as UnitIcon, Box, Loader2, FileUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import type { Inventaire, InventaireLigne } from '@/lib/types';
@@ -145,7 +145,7 @@ export default function InventoryDetailPage() {
         </h1>
         {isConfirmed ? (
             <Badge variant="default" className="bg-green-600 text-white gap-2">
-                <Check className="h-4 w-4"/> Confirmé et Appliqué
+                <CheckCircle className="h-4 w-4"/> Confirmé et Appliqué
             </Badge>
         ) : (
             <Badge variant="secondary" className="bg-orange-500 text-white gap-2">
