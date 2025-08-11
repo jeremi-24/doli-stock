@@ -57,6 +57,8 @@ export type BarcodePrintRequest = {
 };
 
 // ----- Inventory Types -----
+export type InventaireStatus = 'CONFIRME' | 'EN_ATTENTE_CONFIRMATION';
+
 export type InventaireLigne = {
     produitId: number;
     nomProduit: string;
@@ -73,10 +75,11 @@ export type InventaireLigne = {
     ecartUnites: number;
 };
 export type Inventaire = {
-  inventaireId: number;
+  id: number; // Changed from inventaireId to id to match API response
   charge: string;
   date: string;
   lignes: InventaireLigne[];
+  statut: InventaireStatus;
 };
 export type ScannedProduit = {
   produitId: number;

@@ -94,7 +94,7 @@ export default function NewInventoryPage() {
                         barcode: 'N/A', // Barcode not available
                         typeQuantiteScanne: 'UNITE', // Assume UNIT for simplicity on edit
                     }));
-                    setScannedItems(items);
+                    setScannedItems(items.reverse());
                     toast({ title: `Modification de l'inventaire N°${editId}` });
                 } catch (error) {
                     toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les données de l\'inventaire.' });
@@ -221,7 +221,7 @@ export default function NewInventoryPage() {
         }
     };
 
-    const handleSaveInventory = async () => {
+    const handleCalculateInventory = async () => {
         if (scannedItems.length === 0) {
             toast({ variant: 'destructive', title: 'Inventaire vide', description: "Veuillez scanner au moins un produit." });
             return;
@@ -238,14 +238,14 @@ export default function NewInventoryPage() {
             if (mode === 'edit_final' && editingInventoryId) {
                 resultInventory = await updateInventaire(editingInventoryId, payload);
             } else {
-                resultInventory = await createInventaire(payload, isFirstInventory);
+                resultInventory = await createInventaire(payload);
             }
             
-            if (resultInventory && resultInventory.inventaireId) {
+            if (resultInventory && resultInventory.id) {
                 if(activeDraftId) {
                     setDrafts(drafts.filter(d => d.id !== activeDraftId));
                 }
-                router.push(`/inventories/${resultInventory.inventaireId}`);
+                router.push(`/inventories/${resultInventory.id}`);
             } else {
                  setIsSaving(false);
             }
@@ -397,14 +397,14 @@ export default function NewInventoryPage() {
                             <AlertDialogTrigger asChild>
                                 <Button disabled={scannedItems.length === 0 || isSaving}>
                                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Server className="h-4 w-4 mr-2" />} 
-                                    {isSaving ? "Enregistrement..." : "Finaliser et envoyer"}
+                                    {isSaving ? "Calcul en cours..." : "Calculer les écarts"}
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmer l'inventaire ?</AlertDialogTitle>
+                                    <AlertDialogTitle>Calculer les écarts ?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Cette action soumettra l'inventaire au serveur et mettra à jour les quantités en stock de {scannedItems.length} entrée(s). Cette opération est irréversible.
+                                        Cette action soumettra la liste scannée pour calculer les écarts avec le stock théorique. Vous pourrez ensuite confirmer pour appliquer les changements.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="flex items-center space-x-2 py-2">
@@ -418,7 +418,7 @@ export default function NewInventoryPage() {
                                 </div>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleSaveInventory}>Continuer</AlertDialogAction>
+                                    <AlertDialogAction onClick={handleCalculateInventory}>Continuer</AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                             </AlertDialog>

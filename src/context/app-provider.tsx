@@ -33,8 +33,9 @@ interface AppContextType {
   updateClient: (id: number, client: Partial<Client>) => Promise<void>;
   deleteClient: (id: number) => Promise<void>;
   deleteFacture: (factureId: number) => Promise<void>;
-  createInventaire: (payload: InventairePayload, isFirst: boolean) => Promise<Inventaire | null>;
+  createInventaire: (payload: InventairePayload) => Promise<Inventaire | null>;
   updateInventaire: (id: number, payload: InventairePayload) => Promise<Inventaire | null>;
+  confirmInventaire: (id: number) => Promise<Inventaire | null>;
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   createCommande: (payload: CommandePayload) => Promise<Commande | null>;
   createVente: (payload: VenteDirectePayload) => Promise<Vente | null>;
@@ -300,34 +301,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchFactures, toast, handleGenericError]);
 
-  const createInventaire = useCallback(async (payload: InventairePayload, isFirst: boolean): Promise<Inventaire | null> => {
+  const createInventaire = useCallback(async (payload: InventairePayload): Promise<Inventaire | null> => {
     try {
-      const newInventaire = await api.createInventaire(payload, isFirst);
+      const calculatedInventaire = await api.calculateInventaire(payload);
       await refreshAllData();
-      toast({ title: "Inventaire enregistré avec succès" });
-      if (newInventaire && newInventaire.inventaireId) {
-        toast({ title: "Exportation...", description: "Le fichier d'inventaire est en cours de téléchargement." });
-        await api.exportInventaire(newInventaire.inventaireId);
-      }
-      return newInventaire;
+      toast({ title: "Calcul des écarts terminé" });
+      return calculatedInventaire;
     } catch (error) {
-      handleGenericError(error, "Erreur d'enregistrement");
+      handleGenericError(error, "Erreur de calcul d'inventaire");
       return null;
     }
   }, [refreshAllData, toast, handleGenericError]);
 
-   const updateInventaire = useCallback(async (id: number, payload: InventairePayload): Promise<Inventaire | null> => {
+  const updateInventaire = useCallback(async (id: number, payload: InventairePayload): Promise<Inventaire | null> => {
     try {
-      const updatedInventaire = await api.updateInventaire(id, payload);
+      const recalculatedInventaire = await api.recalculateInventaire(id, payload);
       await refreshAllData();
-      toast({ title: "Inventaire mis à jour avec succès" });
-      if (updatedInventaire && updatedInventaire.inventaireId) {
-        toast({ title: "Exportation...", description: "Le fichier d'inventaire est en cours de téléchargement." });
-        await api.exportInventaire(updatedInventaire.inventaireId);
-      }
-      return updatedInventaire;
+      toast({ title: "Recalcul des écarts terminé" });
+      return recalculatedInventaire;
     } catch (error) {
-      handleGenericError(error, "Erreur de mise à jour");
+      handleGenericError(error, "Erreur de recalcul d'inventaire");
+      return null;
+    }
+  }, [refreshAllData, toast, handleGenericError]);
+
+  const confirmInventaire = useCallback(async (id: number): Promise<Inventaire | null> => {
+    try {
+      const confirmedInventaire = await api.confirmInventaire(id);
+      await refreshAllData();
+      toast({ title: "Inventaire confirmé et appliqué au stock !" });
+      return confirmedInventaire;
+    } catch (error) {
+      handleGenericError(error, "Erreur de confirmation d'inventaire");
       return null;
     }
   }, [refreshAllData, toast, handleGenericError]);
@@ -363,8 +368,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast({ title: "Vente finalisée !", description: `Le stock a été mis à jour.`});
       return newVente;
     } catch (error) {
-        handleGenericError(error, "Erreur de vente");
-        return null;
+         // Error is handled in context
+    } finally {
+        //setIsSaving(false);
     }
   }, [refreshAllData, toast, handleGenericError]);
 
@@ -446,7 +452,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient, deleteFacture,
-    createInventaire, updateInventaire, addReapprovisionnement,
+    createInventaire, updateInventaire, confirmInventaire, addReapprovisionnement,
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
     shopInfo, setShopInfo, themeColors, setThemeColors,
@@ -459,7 +465,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient, deleteFacture,
-    createInventaire, updateInventaire, addReapprovisionnement,
+    createInventaire, updateInventaire, confirmInventaire, addReapprovisionnement,
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
     shopInfo, setShopInfo, themeColors, setThemeColors,

@@ -272,14 +272,15 @@ export async function getInventaires(): Promise<Inventaire[]> {
 export async function getInventaire(id: number): Promise<Inventaire> {
   return apiFetch(`/inventaire/${id}`);
 }
-export async function createInventaire(data: InventairePayload, isFirst: boolean): Promise<Inventaire> {
-  return apiFetch(`/inventaire?premier=${isFirst}`, { method: 'POST', body: JSON.stringify(data) });
+export async function calculateInventaire(data: InventairePayload): Promise<Inventaire> {
+  return apiFetch('/inventaire/calculer', { method: 'POST', body: JSON.stringify(data) });
 }
-
-export async function updateInventaire(id: number, data: InventairePayload): Promise<Inventaire> {
-  return apiFetch(`/inventaire/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export async function recalculateInventaire(id: number, data: InventairePayload): Promise<Inventaire> {
+  return apiFetch(`/inventaire/${id}/calculer`, { method: 'PUT', body: JSON.stringify(data) });
 }
-
+export async function confirmInventaire(id: number): Promise<Inventaire> {
+  return apiFetch(`/inventaire/${id}/confirmer`, { method: 'POST' });
+}
 export async function exportInventaire(id: number): Promise<void> {
   const blob = await apiFetch(`/inventaire/${id}/export`, {
     method: 'GET',

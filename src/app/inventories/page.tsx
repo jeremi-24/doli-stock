@@ -9,12 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from "@/components/ui/badge";
 import type { Inventaire } from '@/lib/types';
 import * as api from '@/lib/api';
-import { PlusCircle, ClipboardList, Eye, Loader2, Download, Trash2, Edit, Pencil } from 'lucide-react';
+import { PlusCircle, ClipboardList, Eye, Loader2, Download, Trash2, Edit, Pencil, AlertCircle, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 export default function InventoriesPage() {
   const router = useRouter();
@@ -133,35 +134,42 @@ export default function InventoriesPage() {
                 <TableRow>
                   <TableHead>N° Inventaire</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Chargé de l'inventaire</TableHead>
-                  <TableHead>Nombre de produit comptés</TableHead>
+                  <TableHead>Agent</TableHead>
+                  <TableHead>Nb. Lignes</TableHead>
+                  <TableHead>Statut</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                 ) : inventaires.length > 0 ? inventaires.map(inv => (
-                  <TableRow key={inv.inventaireId}>
-                    <TableCell className="font-mono text-xs">INV-{String(inv.inventaireId).padStart(5, '0')}</TableCell>
+                  <TableRow key={inv.id}>
+                    <TableCell className="font-mono text-xs">INV-{String(inv.id).padStart(5, '0')}</TableCell>
                     <TableCell>{format(new Date(inv.date), 'd MMMM yyyy à HH:mm', { locale: fr })}</TableCell>
                     <TableCell><Badge variant="outline">{inv.charge}</Badge></TableCell>
                     <TableCell>{inv.lignes.length}</TableCell>
+                    <TableCell>
+                      <Badge variant={inv.statut === 'CONFIRME' ? 'default' : 'secondary'} className={cn(inv.statut === 'EN_ATTENTE_CONFIRMATION' && 'bg-orange-100 text-orange-800')}>
+                        {inv.statut === 'CONFIRME' ? <CheckCircle className="h-3 w-3 mr-1" /> : <AlertCircle className="h-3 w-3 mr-1" />}
+                        {inv.statut === 'CONFIRME' ? 'Confirmé' : 'En attente'}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/${inv.inventaireId}`)}>
+                        <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/${inv.id}`)}>
                             <Eye className="h-4 w-4" /><span className="sr-only">Voir les détails</span>
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/new?edit=${inv.inventaireId}`)}>
+                        <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/new?edit=${inv.id}`)}>
                             <Pencil className="h-4 w-4" /><span className="sr-only">Modifier</span>
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleExport(inv.inventaireId)} disabled={exportingId === inv.inventaireId}>
-                           {exportingId === inv.inventaireId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        <Button variant="ghost" size="icon" onClick={() => handleExport(inv.id)} disabled={exportingId === inv.id}>
+                           {exportingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                            <span className="sr-only">Exporter</span>
                         </Button>
                     </TableCell>
                   </TableRow>
                 )) : (
-                  <TableRow><TableCell colSpan={5} className="h-24 text-center">Aucun inventaire trouvé.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="h-24 text-center">Aucun inventaire trouvé.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

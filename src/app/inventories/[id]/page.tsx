@@ -6,42 +6,62 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Calendar, Check, X, Minus, MoveRight, Package as UnitIcon, Box } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Check, X, MoveRight, Package as UnitIcon, Box, Loader2, FileUp, AlertTriangle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import type { Inventaire, InventaireLigne } from '@/lib/types';
-import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useApp } from '@/context/app-provider';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
 
 export default function InventoryDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { confirmInventaire } = useApp();
   
   const [inventory, setInventory] = useState<Inventaire | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const fetchInventory = async () => {
+    if (id) {
+        try {
+            setIsLoading(true);
+            const { getInventaire } = await import('@/lib/api');
+            const data = await getInventaire(Number(id));
+            setInventory(data);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+            toast({ variant: 'destructive', title: 'Erreur', description: `Impossible de charger l'inventaire: ${errorMessage}` });
+            router.push('/inventories');
+        } finally {
+            setIsLoading(false);
+        }
+    }
+  };
 
   useEffect(() => {
-    if (id) {
-        async function fetchInventory() {
-            try {
-                setIsLoading(true);
-                const data = await api.getInventaire(Number(id));
-                setInventory(data);
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-                toast({ variant: 'destructive', title: 'Erreur', description: `Impossible de charger l'inventaire: ${errorMessage}` });
-                router.push('/inventories');
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        fetchInventory();
-    }
+    fetchInventory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router, toast]);
+
+  const handleConfirm = async () => {
+      if (!inventory) return;
+      setIsConfirming(true);
+      try {
+          const result = await confirmInventaire(inventory.id);
+          if(result) {
+            setInventory(result);
+          }
+      } finally {
+          setIsConfirming(false);
+      }
+  }
 
   const EcartBadge = ({ ecart, type }: { ecart: number, type: 'carton' | 'unite' | 'total' }) => {
     let text = "";
@@ -89,6 +109,8 @@ export default function InventoryDetailPage() {
     );
   }
 
+  const isConfirmed = inventory.statut === 'CONFIRME';
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center gap-4">
@@ -99,10 +121,19 @@ export default function InventoryDetailPage() {
         <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
           Détails de l'Inventaire
         </h1>
+        {isConfirmed ? (
+            <Badge variant="default" className="bg-green-600 text-white gap-2">
+                <Check className="h-4 w-4"/> Confirmé et Appliqué
+            </Badge>
+        ) : (
+            <Badge variant="secondary" className="bg-orange-500 text-white gap-2">
+                <AlertTriangle className="h-4 w-4"/> En attente de confirmation
+            </Badge>
+        )}
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-3xl">Inventaire N° INV-{String(inventory.inventaireId).padStart(5, '0')}</CardTitle>
+          <CardTitle className="font-headline text-3xl">Inventaire N° INV-{String(inventory.id).padStart(5, '0')}</CardTitle>
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 text-sm">
             <div className="flex items-center gap-2"><User className="h-4 w-4"/> Chargé de l'inventaire: <span className="font-medium text-foreground">{inventory.charge}</span></div>
             <div className="flex items-center gap-2"><Calendar className="h-4 w-4"/> Date: <span className="font-medium text-foreground">{format(new Date(inventory.date), 'd MMMM yyyy à HH:mm', { locale: fr })}</span></div>
@@ -153,14 +184,36 @@ export default function InventoryDetailPage() {
                 </Table>
             </div>
         </CardContent>
-        <CardFooter>
-            <Button onClick={() => router.push('/inventories')}>
+        <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => router.push('/inventories')}>
                 Retour à l'historique
             </Button>
+            {!isConfirmed && (
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button disabled={isConfirming}>
+                            {isConfirming ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileUp className="h-4 w-4 mr-2" />}
+                            {isConfirming ? "Confirmation en cours..." : "Confirmer et Appliquer au Stock"}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Cette action mettra définitivement à jour les niveaux de stock en fonction des écarts calculés. Cette opération est irréversible.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleConfirm}>
+                                Oui, appliquer au stock
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
         </CardFooter>
       </Card>
     </div>
   );
 }
-
-    
