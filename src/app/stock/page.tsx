@@ -27,8 +27,9 @@ export default function StockPage() {
     const { toast } = useToast();
 
     React.useEffect(() => {
-        async function fetchStocks() {
-            if (!isMounted || !currentUser) return;
+        const fetchStocks = async () => {
+            if (!currentUser) return; // Ne rien faire si l'utilisateur n'est pas encore chargé
+            
             setIsLoading(true);
             try {
                 let data: Stock[] = [];
@@ -52,9 +53,12 @@ export default function StockPage() {
             } finally {
                 setIsLoading(false);
             }
+        };
+        
+        if (isMounted) {
+            fetchStocks();
         }
-        fetchStocks();
-    }, [toast, isMounted, currentUser]);
+    }, [isMounted, currentUser, toast]);
 
     React.useEffect(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
