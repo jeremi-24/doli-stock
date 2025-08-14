@@ -283,12 +283,13 @@ export default function NewInventoryPage() {
             toast({ variant: 'destructive', title: 'Action requise', description: "Veuillez d'abord sélectionner un lieu de stock." });
             return;
         }
+        
         const lieuStockSelectionne = lieuStockMap.get(Number(selectedLieuStockId));
         if (!lieuStockSelectionne) {
-             toast({ variant: 'destructive', title: 'Erreur', description: "Le lieu de stock sélectionné est invalide." });
+            toast({ variant: 'destructive', title: 'Erreur', description: "Le lieu de stock sélectionné est invalide." });
             return;
         }
-
+    
         try {
             const parsedData = JSON.parse(jsonString);
             const importedProducts = findProduitsInJson(parsedData);
@@ -296,28 +297,59 @@ export default function NewInventoryPage() {
             if (!importedProducts) {
                 throw new Error("Le format JSON est invalide ou la clé 'produits' est introuvable.");
             }
-
-            const newItems: ScannedProduit[] = importedProducts.map((ligne: any) => {
-                if (typeof ligne.produitId === 'undefined' || typeof ligne.qteScanne === 'undefined') {
-                    console.warn("Ligne JSON ignorée (champs manquants):", ligne);
-                    return null;
+    
+            console.log(`Nombre de lignes dans le JSON : ${importedProducts.length}`);
+    
+            // Traitement de TOUTES les lignes sans filtrage
+            const newItems: ScannedProduit[] = [];
+            let skippedCount = 0;
+            let processedCount = 0;
+    
+            importedProducts.forEach((ligne: any, index: number) => {
+                // Vérification des champs obligatoires uniquement
+                if (typeof ligne.produitId === 'undefined' || ligne.produitId === null) {
+                    console.warn(`Ligne ${index + 1} ignorée - produitId manquant:`, ligne);
+                    skippedCount++;
+                    return;
                 }
+    
+                if (typeof ligne.qteScanne === 'undefined' || ligne.qteScanne === null) {
+                    console.warn(`Ligne ${index + 1} ignorée - qteScanne manquant:`, ligne);
+                    skippedCount++;
+                    return;
+                }
+    
+                // Récupération des détails du produit
                 const productDetails = productMap.get(ligne.produitId);
-                return {
+    
+                // Création de l'item SANS vérification de doublons
+                const newItem: ScannedProduit = {
                     produitId: ligne.produitId,
-                    nomProduit: ligne.nomProduit || productDetails?.nom || 'Nom inconnu',
-                    refProduit: ligne.refProduit || productDetails?.ref || 'N/A',
+                    nomProduit: ligne.nomProduit || productDetails?.nom || `Produit ${ligne.produitId}`,
+                    refProduit: ligne.refProduit || ligne.ref || productDetails?.ref || 'N/A',
                     lieuStockNom: lieuStockSelectionne.nom,
-                    qteScanne: ligne.qteScanne,
+                    qteScanne: Number(ligne.qteScanne), // Conversion explicite en nombre
                     barcode: ligne.barcode || productDetails?.codeBarre || 'N/A',
                     typeQuantiteScanne: ligne.typeQuantiteScanne || 'UNITE',
                 };
-            }).filter(Boolean) as ScannedProduit[];
+    
+                newItems.push(newItem);
+                processedCount++;
+            });
+    
+            console.log(`Lignes traitées : ${processedCount}, Lignes ignorées : ${skippedCount}`);
+            console.log(`Total d'items créés : ${newItems.length}`);
             
-            // Add new items without checking for duplicates
-            setScannedItems(prevItems => [...prevItems, ...newItems]);
-            toast({ title: 'Importation JSON réussie', description: `${newItems.length} produits chargés dans le panier.` });
+            // Ajout de TOUS les nouveaux items sans vérification de doublons
+            setScannedItems(prevItems => [...newItems, ...prevItems]);
+            
+            toast({ 
+                title: 'Importation JSON réussie', 
+                description: `${newItems.length} produits ajoutés au panier${skippedCount > 0 ? ` (${skippedCount} lignes ignorées)` : ''}.` 
+            });
+    
         } catch (error) {
+            console.error('Erreur lors de l\'importation JSON:', error);
             const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de l'analyse du JSON.";
             toast({ variant: 'destructive', title: "Erreur d'importation JSON", description: errorMessage });
         }
