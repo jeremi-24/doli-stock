@@ -392,12 +392,12 @@ function UsersTab() {
                           </div>
                         </AccordionTrigger>
                         <div className="flex items-center pl-4">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog('edit', user)} disabled={!!currentUser && user.id === currentUser.id && currentUser.roleNom !== 'ADMIN'}>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog('edit', user)} disabled={!currentUser || (user.id === currentUser.id && currentUser.roleNom !== 'ADMIN')}>
                                 <Pencil className="h-4 w-4"/>
                             </Button>
                              <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={!!currentUser && user.id === currentUser.id}>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={!currentUser || user.id === currentUser.id}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </AlertDialogTrigger>
