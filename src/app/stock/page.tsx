@@ -32,14 +32,16 @@ export default function StockPage() {
             setIsLoading(true);
             try {
                 let data: Stock[] = [];
-                const isAdmin = currentUser.roleNom === 'ADMIN';
+                const isBoutiquier = currentUser.roleNom === 'BOUTIQUIER';
 
-                if (isAdmin) {
-                    data = await api.getStocks();
-                } else if (currentUser.lieuId) {
-                    data = await api.getStocksByLieu(currentUser.lieuId);
+                if (isBoutiquier) {
+                    if (currentUser.lieuId) {
+                        data = await api.getStocksByLieu(currentUser.lieuId);
+                    } else {
+                        toast({ variant: 'destructive', title: 'Configuration manquante', description: 'Aucun lieu de stock n\'est assigné à votre compte.' });
+                    }
                 } else {
-                     toast({ variant: 'destructive', title: 'Configuration manquante', description: 'Aucun lieu de stock n\'est assigné à votre compte.' });
+                    data = await api.getStocks();
                 }
                 
                 setStocks(data || []);
