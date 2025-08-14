@@ -58,6 +58,7 @@ export type InventaireStatus = 'CONFIRME' | 'EN_ATTENTE_CONFIRMATION';
 export type InventaireLigne = {
     produitId: number;
     nomProduit: string;
+    ref: string;
     lieuStockNom: string;
     qteAvantScanTotaleUnites: number;
     qteScanneTotaleUnites: number;
@@ -86,14 +87,18 @@ export type ScannedProduit = {
   barcode: string;
   typeQuantiteScanne: 'UNITE' | 'CARTON';
 };
-export type InventaireProduitPayload = {
-    produitId: number;
-    qteScanne: number;
-    typeQuantiteScanne: 'UNITE' | 'CARTON';
+
+export type InventaireLignePayload = {
+  produitId: number;
+  qteScanne: number;
+  lieuStockId: number;
+  typeQuantiteScanne: string;
+  ref: string;
 };
+
 export type InventairePayload = {
   charge: string;
-  produits: InventaireProduitPayload[];
+  produits: InventaireLignePayload[];
 };
 
 // --- Inventaire Brouillon ---
@@ -117,7 +122,7 @@ export type InventaireBrouillonLignePayload = {
     produitId: number;
     qteScanne: number;
     lieuStockNom: string;
-    typeQuantiteScanne: string;
+    typeQuantiteScanne: 'UNITE' | 'CARTON';
     ref: string;
 };
 
@@ -347,6 +352,7 @@ export type CurrentUser = {
   lieuId?: number;
   clientId?: number;
   permissions: Permission[];
+  lieuNom?: string;
 };
 
 export type LoginPayload = {

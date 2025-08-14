@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '@/context/app-provider';
-import type { ScannedProduit, Produit, InventaireBrouillonPayload, InventaireBrouillon, InventaireBrouillonCreationPayload } from '@/lib/types';
+import type { ScannedProduit, Produit, InventairePayload, InventaireBrouillon, InventaireBrouillonPayload, InventaireLignePayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, FileDown, ClipboardPaste } from 'lucide-react';
@@ -51,7 +51,7 @@ function JSONImportDialog({ onImport, onOpenChange }: { onImport: (jsonString: s
 }
 
 export default function NewInventoryPage() {
-    const { createInventaire, updateInventaire, currentUser, produits } = useApp();
+    const { createInventaire, updateInventaire, currentUser, produits, lieuxStock, stocks } = useApp();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
@@ -73,6 +73,7 @@ export default function NewInventoryPage() {
     const [isJsonDialogOpen, setIsJsonDialogOpen] = useState(false);
 
     const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
+    const lieuStockMap = useMemo(() => new Map(lieuxStock.map(l => [l.nom, l.id])), [lieuxStock]);
 
     useEffect(() => {
         const draftId = searchParams.get('draft');
@@ -140,13 +141,17 @@ export default function NewInventoryPage() {
     }, [searchParams, productMap]);
 
     const handleScan = async () => {
-        if (!barcode.trim()) return;
+        if (!barcode.trim() || !currentUser) return;
+
+        if (!currentUser.lieuNom) {
+            toast({ variant: 'destructive', title: 'Erreur', description: "Aucun lieu de stock n'est assigné à votre compte." });
+            return;
+        }
 
         const addOrUpdateProduct = (product: Produit) => {
-             const stockEntry = product.stocks?.[0]; 
-             const lieuStockNom = stockEntry?.lieuStockNom;
+            const lieuStockNom = currentUser.lieuNom;
             if (!lieuStockNom) {
-                toast({ variant: 'destructive', title: 'Erreur', description: `Aucun lieu de stock trouvé pour ce produit.` });
+                toast({ variant: 'destructive', title: 'Erreur', description: `Aucun lieu de stock n'est défini pour votre utilisateur.` });
                 return;
             }
 
@@ -232,7 +237,7 @@ export default function NewInventoryPage() {
         }
         setIsSaving(true);
         
-        const payload: InventaireBrouillonCreationPayload = {
+        const payload: InventaireBrouillonPayload = {
             charge: currentUser.email || "Utilisateur inconnu",
             produits: scannedItems.map(item => ({
                 produitId: item.produitId,
@@ -266,18 +271,33 @@ export default function NewInventoryPage() {
 
     const handleCalculateInventory = async () => {
         if (scannedItems.length === 0) {
-            toast({ variant: 'destructive', title: 'Inventaire vide', description: "Veuillez scanner au moins un produit." });
+            toast({ variant: "destructive", title: "Inventaire vide", description: "Veuillez scanner au moins un produit." });
             return;
         }
-        if (!currentUser) {
-            toast({ variant: 'destructive', title: 'Utilisateur non identifié', description: "Impossible de continuer sans être connecté." });
+        if (!currentUser || !currentUser.email) {
+            toast({ variant: "destructive", title: "Utilisateur non identifié", description: "Impossible de continuer sans être connecté." });
             return;
         }
 
         setIsSaving(true);
-        const payload = {
+
+        const payloadLignes: InventaireLignePayload[] = scannedItems.map(item => {
+            const lieuStockId = lieuStockMap.get(item.lieuStockNom);
+            if (!lieuStockId) {
+                throw new Error(`Lieu de stock non trouvé pour ${item.lieuStockNom}`);
+            }
+            return {
+                produitId: item.produitId,
+                qteScanne: item.qteScanne,
+                lieuStockId: lieuStockId,
+                typeQuantiteScanne: item.typeQuantiteScanne,
+                ref: item.refProduit,
+            };
+        });
+
+        const payload: InventairePayload = {
             charge: currentUser.email,
-            produits: scannedItems.map(({ nomProduit, barcode, refProduit, ...item}) => item)
+            produits: payloadLignes,
         };
         
         try {
@@ -507,5 +527,3 @@ export default function NewInventoryPage() {
         </div>
     );
 }
-
-    

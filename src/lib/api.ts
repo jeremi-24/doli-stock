@@ -265,7 +265,7 @@ export async function annulerVente(id: number): Promise<void> {
 
 
 // ========== Inventaires API ==========
-const mapInventaireResponse = (result: any): Inventaire | null => {
+export const mapInventaireResponse = (result: any): Inventaire | null => {
   if (!result) return null;
   const mappedResult = { ...result };
   if (mappedResult.inventaireId) {
