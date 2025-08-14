@@ -14,31 +14,43 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useApp } from '@/context/app-provider';
 
 export default function InventoriesPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { currentUser, isMounted } = useApp();
   const [inventaires, setInventaires] = useState<Inventaire[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [exportingId, setExportingId] = useState<number | null>(null);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-        const inventairesData = await api.getInventaires();
-        setInventaires(inventairesData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-        toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
-    } finally {
-        setIsLoading(false);
-    }
-  }
-
   useEffect(() => {
+    const fetchData = async () => {
+        if (!isMounted || !currentUser) return;
+
+        setIsLoading(true);
+        try {
+            let inventairesData: Inventaire[] = [];
+            const isAdmin = currentUser.roleNom === 'ADMIN';
+
+            if (isAdmin) {
+                inventairesData = await api.getInventaires();
+            } else if (currentUser.lieuId) {
+                inventairesData = await api.getInventairesByLieu(currentUser.lieuId);
+            } else {
+                toast({ variant: 'destructive', title: 'Configuration manquante', description: 'Aucun lieu de stock n\'est assigné à votre compte.' });
+            }
+            
+            setInventaires(inventairesData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+            toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
+    }
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isMounted, currentUser, toast]);
   
   const handleExport = async (id: number) => {
     setExportingId(id);

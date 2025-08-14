@@ -284,6 +284,12 @@ export async function getInventaires(): Promise<Inventaire[]> {
   const results = await apiFetch('/inventaire');
   return Array.isArray(results) ? results.map(mapInventaireResponse).filter(Boolean) as Inventaire[] : [];
 }
+
+export async function getInventairesByLieu(lieuStockId: number): Promise<Inventaire[]> {
+  const results = await apiFetch(`/inventaire/lieu/${lieuStockId}`);
+  return Array.isArray(results) ? results.map(mapInventaireResponse).filter(Boolean) as Inventaire[] : [];
+}
+
 export async function getInventaire(id: number): Promise<Inventaire | null> {
   const result = await apiFetch(`/inventaire/${id}`);
   return mapInventaireResponse(result);
