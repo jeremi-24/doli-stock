@@ -32,12 +32,15 @@ export default function NewReapproPage() {
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
+        if (!currentUser?.lieuNom) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Aucun lieu de stock n\'est assigné à votre compte.' });
+            return;
+        }
 
         const addOrUpdateProduct = (product: Produit) => {
-             // Find stock location for this product
-            const stockEntry = product.stocks?.[0]; // Default to the first stock location if multiple exist
-            if (!stockEntry) {
-                toast({ variant: 'destructive', title: 'Erreur', description: `Aucun lieu de stock trouvé pour ce produit.` });
+            const lieuStockNom = currentUser.lieuNom;
+            if (!lieuStockNom) {
+                toast({ variant: 'destructive', title: 'Erreur', description: `Aucun lieu de stock n'est défini pour votre utilisateur.` });
                 return;
             }
 
@@ -53,7 +56,7 @@ export default function NewReapproPage() {
                     {
                         produitId: product.id,
                         nomProduit: product.nom,
-                        lieuStockNom: stockEntry.lieuStockNom,
+                        lieuStockNom: lieuStockNom,
                         qteAjoutee: quantity,
                         barcode: product.codeBarre,
                         typeQuantite: scanType,
@@ -266,5 +269,5 @@ export default function NewReapproPage() {
                 </div>
             </div>
         </div>
-    )
+    );
 }

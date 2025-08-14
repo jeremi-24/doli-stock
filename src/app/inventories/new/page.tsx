@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '@/context/app-provider';
-import type { ScannedProduit, Produit, InventaireLigne, InventaireBrouillonPayload, InventaireBrouillon } from '@/lib/types';
+import type { ScannedProduit, Produit, InventaireBrouillonPayload, InventaireBrouillon, InventaireBrouillonCreationPayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, FileDown, ClipboardPaste } from 'lucide-react';
@@ -91,7 +91,7 @@ export default function NewInventoryPage() {
                         const items: ScannedProduit[] = inventoryData.lignes.map((ligne: any) => ({
                             produitId: ligne.produitId,
                             nomProduit: ligne.nomProduit,
-                            refProduit: ligne.refProduit || 'N/A',
+                            refProduit: productMap.get(ligne.produitId)?.ref || 'N/A',
                             lieuStockNom: ligne.lieuStockNom,
                             qteScanne: ligne.qteScanneTotaleUnites,
                             barcode: 'N/A',
@@ -106,7 +106,7 @@ export default function NewInventoryPage() {
                         setMode('edit_draft');
                         setActiveDraft(draft);
                         if (draft.lignes) {
-                            const items: ScannedProduit[] = draft.lignes.map(l => ({
+                             const items: ScannedProduit[] = draft.lignes.map(l => ({
                                 produitId: l.produitId,
                                 nomProduit: l.produitNom,
                                 lieuStockNom: l.lieuStockNom,
@@ -143,9 +143,9 @@ export default function NewInventoryPage() {
         if (!barcode.trim()) return;
 
         const addOrUpdateProduct = (product: Produit) => {
-             // Find stock location for this product
-            const stockEntry = product.stocks?.[0]; // Default to the first stock location if multiple exist
-            if (!stockEntry) {
+             const stockEntry = product.stocks?.[0]; 
+             const lieuStockNom = stockEntry?.lieuStockNom;
+            if (!lieuStockNom) {
                 toast({ variant: 'destructive', title: 'Erreur', description: `Aucun lieu de stock trouvé pour ce produit.` });
                 return;
             }
@@ -169,7 +169,7 @@ export default function NewInventoryPage() {
                         produitId: product.id,
                         nomProduit: product.nom,
                         refProduit: product.ref,
-                        lieuStockNom: stockEntry.lieuStockNom, // Use the stock location from the stock entry
+                        lieuStockNom: lieuStockNom, 
                         qteScanne: quantity,
                         barcode: product.codeBarre,
                         typeQuantiteScanne: scanType,
@@ -226,10 +226,14 @@ export default function NewInventoryPage() {
             toast({ variant: 'destructive', title: 'Action impossible', description: 'Vous ne pouvez pas sauvegarder un inventaire finalisé comme brouillon.'});
             return;
         }
+        if (!currentUser) {
+             toast({ variant: 'destructive', title: 'Action impossible', description: 'Utilisateur non identifié.'});
+            return;
+        }
         setIsSaving(true);
         
-        const payload: InventaireBrouillonPayload = {
-            charge: currentUser?.email || "Utilisateur inconnu",
+        const payload: InventaireBrouillonCreationPayload = {
+            charge: currentUser.email || "Utilisateur inconnu",
             produits: scannedItems.map(item => ({
                 produitId: item.produitId,
                 ref: item.refProduit,
@@ -265,10 +269,14 @@ export default function NewInventoryPage() {
             toast({ variant: 'destructive', title: 'Inventaire vide', description: "Veuillez scanner au moins un produit." });
             return;
         }
+        if (!currentUser) {
+            toast({ variant: 'destructive', title: 'Utilisateur non identifié', description: "Impossible de continuer sans être connecté." });
+            return;
+        }
 
         setIsSaving(true);
         const payload = {
-            charge: currentUser?.email || "Utilisateur inconnu",
+            charge: currentUser.email,
             produits: scannedItems.map(({ nomProduit, barcode, refProduit, ...item}) => item)
         };
         
@@ -308,7 +316,7 @@ export default function NewInventoryPage() {
                 return {
                     produitId: ligne.produitId,
                     nomProduit: ligne.nomProduit,
-                    refProduit: ligne.ref || 'N/A',
+                    refProduit: productMap.get(ligne.produitId)?.ref || 'N/A',
                     lieuStockNom: ligne.lieuStockNom || 'N/A',
                     qteScanne: ligne.qteScanneTotaleUnites,
                     barcode: 'N/A', // Not available in this format
@@ -499,3 +507,5 @@ export default function NewInventoryPage() {
         </div>
     );
 }
+
+    
