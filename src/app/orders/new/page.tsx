@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useApp } from '@/context/app-provider';
-import type { LigneCommandePayload, Produit, Commande } from '@/lib/types';
+import type { LigneCommandePayload, Stock, Commande } from '@/lib/types';
 import { PlusCircle, Trash2, FileText, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -94,7 +94,7 @@ function ConfirmationDialog({
 }
 
 export default function NewOrderPage() {
-  const { clients, createCommande, currentUser, lieuxStock, produits, isMounted } = useApp();
+  const { clients, createCommande, currentUser, lieuxStock, stocks, isMounted } = useApp();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -104,13 +104,13 @@ export default function NewOrderPage() {
   const [selectedProduitId, setSelectedProduitId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
-  const availableProducts = useMemo(() => {
+  const availableStocks = useMemo(() => {
     if (!lieuLivraisonId) return [];
     
-    return produits
-      .filter(p => String(p.lieuStockId) === lieuLivraisonId)
-      .filter(p => !lignes.some(ligne => ligne.produitId === p.id));
-  }, [produits, lignes, lieuLivraisonId]);
+    return stocks
+      .filter(s => String(s.lieuStockId) === lieuLivraisonId && s.quantiteTotale > 0)
+      .filter(s => !lignes.some(ligne => ligne.produitId === s.produitId));
+  }, [stocks, lignes, lieuLivraisonId]);
   
   const canSelectClient = useMemo(() => {
       if (!currentUser || !currentUser.roleNom) return false;
@@ -130,18 +130,19 @@ export default function NewOrderPage() {
 
   const handleAddItem = () => {
     if (!selectedProduitId) return;
-    const produitInfo = produits.find(p => p.id === parseInt(selectedProduitId, 10));
-    if (produitInfo) {
-      const stockDisponible = produitInfo.quantiteTotaleGlobale ?? 0;
+    const stockInfo = stocks.find(s => s.produitId === parseInt(selectedProduitId, 10) && String(s.lieuStockId) === lieuLivraisonId);
+
+    if (stockInfo && stockInfo.produit) {
+      const stockDisponible = stockInfo.quantiteTotale;
       if (stockDisponible <= 0) {
         toast({ title: "Rupture de stock", variant: "destructive", description: "Ce produit n'est pas disponible." });
         return;
       }
       const newLigne: LignePanier = {
-        produitId: produitInfo.id,
-        produitNom: produitInfo.nom,
+        produitId: stockInfo.produitId,
+        produitNom: stockInfo.produitNom,
         qteVoulu: 1,
-        prix: produitInfo.prix || 0,
+        prix: stockInfo.produit.prix || 0,
         stockDisponible: stockDisponible,
       };
       setLignes([...lignes, newLigne]);
@@ -251,9 +252,9 @@ export default function NewOrderPage() {
                     <SelectValue placeholder={!lieuLivraisonId ? "Sélectionnez d'abord un lieu" : "Sélectionner un produit"} />
                 </SelectTrigger>
                 <SelectContent>
-                    {availableProducts.map(p => 
-                        <SelectItem key={p.id} value={String(p.id)}>
-                            {p.nom} ({p.quantiteTotaleGlobale ?? 0} en stock)
+                    {availableStocks.map(s => 
+                        <SelectItem key={s.produitId} value={String(s.produitId)}>
+                            {s.produitNom} ({s.quantiteTotale} en stock)
                         </SelectItem>
                     )}
                 </SelectContent>

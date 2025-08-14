@@ -1,5 +1,4 @@
 
-
 export type Client = {
   id: number;
   nom: string;
@@ -18,17 +17,15 @@ export type Produit = {
   id: number;
   nom:string;
   ref: string;
-  qte: number;
   prix: number;
   codeBarre: string;
   categorieId: number;
-  lieuStockId: number;
   qteMin: number;
   qteParCarton: number;
   prixCarton: number;
   categorieNom?: string | null;
-  lieuStockNom?: string | null;
   quantiteTotaleGlobale?: number;
+  stocks?: Stock[];
 };
 
 export type Stock = {
@@ -47,7 +44,6 @@ export type Stock = {
 export type AssignationPayload = {
     produitIds: number[];
     categorieId?: number;
-    lieuStockId?: number;
 };
 
 // ----- Barcode Types -----
@@ -99,6 +95,37 @@ export type InventairePayload = {
   charge: string;
   produits: InventaireProduitPayload[];
 };
+
+// --- Inventaire Brouillon ---
+export type InventaireBrouillonLigne = {
+    id: number;
+    produitId: number;
+    produitNom: string;
+    lieuStockNom: string;
+    qteScanne: number;
+    typeQuantiteScanne: string;
+};
+
+export type InventaireBrouillon = {
+    id: number;
+    charge: string;
+    date: string;
+    lignes: InventaireBrouillonLigne[];
+};
+
+export type InventaireBrouillonLignePayload = {
+    produitId: number;
+    qteScanne: number;
+    lieuStockNom: string;
+    typeQuantiteScanne: string;
+    ref: string;
+};
+
+export type InventaireBrouillonPayload = {
+    charge: string;
+    produits: InventaireBrouillonLignePayload[];
+};
+
 
 // ----- Restocking Types -----
 export type ReapproLigne = {

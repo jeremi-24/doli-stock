@@ -8,15 +8,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Package, DollarSign, Tag, Barcode, AlertTriangle, Building2 as Warehouse } from 'lucide-react';
+import { ArrowLeft, Package, DollarSign, Tag, Barcode, AlertTriangle, Building2 as Warehouse, Boxes } from 'lucide-react';
 import type { Produit as ProduitType } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { 
     produits, 
+    stocks,
     isMounted, 
     scannedProductDetails, 
     setScannedProductDetails 
@@ -33,15 +35,22 @@ export default function ProductDetailPage() {
     // Fallback for direct navigation/refresh
     else if (isMounted && id) {
       const foundProduit = produits.find(p => p.id === Number(id));
-      setProduit(foundProduit ?? null); // Explicitly set to null if not found
+      if (foundProduit) {
+        const productStocks = stocks.filter(s => s.produitId === foundProduit.id);
+        setProduit({ ...foundProduit, stocks: productStocks });
+      } else {
+        setProduit(null); // Explicitly set to null if not found
+      }
     }
-  }, [id, produits, isMounted, scannedProductDetails, setScannedProductDetails]);
+  }, [id, produits, stocks, isMounted, scannedProductDetails, setScannedProductDetails]);
 
 
   const formatCurrency = (amount: number) => {
     if (typeof amount !== 'number') return 'N/A';
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
+
+  const totalStock = produit?.stocks?.reduce((sum, s) => sum + s.quantiteTotale, 0) ?? 0;
 
   if (produit === undefined || !isMounted) {
     return (
@@ -106,39 +115,69 @@ export default function ProductDetailPage() {
           <CardTitle className="font-headline text-3xl">{produit.nom}</CardTitle>
           <CardDescription>Référence: {produit.ref}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 text-base">
+        <CardContent className="space-y-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6 text-base">
             <div className="flex items-center justify-between border-b pb-2">
-              <span className="text-muted-foreground flex items-center gap-2"><Package className="h-5 w-5"/>Quantité en stock</span>
-              <span className="font-semibold">{produit.qte ?? 0}</span>
-            </div>
-             <div className="flex items-center justify-between border-b pb-2">
               <span className="text-muted-foreground flex items-center gap-2"><DollarSign className="h-5 w-5"/>Prix de vente</span>
               <span className="font-semibold">{formatCurrency(produit.prix)}</span>
             </div>
+            <div className="flex items-center justify-between border-b pb-2">
+              <span className="text-muted-foreground flex items-center gap-2"><DollarSign className="h-5 w-5"/>Prix Carton</span>
+              <span className="font-semibold">{formatCurrency(produit.prixCarton)}</span>
+            </div>
              <div className="flex items-center justify-between border-b pb-2">
-              <span className="text-muted-foreground flex items-center gap-2"><AlertTriangle className="h-5 w-5"/>Seuil d'alerte</span>
+              <span className="text-muted-foreground flex items-center gap-2"><Boxes className="h-5 w-5"/>Unités / Carton</span>
+              <span className="font-semibold">{produit.qteParCarton ?? 0}</span>
+            </div>
+             <div className="flex items-center justify-between border-b pb-2">
+              <span className="text-muted-foreground flex items-center gap-2"><AlertTriangle className="h-5 w-5"/>Seuil d'alerte global</span>
               <span className="font-semibold">{produit.qteMin ?? 0}</span>
             </div>
             <div className="flex items-center justify-between border-b pb-2">
               <span className="text-muted-foreground flex items-center gap-2"><Tag className="h-5 w-5"/>Catégorie</span>
               <Badge variant="secondary">{produit.categorieNom || 'N/A'}</Badge>
             </div>
-            <div className="flex items-center justify-between border-b pb-2">
-               <span className="text-muted-foreground flex items-center gap-2"><Warehouse className="h-5 w-5"/>Lieu de Stock</span>
-              <Badge variant="secondary">{produit.lieuStockNom || 'N/A'}</Badge>
-            </div>
             <div className="flex items-center justify-between border-b pb-2 col-span-full">
                <span className="text-muted-foreground flex items-center gap-2"><Barcode className="h-5 w-5"/>Code-barres</span>
                <span className="font-mono text-sm">{produit.codeBarre}</span>
             </div>
           </div>
-          {(produit.qte ?? 0) <= (produit.qteMin ?? 0) && (
+
+          <div>
+             <h3 className="font-headline text-xl mb-4">Répartition du Stock ({totalStock} unités au total)</h3>
+             <div className="border rounded-lg">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead><Warehouse className="inline h-4 w-4 mr-2"/>Lieu de Stock</TableHead>
+                            <TableHead className="text-right">Quantité</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {produit.stocks && produit.stocks.length > 0 ? (
+                            produit.stocks.map(stock => (
+                                <TableRow key={stock.id}>
+                                    <TableCell className="font-medium">{stock.lieuStockNom}</TableCell>
+                                    <TableCell className="text-right font-semibold">{stock.quantiteTotale}</TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">
+                                    Ce produit n'est actuellement dans aucun lieu de stock.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+             </div>
+          </div>
+          {(totalStock) <= (produit.qteMin ?? 0) && (
             <Alert variant="destructive" className="mt-6">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Alerte de stock faible</AlertTitle>
                 <AlertDescription>
-                  La quantité en stock est inférieure ou égale au seuil d'alerte.
+                  La quantité totale en stock est inférieure ou égale au seuil d'alerte global.
                 </AlertDescription>
             </Alert>
           )}

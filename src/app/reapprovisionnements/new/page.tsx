@@ -12,7 +12,7 @@ import { useApp } from '@/context/app-provider';
 import type { ScannedReapproProduit, Produit } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Search, PackagePlus, Save, Loader2, Minus, Plus, Truck, Box, Package as UnitIcon } from 'lucide-react';
+import { ScanLine, Search, PackagePlus, Save, Loader2, Minus, Plus, Truck, Box, Package as UnitIcon, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -34,6 +34,13 @@ export default function NewReapproPage() {
         if (!barcode.trim()) return;
 
         const addOrUpdateProduct = (product: Produit) => {
+             // Find stock location for this product
+            const stockEntry = product.stocks?.[0]; // Default to the first stock location if multiple exist
+            if (!stockEntry) {
+                toast({ variant: 'destructive', title: 'Erreur', description: `Aucun lieu de stock trouvé pour ce produit.` });
+                return;
+            }
+
             const existingItemIndex = scannedItems.findIndex(item => item.produitId === product.id && item.typeQuantite === scanType);
 
             if (existingItemIndex > -1) {
@@ -46,7 +53,7 @@ export default function NewReapproPage() {
                     {
                         produitId: product.id,
                         nomProduit: product.nom,
-                        lieuStockNom: product.lieuStockNom || 'N/A',
+                        lieuStockNom: stockEntry.lieuStockNom,
                         qteAjoutee: quantity,
                         barcode: product.codeBarre,
                         typeQuantite: scanType,
@@ -261,5 +268,3 @@ export default function NewReapproPage() {
         </div>
     )
 }
-
-    

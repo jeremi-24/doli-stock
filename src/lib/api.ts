@@ -1,6 +1,5 @@
 
-
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload, Notification, BarcodePrintRequest, FactureModele } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload, Notification, BarcodePrintRequest, FactureModele, InventaireBrouillon, InventaireBrouillonPayload } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -317,6 +316,27 @@ export async function exportInventaire(id: number): Promise<void> {
   document.body.removeChild(a);
 
   return Promise.resolve();
+}
+
+// ========== Inventaire Brouillon API ==========
+export async function getInventairesBrouillon(): Promise<InventaireBrouillon[]> {
+  return apiFetch('/inventaire-brouillon');
+}
+
+export async function getInventaireBrouillon(id: number): Promise<InventaireBrouillon> {
+    return apiFetch(`/inventaire-brouillon/${id}`);
+}
+
+export async function createInventaireBrouillon(data: InventaireBrouillonPayload): Promise<InventaireBrouillon> {
+    return apiFetch('/inventaire-brouillon', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function updateInventaireBrouillon(id: number, data: InventaireBrouillonPayload): Promise<InventaireBrouillon> {
+    return apiFetch(`/inventaire-brouillon/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export async function deleteInventaireBrouillon(id: number): Promise<void> {
+    return apiFetch(`/inventaire-brouillon/${id}`, { method: 'DELETE' });
 }
 
 

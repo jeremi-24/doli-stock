@@ -115,9 +115,9 @@ export default function DashboardPage() {
   }
 
   const totalProducts = produits.length;
-  const outOfStockProducts = produits.filter(p => p.qte === 0).length;
-  const lowStockProducts = produits.filter(p => p.qte > 0 && p.qte <= p.qteMin).length;
-  const totalStockValue = produits.reduce((acc, p) => acc + ((p.prix || 0) * (p.qte || 0)), 0);
+  const outOfStockProducts = produits.filter(p => (p.quantiteTotaleGlobale ?? 0) === 0).length;
+  const lowStockProducts = produits.filter(p => (p.quantiteTotaleGlobale ?? 0) > 0 && (p.quantiteTotaleGlobale ?? 0) <= p.qteMin).length;
+  const totalStockValue = produits.reduce((acc, p) => acc + ((p.prix || 0) * (p.quantiteTotaleGlobale || 0)), 0);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">

@@ -9,49 +9,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '@/context/app-provider';
-import type { ScannedProduit, Produit, InventaireLigne } from '@/lib/types';
+import type { ScannedProduit, Produit, InventaireLigne, InventaireBrouillonPayload, InventaireBrouillon } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, FileDown, ClipboardPaste } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import { Dialog, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-
-function SaveDraftDialog({ onSave, onOpenChange, initialName }: { onSave: (name: string) => void, onOpenChange: (open: boolean) => void, initialName?: string }) {
-    const [name, setName] = useState(initialName || `Brouillon ${new Date().toLocaleDateString('fr-FR')}`);
-    
-    useEffect(() => {
-      if(initialName) {
-        setName(initialName);
-      }
-    }, [initialName])
-
-    const handleSave = () => {
-        onSave(name);
-        onOpenChange(false);
-    }
-    
-    return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Sauvegarder le brouillon</DialogTitle>
-                <DialogDescription>Donnez un nom à ce brouillon d'inventaire pour le retrouver plus tard.</DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-                <Label htmlFor="draft-name">Nom du brouillon</Label>
-                <Input id="draft-name" value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-                <Button onClick={handleSave} disabled={!name}>Sauvegarder</Button>
-            </DialogFooter>
-        </DialogContent>
-    )
-}
 
 function JSONImportDialog({ onImport, onOpenChange }: { onImport: (jsonString: string) => void, onOpenChange: (open: boolean) => void }) {
     const [jsonString, setJsonString] = useState('');
@@ -84,7 +51,7 @@ function JSONImportDialog({ onImport, onOpenChange }: { onImport: (jsonString: s
 }
 
 export default function NewInventoryPage() {
-    const { createInventaire, updateInventaire, currentUser } = useApp();
+    const { createInventaire, updateInventaire, currentUser, produits } = useApp();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
@@ -92,8 +59,7 @@ export default function NewInventoryPage() {
     const [mode, setMode] = useState<'new' | 'edit_draft' | 'edit_final'>('new');
     const [pageIsLoading, setPageIsLoading] = useState(true);
 
-    const [drafts, setDrafts] = useLocalStorage<any[]>('inventory_drafts', []);
-    const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+    const [activeDraft, setActiveDraft] = useState<InventaireBrouillon | null>(null);
     const [editingInventoryId, setEditingInventoryId] = useState<number | null>(null);
 
     const [scannedItems, setScannedItems] = useState<ScannedProduit[]>([]);
@@ -104,8 +70,9 @@ export default function NewInventoryPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [productCache, setProductCache] = useState<Map<string, Produit>>(new Map());
     const [isFirstInventory, setIsFirstInventory] = useState(false);
-    const [isDraftDialogOpen, setIsDraftDialogOpen] = useState(false);
     const [isJsonDialogOpen, setIsJsonDialogOpen] = useState(false);
+
+    const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
 
     useEffect(() => {
         const draftId = searchParams.get('draft');
@@ -120,25 +87,38 @@ export default function NewInventoryPage() {
                     setEditingInventoryId(id);
                     const inventoryData = await api.getInventaire(id);
                     if (!inventoryData) throw new Error("Inventaire non trouvé.");
-                    const items: ScannedProduit[] = inventoryData.lignes.map((ligne: any) => ({
-                        produitId: ligne.produitId,
-                        nomProduit: ligne.nomProduit,
-                        refProduit: ligne.refProduit || 'N/A',
-                        lieuStockNom: ligne.lieuStockNom,
-                        qteScanne: ligne.qteScanneTotaleUnites,
-                        barcode: 'N/A',
-                        typeQuantiteScanne: 'UNITE',
-                    }));
-                    setScannedItems(items.reverse());
+                    if(inventoryData.lignes) {
+                        const items: ScannedProduit[] = inventoryData.lignes.map((ligne: any) => ({
+                            produitId: ligne.produitId,
+                            nomProduit: ligne.nomProduit,
+                            refProduit: ligne.refProduit || 'N/A',
+                            lieuStockNom: ligne.lieuStockNom,
+                            qteScanne: ligne.qteScanneTotaleUnites,
+                            barcode: 'N/A',
+                            typeQuantiteScanne: 'UNITE',
+                        }));
+                        setScannedItems(items.reverse());
+                    }
                     toast({ title: `Modification de l'inventaire N°${editId}` });
                 } else if (draftId) {
-                    const draft = drafts.find(d => d.id === draftId);
+                    const draft = await api.getInventaireBrouillon(Number(draftId));
                     if (draft) {
                         setMode('edit_draft');
-                        setScannedItems(draft.items);
-                        setActiveDraftId(draft.id);
+                        setActiveDraft(draft);
+                        if (draft.lignes) {
+                            const items: ScannedProduit[] = draft.lignes.map(l => ({
+                                produitId: l.produitId,
+                                nomProduit: l.produitNom,
+                                lieuStockNom: l.lieuStockNom,
+                                qteScanne: l.qteScanne,
+                                typeQuantiteScanne: l.typeQuantiteScanne as 'UNITE' | 'CARTON',
+                                barcode: 'N/A', // Not available in draft lines
+                                refProduit: productMap.get(l.produitId)?.ref || 'N/A'
+                            }));
+                            setScannedItems(items);
+                        }
                         if(searchParams.get('loaded') !== 'true') {
-                            toast({ title: `Brouillon "${draft.name}" chargé.` });
+                            toast({ title: `Brouillon #${draft.id} chargé.` });
                             router.replace(`/inventories/new?draft=${draftId}&loaded=true`, { scroll: false });
                         }
                     } else {
@@ -157,17 +137,23 @@ export default function NewInventoryPage() {
 
         loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams, drafts]); // Run when searchParams or drafts change
+    }, [searchParams, productMap]);
 
     const handleScan = async () => {
         if (!barcode.trim()) return;
 
         const addOrUpdateProduct = (product: Produit) => {
-            const existingItemIndex = scannedItems.findIndex(item => item.produitId === product.id && item.typeQuantiteScanne === scanType);
+             // Find stock location for this product
+            const stockEntry = product.stocks?.[0]; // Default to the first stock location if multiple exist
+            if (!stockEntry) {
+                toast({ variant: 'destructive', title: 'Erreur', description: `Aucun lieu de stock trouvé pour ce produit.` });
+                return;
+            }
 
+            const existingItemIndex = scannedItems.findIndex(item => item.produitId === product.id && item.typeQuantiteScanne === scanType);
             let newItems;
+
             if (existingItemIndex > -1) {
-                // Item exists, update quantity and move to top
                 const updatedItem = {
                     ...scannedItems[existingItemIndex],
                     qteScanne: scannedItems[existingItemIndex].qteScanne + quantity
@@ -178,13 +164,12 @@ export default function NewInventoryPage() {
                     ...scannedItems.slice(existingItemIndex + 1)
                 ];
             } else {
-                // New item, add to top
                 newItems = [
                     {
                         produitId: product.id,
                         nomProduit: product.nom,
                         refProduit: product.ref,
-                        lieuStockNom: product.lieuStockNom || 'N/A',
+                        lieuStockNom: stockEntry.lieuStockNom, // Use the stock location from the stock entry
                         qteScanne: quantity,
                         barcode: product.codeBarre,
                         typeQuantiteScanne: scanType,
@@ -232,31 +217,46 @@ export default function NewInventoryPage() {
         setScannedItems(newItems);
     };
     
-    const handleSaveDraft = (name: string) => {
+    const handleSaveDraft = async () => {
+        if (scannedItems.length === 0) {
+            toast({ variant: 'destructive', title: 'Brouillon vide', description: 'Ajoutez au moins un produit avant de sauvegarder.' });
+            return;
+        }
         if (mode === 'edit_final') {
             toast({ variant: 'destructive', title: 'Action impossible', description: 'Vous ne pouvez pas sauvegarder un inventaire finalisé comme brouillon.'});
             return;
         }
-        let currentDraftId = activeDraftId;
+        setIsSaving(true);
         
-        if (currentDraftId) {
-            setDrafts(drafts.map(d => d.id === currentDraftId ? { ...d, name, items: scannedItems, date: new Date().toISOString() } : d));
-            toast({ title: "Brouillon mis à jour", description: `Le brouillon "${name}" a été sauvegardé.` });
-        } else {
-            const newDraftId = String(Date.now());
-            const newDraft = {
-                id: newDraftId,
-                name: name,
-                date: new Date().toISOString(),
-                items: scannedItems,
-            };
-            setDrafts(prev => [...prev, newDraft]);
-            setActiveDraftId(newDraftId);
-            router.replace(`/inventories/new?draft=${newDraftId}&loaded=true`, { scroll: false });
-            toast({ 
-                title: "Brouillon sauvegardé", 
-                description: `Le brouillon "${name}" a été créé.` 
-            });
+        const payload: InventaireBrouillonPayload = {
+            charge: currentUser?.email || "Utilisateur inconnu",
+            produits: scannedItems.map(item => ({
+                produitId: item.produitId,
+                ref: item.refProduit,
+                qteScanne: item.qteScanne,
+                lieuStockNom: item.lieuStockNom,
+                typeQuantiteScanne: item.typeQuantiteScanne,
+            }))
+        };
+        
+        try {
+            if (activeDraft?.id) {
+                const updatedDraft = await api.updateInventaireBrouillon(activeDraft.id, payload);
+                setActiveDraft(updatedDraft);
+                toast({ title: "Brouillon mis à jour", description: `Le brouillon #${updatedDraft.id} a été sauvegardé.` });
+            } else {
+                const newDraft = await api.createInventaireBrouillon(payload);
+                setActiveDraft(newDraft);
+                router.replace(`/inventories/new?draft=${newDraft.id}&loaded=true`, { scroll: false });
+                toast({ 
+                    title: "Brouillon sauvegardé", 
+                    description: `Le brouillon #${newDraft.id} a été créé.` 
+                });
+            }
+        } catch (error) {
+            // error handled by context
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -281,8 +281,8 @@ export default function NewInventoryPage() {
             }
             
             if (resultInventory && resultInventory.id) {
-                if(activeDraftId) {
-                    setDrafts(drafts.filter(d => d.id !== activeDraftId));
+                if(activeDraft?.id) {
+                    await api.deleteInventaireBrouillon(activeDraft.id);
                 }
                 router.push(`/inventories/${resultInventory.id}`);
             } else {
@@ -323,12 +323,10 @@ export default function NewInventoryPage() {
             toast({ variant: 'destructive', title: "Erreur d'importation JSON", description: errorMessage });
         }
     };
-
-    const activeDraft = useMemo(() => drafts.find(d => d.id === activeDraftId), [drafts, activeDraftId]);
     
     const pageTitle = useMemo(() => {
         if (mode === 'edit_final') return `Modifier l'Inventaire N°${editingInventoryId}`;
-        if (activeDraft?.name) return `Brouillon: ${activeDraft.name}`;
+        if (activeDraft) return `Brouillon #${activeDraft.id}`;
         return "Nouvel Inventaire";
     }, [mode, editingInventoryId, activeDraft]);
 
@@ -449,15 +447,10 @@ export default function NewInventoryPage() {
                         </CardContent>
                         <CardFooter className="border-t pt-6 flex justify-between items-center gap-2 flex-wrap">
                             <div className="flex items-center gap-2">
-                                <Dialog open={isDraftDialogOpen} onOpenChange={setIsDraftDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" disabled={scannedItems.length === 0 || isSaving || mode === 'edit_final'}>
-                                            <FileDown className="h-4 w-4 mr-2" />
-                                            {activeDraftId ? "Renommer" : "Sauvegarder"}
-                                        </Button>
-                                    </DialogTrigger>
-                                    <SaveDraftDialog onSave={handleSaveDraft} onOpenChange={setIsDraftDialogOpen} initialName={activeDraft?.name}/>
-                                </Dialog>
+                                <Button variant="outline" onClick={handleSaveDraft} disabled={scannedItems.length === 0 || isSaving || mode === 'edit_final'}>
+                                    <FileDown className="h-4 w-4 mr-2" />
+                                    {isSaving ? "Sauvegarde..." : "Sauvegarder Brouillon"}
+                                </Button>
 
                                 <Dialog open={isJsonDialogOpen} onOpenChange={setIsJsonDialogOpen}>
                                     <DialogTrigger asChild>

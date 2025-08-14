@@ -54,7 +54,6 @@ const produitSchema = z.object({
     prix: z.coerce.number().min(0, "Le prix doit être positif."),
     qteMin: z.coerce.number().int().min(0, "Le seuil doit être un entier positif."),
     categorieId: z.coerce.number({ invalid_type_error: "Veuillez sélectionner une catégorie." }).gt(0, "Veuillez sélectionner une catégorie."),
-    lieuStockId: z.coerce.number({ invalid_type_error: "Veuillez sélectionner un lieu." }).gt(0, "Veuillez sélectionner un lieu."),
     qteParCarton: z.coerce.number().int().min(0, "La quantité doit être un entier positif."),
     prixCarton: z.coerce.number().min(0, "Le prix doit être positif."),
 });
@@ -74,7 +73,6 @@ function ProductDetailsDialog({ product, onClose }: { product: Produit | null, o
     
     const details = [
         { icon: Tag, label: "Catégorie", value: <Badge variant="outline">{product.categorieNom || 'N/A'}</Badge> },
-        { icon: Building2, label: "Lieu de Stock", value: <Badge variant="outline">{product.lieuStockNom || 'N/A'}</Badge> },
         { icon: DollarSign, label: "Prix Unitaire", value: formatCurrency(product.prix || 0) },
         { icon: DollarSign, label: "Prix Carton", value: formatCurrency(product.prixCarton || 0) },
         { icon: Boxes, label: "Unités par Carton", value: product.qteParCarton || 0 },
@@ -143,9 +141,9 @@ function AssignationDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="font-headline">Assigner une Catégorie / un Lieu</DialogTitle>
+                    <DialogTitle className="font-headline">Assigner une Catégorie</DialogTitle>
                     <DialogDescription>
-                        Appliquez une nouvelle catégorie et/ou un nouveau lieu de stock aux {selectedProduitIds.length} produits sélectionnés.
+                        Appliquez une nouvelle catégorie aux {selectedProduitIds.length} produits sélectionnés.
                     </DialogDescription>
                 </DialogHeader>
                  <Form {...form}>
@@ -155,14 +153,6 @@ function AssignationDialog({
                                 <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Choisir une catégorie..." /></SelectTrigger></FormControl>
                                     <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
-                                </Select>
-                            <FormMessage /></FormItem>
-                        )}/>
-                        <FormField control={form.control} name="lieuStockId" render={({ field }) => (
-                            <FormItem><FormLabel>Nouveau Lieu de Stock (Optionnel)</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Choisir un lieu..." /></SelectTrigger></FormControl>
-                                    <SelectContent>{lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}</SelectContent>
                                 </Select>
                             <FormMessage /></FormItem>
                         )}/>
@@ -313,7 +303,7 @@ export default function ProductsPage() {
                 ref: editingProduit.ref || "",
             });
         } else {
-            form.reset({ nom: "", ref: "", prix: 0, qteMin: 0, categorieId: undefined, lieuStockId: undefined, qteParCarton: 0, prixCarton: 0 });
+            form.reset({ nom: "", ref: "", prix: 0, qteMin: 0, categorieId: undefined, qteParCarton: 0, prixCarton: 0 });
         }
     }, [editingProduit, form]);
 
@@ -420,7 +410,7 @@ export default function ProductsPage() {
                         {canUpdate && (
                             <Button variant="outline" size="sm" onClick={() => setIsAssignDialogOpen(true)}>
                                 <Hand className="h-4 w-4 mr-2"/>
-                                Assigner Cat./Lieu
+                                Assigner Catégorie
                             </Button>
                         )}
                         {canDelete && (
@@ -508,7 +498,7 @@ export default function ProductsPage() {
                                     {columnVisibility['ref'] && <TableHead>Référence</TableHead>}
                                     {columnVisibility['prix'] && <TableHead className="text-right">Prix Unitaire</TableHead>}
                                     {columnVisibility['prixCarton'] && <TableHead className="text-right">Prix (Carton)</TableHead>}
-                                    {columnVisibility['quantiteTotaleGlobale'] && <TableHead className="text-right">Qantité Totale </TableHead>}
+                                    {columnVisibility['quantiteTotaleGlobale'] && <TableHead className="text-right">Stock Total (U)</TableHead>}
                                     {columnVisibility['qteParCarton'] && <TableHead className="text-right">U/Carton</TableHead>}
                                     {columnVisibility['qteMin'] && <TableHead className="text-right">Seuil Alerte</TableHead>}
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -616,14 +606,6 @@ export default function ProductsPage() {
                                     <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Choisir une catégorie..." /></SelectTrigger></FormControl>
                                         <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                <FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="lieuStockId" render={({ field }) => (
-                                <FormItem><FormLabel>Lieu de stock principal</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Choisir un lieu..." /></SelectTrigger></FormControl>
-                                        <SelectContent>{lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}</SelectContent>
                                     </Select>
                                 <FormMessage /></FormItem>
                             )}/>

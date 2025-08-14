@@ -1,10 +1,9 @@
 
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VenteDirectePayload, Vente, CommandeStatus, Notification, FactureModele } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VenteDirectePayload, Vente, CommandeStatus, Notification, FactureModele, InventaireBrouillon, InventaireBrouillonPayload, Stock } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -13,6 +12,7 @@ interface AppContextType {
   produits: Produit[];
   categories: Categorie[];
   lieuxStock: LieuStock[];
+  stocks: Stock[];
   clients: Client[];
   factures: Facture[];
   commandes: Commande[];
@@ -76,6 +76,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [produits, setProduits] = useState<Produit[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [lieuxStock, setLieuxStock] = useState<LieuStock[]>([]);
+  const [stocks, setStocks] = useState<Stock[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [factures, setFactures] = useState<Facture[]>([]);
   const [commandes, setCommandes] = useState<Commande[]>([]);
@@ -165,6 +166,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       api.getProducts().then(data => setProduits(data || [])).catch(err => handleFetchError(err, 'Produits')),
       api.getCategories().then(data => setCategories(data || [])).catch(err => handleFetchError(err, 'Catégories')),
       api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
+      api.getStocks().then(data => setStocks(data || [])).catch(err => handleFetchError(err, 'Stocks')),
       fetchClientsPromise,
       fetchCommandesPromise,
       fetchLivraisonsPromise,
@@ -466,7 +468,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   const value = useMemo(() => ({
-    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures,
+    produits, categories, lieuxStock, stocks, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
@@ -480,7 +482,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     scannedProductDetails, setScannedProductDetails,
     addFactureModele, updateFactureModele, deleteFactureModele,
   }), [
-    produits, categories, lieuxStock, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures,
+    produits, categories, lieuxStock, stocks, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
