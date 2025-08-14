@@ -12,7 +12,7 @@ import { useApp } from '@/context/app-provider';
 import type { ScannedProduit, Produit, InventairePayload, InventaireBrouillon, InventaireBrouillonPayload, InventaireLignePayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, FileDown, ClipboardPaste } from 'lucide-react';
+import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, FileDown, ClipboardPaste, Building2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -71,9 +71,18 @@ export default function NewInventoryPage() {
     const [productCache, setProductCache] = useState<Map<string, Produit>>(new Map());
     const [isFirstInventory, setIsFirstInventory] = useState(false);
     const [isJsonDialogOpen, setIsJsonDialogOpen] = useState(false);
+    const [selectedLieuStockId, setSelectedLieuStockId] = useState<string | undefined>(undefined);
 
     const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
-    const lieuStockMap = useMemo(() => new Map(lieuxStock.map(l => [l.nom, l.id])), [lieuxStock]);
+    const lieuStockMap = useMemo(() => new Map(lieuxStock.map(l => [l.id, l])), [lieuxStock]);
+
+    const isAdmin = useMemo(() => currentUser?.roleNom === 'ADMIN', [currentUser]);
+    
+    useEffect(() => {
+      if (!isAdmin && currentUser?.lieuId) {
+        setSelectedLieuStockId(String(currentUser.lieuId));
+      }
+    }, [isAdmin, currentUser]);
 
     useEffect(() => {
         const draftId = searchParams.get('draft');
@@ -141,20 +150,17 @@ export default function NewInventoryPage() {
     }, [searchParams, productMap]);
 
     const handleScan = async () => {
-        if (!barcode.trim() || !currentUser) return;
+        if (!barcode.trim() || !currentUser || !selectedLieuStockId) return;
 
-        if (!currentUser.lieuNom) {
-            toast({ variant: 'destructive', title: 'Erreur', description: "Aucun lieu de stock n'est assigné à votre compte." });
+        const lieuStock = lieuStockMap.get(Number(selectedLieuStockId));
+        if (!lieuStock) {
+            toast({ variant: 'destructive', title: 'Erreur', description: "Le lieu de stock sélectionné est invalide." });
             return;
         }
 
         const addOrUpdateProduct = (product: Produit) => {
-            const lieuStockNom = currentUser.lieuNom;
-            if (!lieuStockNom) {
-                toast({ variant: 'destructive', title: 'Erreur', description: `Aucun lieu de stock n'est défini pour votre utilisateur.` });
-                return;
-            }
-
+            const lieuStockNom = lieuStock.nom;
+            
             const existingItemIndex = scannedItems.findIndex(item => item.produitId === product.id && item.typeQuantiteScanne === scanType);
             let newItems;
 
@@ -278,36 +284,23 @@ export default function NewInventoryPage() {
             toast({ variant: "destructive", title: "Utilisateur non identifié", description: "Impossible de continuer sans être connecté." });
             return;
         }
+        if (!selectedLieuStockId) {
+            toast({ variant: "destructive", title: "Erreur de lieu de stock", description: "Veuillez sélectionner un lieu de stock." });
+            setIsSaving(false);
+            return;
+        }
 
         setIsSaving(true);
         
-        const firstLieuStockNom = scannedItems[0]?.lieuStockNom;
-        if (!firstLieuStockNom) {
-            toast({ variant: "destructive", title: "Erreur de lieu de stock", description: "Impossible de déterminer le lieu de stock pour cet inventaire." });
-            setIsSaving(false);
-            return;
-        }
-
-        const globalLieuStockId = lieuStockMap.get(firstLieuStockNom);
-        if (!globalLieuStockId) {
-            toast({ variant: "destructive", title: "Erreur de lieu de stock", description: `Lieu de stock '${firstLieuStockNom}' invalide.` });
-            setIsSaving(false);
-            return;
-        }
-
-        const payloadLignes: InventaireLignePayload[] = scannedItems.map(item => {
-            const lieuStockId = lieuStockMap.get(item.lieuStockNom);
-            if (!lieuStockId) {
-                throw new Error(`Lieu de stock non trouvé pour ${item.lieuStockNom}`);
-            }
-            return {
-                produitId: item.produitId,
-                qteScanne: item.qteScanne,
-                lieuStockId: lieuStockId,
-                typeQuantiteScanne: item.typeQuantiteScanne,
-                ref: item.refProduit,
-            };
-        });
+        const globalLieuStockId = Number(selectedLieuStockId);
+        
+        const payloadLignes: InventaireLignePayload[] = scannedItems.map(item => ({
+            produitId: item.produitId,
+            qteScanne: item.qteScanne,
+            lieuStockId: globalLieuStockId,
+            typeQuantiteScanne: item.typeQuantiteScanne,
+            ref: item.refProduit,
+        }));
 
         const payload: InventairePayload = {
             charge: currentUser.email,
@@ -391,15 +384,38 @@ export default function NewInventoryPage() {
             <div className="flex items-center">
                 <h1 className="font-headline text-3xl font-semibold">{pageTitle}</h1>
             </div>
-
+            
             <div className="grid gap-8 md:grid-cols-3">
                 <div className="md:col-span-1">
-                    <Card>
+                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline flex items-center gap-2"><ScanLine />Scanner un produit</CardTitle>
-                            <CardDescription>Entrez ou scannez un code-barres pour l'ajouter à l'inventaire.</CardDescription>
+                            <CardDescription>
+                                {isAdmin ? "Sélectionnez un lieu de stock, puis scannez les produits." : "Entrez ou scannez un code-barres pour l'ajouter à l'inventaire."}
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                             {isAdmin && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="lieu-stock">Lieu de Stock</Label>
+                                    <Select 
+                                        value={selectedLieuStockId} 
+                                        onValueChange={setSelectedLieuStockId}
+                                        disabled={scannedItems.length > 0}
+                                    >
+                                        <SelectTrigger id="lieu-stock">
+                                            <SelectValue placeholder="Sélectionner un lieu de stock..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {lieuxStock.map(lieu => (
+                                                <SelectItem key={lieu.id} value={String(lieu.id)}>{lieu.nom}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {scannedItems.length > 0 && <p className="text-xs text-muted-foreground">Videz le panier pour changer de lieu.</p>}
+                                </div>
+                             )}
+
                              <div className="space-y-2">
                                 <Label htmlFor="barcode">Code-barres</Label>
                                 <Input
@@ -408,7 +424,7 @@ export default function NewInventoryPage() {
                                     value={barcode}
                                     onChange={(e) => setBarcode(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleScan()}
-                                    disabled={isScanning || isSaving}
+                                    disabled={isScanning || isSaving || !selectedLieuStockId}
                                 />
                             </div>
                              <div className="grid grid-cols-2 gap-4">
@@ -420,12 +436,12 @@ export default function NewInventoryPage() {
                                         value={quantity}
                                         onChange={(e) => setQuantity(Number(e.target.value))}
                                         min="1"
-                                        disabled={isScanning || isSaving}
+                                        disabled={isScanning || isSaving || !selectedLieuStockId}
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="scanType">Type</Label>
-                                    <Select value={scanType} onValueChange={(value: 'UNITE' | 'CARTON') => setScanType(value)} disabled={isScanning || isSaving}>
+                                    <Select value={scanType} onValueChange={(value: 'UNITE' | 'CARTON') => setScanType(value)} disabled={isScanning || isSaving || !selectedLieuStockId}>
                                         <SelectTrigger id="scanType">
                                             <SelectValue placeholder="Type" />
                                         </SelectTrigger>
@@ -436,7 +452,7 @@ export default function NewInventoryPage() {
                                     </Select>
                                 </div>
                             </div>
-                            <Button onClick={handleScan} disabled={!barcode || isScanning || isSaving || quantity < 1} className="w-full">
+                            <Button onClick={handleScan} disabled={!barcode || isScanning || isSaving || quantity < 1 || !selectedLieuStockId} className="w-full">
                                 {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Ajouter à l\'inventaire'}
                             </Button>
                         </CardContent>
@@ -448,7 +464,7 @@ export default function NewInventoryPage() {
                         <CardHeader>
                             <CardTitle className="font-headline flex items-center gap-2"><UnitIcon />Produits Scannés</CardTitle>
                             <CardDescription>
-                                Liste des produits comptabilisés dans cet inventaire.
+                                {`Liste des produits comptabilisés pour l'inventaire ${selectedLieuStockId ? `à ${lieuStockMap.get(Number(selectedLieuStockId))?.nom}` : ''}.`}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
