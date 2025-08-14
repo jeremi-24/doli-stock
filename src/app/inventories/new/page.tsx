@@ -231,14 +231,14 @@ export default function NewInventoryPage() {
             toast({ variant: 'destructive', title: 'Action impossible', description: 'Vous ne pouvez pas sauvegarder un inventaire finalisé comme brouillon.'});
             return;
         }
-        if (!currentUser) {
+        if (!currentUser || !currentUser.email) {
              toast({ variant: 'destructive', title: 'Action impossible', description: 'Utilisateur non identifié.'});
             return;
         }
         setIsSaving(true);
         
         const payload: InventaireBrouillonPayload = {
-            charge: currentUser.email || "Utilisateur inconnu",
+            charge: currentUser.email,
             produits: scannedItems.map(item => ({
                 produitId: item.produitId,
                 ref: item.refProduit,
@@ -280,6 +280,20 @@ export default function NewInventoryPage() {
         }
 
         setIsSaving(true);
+        
+        const firstLieuStockNom = scannedItems[0]?.lieuStockNom;
+        if (!firstLieuStockNom) {
+            toast({ variant: "destructive", title: "Erreur de lieu de stock", description: "Impossible de déterminer le lieu de stock pour cet inventaire." });
+            setIsSaving(false);
+            return;
+        }
+
+        const globalLieuStockId = lieuStockMap.get(firstLieuStockNom);
+        if (!globalLieuStockId) {
+            toast({ variant: "destructive", title: "Erreur de lieu de stock", description: `Lieu de stock '${firstLieuStockNom}' invalide.` });
+            setIsSaving(false);
+            return;
+        }
 
         const payloadLignes: InventaireLignePayload[] = scannedItems.map(item => {
             const lieuStockId = lieuStockMap.get(item.lieuStockNom);
@@ -297,6 +311,7 @@ export default function NewInventoryPage() {
 
         const payload: InventairePayload = {
             charge: currentUser.email,
+            lieuStockId: globalLieuStockId,
             produits: payloadLignes,
         };
         

@@ -98,6 +98,7 @@ export type InventaireLignePayload = {
 
 export type InventairePayload = {
   charge: string;
+  lieuStockId: number;
   produits: InventaireLignePayload[];
 };
 
