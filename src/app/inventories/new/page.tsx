@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -9,10 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '@/context/app-provider';
-import type { ScannedProduit, Produit, InventairePayload, InventaireBrouillon, InventaireBrouillonPayload, InventaireLignePayload } from '@/lib/types';
+import type { ScannedProduit, Produit, InventairePayload, InventaireLignePayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, FileDown, ClipboardPaste, Building2 } from 'lucide-react';
+import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, ClipboardPaste, Building2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -56,10 +56,9 @@ export default function NewInventoryPage() {
     const searchParams = useSearchParams();
     const { toast } = useToast();
 
-    const [mode, setMode] = useState<'new' | 'edit_draft' | 'edit_final'>('new');
+    const [mode, setMode] = useState<'new' | 'edit_final'>('new');
     const [pageIsLoading, setPageIsLoading] = useState(true);
 
-    const [activeDraft, setActiveDraft] = useState<InventaireBrouillon | null>(null);
     const [editingInventoryId, setEditingInventoryId] = useState<number | null>(null);
 
     const [scannedItems, setScannedItems] = useState<ScannedProduit[]>([]);
@@ -85,7 +84,6 @@ export default function NewInventoryPage() {
     }, [isAdmin, currentUser]);
 
     useEffect(() => {
-        const draftId = searchParams.get('draft');
         const editId = searchParams.get('edit');
         
         const loadData = async () => {
@@ -110,30 +108,6 @@ export default function NewInventoryPage() {
                         setScannedItems(items.reverse());
                     }
                     toast({ title: `Modification de l'inventaire N°${editId}` });
-                } else if (draftId) {
-                    const draft = await api.getInventaireBrouillon(Number(draftId));
-                    if (draft) {
-                        setMode('edit_draft');
-                        setActiveDraft(draft);
-                        if (draft.lignes) {
-                             const items: ScannedProduit[] = draft.lignes.map(l => ({
-                                produitId: l.produitId,
-                                nomProduit: l.produitNom,
-                                lieuStockNom: l.lieuStockNom,
-                                qteScanne: l.qteScanne,
-                                typeQuantiteScanne: l.typeQuantiteScanne as 'UNITE' | 'CARTON',
-                                barcode: 'N/A', // Not available in draft lines
-                                refProduit: productMap.get(l.produitId)?.ref || 'N/A'
-                            }));
-                            setScannedItems(items);
-                        }
-                        if(searchParams.get('loaded') !== 'true') {
-                            toast({ title: `Brouillon #${draft.id} chargé.` });
-                            router.replace(`/inventories/new?draft=${draftId}&loaded=true`, { scroll: false });
-                        }
-                    } else {
-                         router.push('/inventories/new');
-                    }
                 } else {
                     setMode('new');
                 }
@@ -228,53 +202,6 @@ export default function NewInventoryPage() {
         setScannedItems(newItems);
     };
     
-    const handleSaveDraft = async () => {
-        if (scannedItems.length === 0) {
-            toast({ variant: 'destructive', title: 'Brouillon vide', description: 'Ajoutez au moins un produit avant de sauvegarder.' });
-            return;
-        }
-        if (mode === 'edit_final') {
-            toast({ variant: 'destructive', title: 'Action impossible', description: 'Vous ne pouvez pas sauvegarder un inventaire finalisé comme brouillon.'});
-            return;
-        }
-        if (!currentUser || !currentUser.email) {
-             toast({ variant: 'destructive', title: 'Action impossible', description: 'Utilisateur non identifié.'});
-            return;
-        }
-        setIsSaving(true);
-        
-        const payload: InventaireBrouillonPayload = {
-            charge: currentUser.email,
-            produits: scannedItems.map(item => ({
-                produitId: item.produitId,
-                ref: item.refProduit,
-                qteScanne: item.qteScanne,
-                lieuStockNom: item.lieuStockNom,
-                typeQuantiteScanne: item.typeQuantiteScanne,
-            }))
-        };
-        
-        try {
-            if (activeDraft?.id) {
-                const updatedDraft = await api.updateInventaireBrouillon(activeDraft.id, payload);
-                setActiveDraft(updatedDraft);
-                toast({ title: "Brouillon mis à jour", description: `Le brouillon #${updatedDraft.id} a été sauvegardé.` });
-            } else {
-                const newDraft = await api.createInventaireBrouillon(payload);
-                setActiveDraft(newDraft);
-                router.replace(`/inventories/new?draft=${newDraft.id}&loaded=true`, { scroll: false });
-                toast({ 
-                    title: "Brouillon sauvegardé", 
-                    description: `Le brouillon #${newDraft.id} a été créé.` 
-                });
-            }
-        } catch (error) {
-            // error handled by context
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
     const handleCalculateInventory = async () => {
         if (scannedItems.length === 0) {
             toast({ variant: "destructive", title: "Inventaire vide", description: "Veuillez scanner au moins un produit." });
@@ -317,9 +244,6 @@ export default function NewInventoryPage() {
             }
             
             if (resultInventory && resultInventory.id) {
-                if(activeDraft?.id) {
-                    await api.deleteInventaireBrouillon(activeDraft.id);
-                }
                 router.push(`/inventories/${resultInventory.id}`);
             } else {
                  setIsSaving(false);
@@ -362,9 +286,8 @@ export default function NewInventoryPage() {
     
     const pageTitle = useMemo(() => {
         if (mode === 'edit_final') return `Modifier l'Inventaire N°${editingInventoryId}`;
-        if (activeDraft) return `Brouillon #${activeDraft.id}`;
         return "Nouvel Inventaire";
-    }, [mode, editingInventoryId, activeDraft]);
+    }, [mode, editingInventoryId]);
 
 
     if(pageIsLoading) {
@@ -506,11 +429,6 @@ export default function NewInventoryPage() {
                         </CardContent>
                         <CardFooter className="border-t pt-6 flex justify-between items-center gap-2 flex-wrap">
                             <div className="flex items-center gap-2">
-                                <Button variant="outline" onClick={handleSaveDraft} disabled={scannedItems.length === 0 || isSaving || mode === 'edit_final'}>
-                                    <FileDown className="h-4 w-4 mr-2" />
-                                    {isSaving ? "Sauvegarde..." : "Sauvegarder Brouillon"}
-                                </Button>
-
                                 <Dialog open={isJsonDialogOpen} onOpenChange={setIsJsonDialogOpen}>
                                     <DialogTrigger asChild>
                                         <Button variant="outline" disabled={isSaving}>

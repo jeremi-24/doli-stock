@@ -57,8 +57,8 @@ export type InventaireStatus = 'CONFIRME' | 'EN_ATTENTE_CONFIRMATION';
 
 export type InventaireLigne = {
     produitId: number;
-    nomProduit: string;
     ref: string;
+    nomProduit: string;
     lieuStockNom: string;
     qteAvantScanTotaleUnites: number;
     qteScanneTotaleUnites: number;
@@ -101,37 +101,6 @@ export type InventairePayload = {
   lieuStockId: number;
   produits: InventaireLignePayload[];
 };
-
-// --- Inventaire Brouillon ---
-export type InventaireBrouillonLigne = {
-    id: number;
-    produitId: number;
-    produitNom: string;
-    lieuStockNom: string;
-    qteScanne: number;
-    typeQuantiteScanne: string;
-};
-
-export type InventaireBrouillon = {
-    id: number;
-    charge: string;
-    date: string;
-    lignes: InventaireBrouillonLigne[];
-};
-
-export type InventaireBrouillonLignePayload = {
-    produitId: number;
-    qteScanne: number;
-    lieuStockNom: string;
-    typeQuantiteScanne: 'UNITE' | 'CARTON';
-    ref: string;
-};
-
-export type InventaireBrouillonPayload = {
-    charge: string;
-    produits: InventaireBrouillonLignePayload[];
-};
-
 
 // ----- Restocking Types -----
 export type ReapproLigne = {
