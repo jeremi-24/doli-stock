@@ -78,6 +78,15 @@ export default function NewInventoryPage() {
     const isAdmin = useMemo(() => currentUser?.roleNom === 'ADMIN', [currentUser]);
     
     useEffect(() => {
+        const lieu = selectedLieuStockId ? lieuStockMap.get(Number(selectedLieuStockId)) : null;
+        if (lieu) {
+            document.title = `Inventaire - ${lieu.nom} - STA`;
+        } else {
+            document.title = `Nouvel Inventaire - STA`;
+        }
+    }, [selectedLieuStockId, lieuStockMap]);
+    
+    useEffect(() => {
       if (!isAdmin && currentUser?.lieuId) {
         setSelectedLieuStockId(String(currentUser.lieuId));
       }
@@ -498,5 +507,3 @@ export default function NewInventoryPage() {
         </div>
     );
 }
-
-    
