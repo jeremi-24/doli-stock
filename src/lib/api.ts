@@ -252,6 +252,10 @@ export async function getStocks(): Promise<Stock[]> {
     return apiFetch('/stocks');
 }
 
+export async function getStocksByLieu(lieuStockId: number): Promise<Stock[]> {
+    return apiFetch(`/stocks/lieu/${lieuStockId}`);
+}
+
 // ========== Ventes (POS) API ==========
 export async function getVentes(): Promise<Vente[]> {
     return apiFetch('/ventes');

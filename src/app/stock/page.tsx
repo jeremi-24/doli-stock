@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import * as api from "@/lib/api";
 
 export default function StockPage() {
-    const { hasPermission } = useApp();
+    const { currentUser, isMounted } = useApp();
     const [stocks, setStocks] = React.useState<Stock[]>([]);
     const [filteredStocks, setFilteredStocks] = React.useState<Stock[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -29,9 +29,20 @@ export default function StockPage() {
 
     React.useEffect(() => {
         async function fetchStocks() {
+            if (!isMounted || !currentUser) return;
+            setIsLoading(true);
             try {
-                setIsLoading(true);
-                const data = await api.getStocks();
+                let data: Stock[] = [];
+                const isAdmin = currentUser.roleNom === 'ADMIN';
+
+                if (isAdmin) {
+                    data = await api.getStocks();
+                } else if (currentUser.lieuId) {
+                    data = await api.getStocksByLieu(currentUser.lieuId);
+                } else {
+                     toast({ variant: 'destructive', title: 'Configuration manquante', description: 'Aucun lieu de stock n\'est assigné à votre compte.' });
+                }
+                
                 setStocks(data || []);
                 setFilteredStocks(data || []);
             } catch (error) {
@@ -42,7 +53,7 @@ export default function StockPage() {
             }
         }
         fetchStocks();
-    }, [toast]);
+    }, [toast, isMounted, currentUser]);
 
     React.useEffect(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
