@@ -266,6 +266,18 @@ export default function NewInventoryPage() {
         }
     };
     
+    const findProduitsInJson = (data: any): any[] | null => {
+        if (Array.isArray(data)) {
+            for (const item of data) {
+                const result = findProduitsInJson(item);
+                if (result) return result;
+            }
+        } else if (typeof data === 'object' && data !== null && 'produits' in data && Array.isArray(data.produits)) {
+            return data.produits;
+        }
+        return null;
+    };
+
     const handleJsonImport = (jsonString: string) => {
         if (!selectedLieuStockId) {
             toast({ variant: 'destructive', title: 'Action requise', description: "Veuillez d'abord sélectionner un lieu de stock." });
@@ -278,13 +290,12 @@ export default function NewInventoryPage() {
         }
 
         try {
-            const data = JSON.parse(jsonString);
+            const parsedData = JSON.parse(jsonString);
+            const importedProducts = findProduitsInJson(parsedData);
             
-            if (!Array.isArray(data) || data.length === 0 || !data[0].produits || !Array.isArray(data[0].produits)) {
-                throw new Error("Le format JSON est invalide. Il doit être un tableau avec un objet contenant une clé 'produits'.");
+            if (!importedProducts) {
+                throw new Error("Le format JSON est invalide ou la clé 'produits' est introuvable.");
             }
-            
-            const importedProducts = data[0].produits;
 
             const newItems: ScannedProduit[] = importedProducts.map((ligne: any) => {
                 if (typeof ligne.produitId === 'undefined' || typeof ligne.qteScanne === 'undefined') {
@@ -296,14 +307,15 @@ export default function NewInventoryPage() {
                     produitId: ligne.produitId,
                     nomProduit: ligne.nomProduit || productDetails?.nom || 'Nom inconnu',
                     refProduit: ligne.refProduit || productDetails?.ref || 'N/A',
-                    lieuStockNom: lieuStockSelectionne.nom, // Utiliser le nom du lieu sélectionné
+                    lieuStockNom: lieuStockSelectionne.nom,
                     qteScanne: ligne.qteScanne,
                     barcode: ligne.barcode || productDetails?.codeBarre || 'N/A',
                     typeQuantiteScanne: ligne.typeQuantiteScanne || 'UNITE',
                 };
             }).filter(Boolean) as ScannedProduit[];
-
-            setScannedItems(newItems);
+            
+            // Add new items without checking for duplicates
+            setScannedItems(prevItems => [...prevItems, ...newItems]);
             toast({ title: 'Importation JSON réussie', description: `${newItems.length} produits chargés dans le panier.` });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de l'analyse du JSON.";
