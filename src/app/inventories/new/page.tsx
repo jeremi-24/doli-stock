@@ -32,7 +32,7 @@ function JSONImportDialog({ onImport, onOpenChange }: { onImport: (jsonString: s
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Coller le JSON de l'inventaire</DialogTitle>
-                <DialogDescription>Collez le contenu JSON (objet avec une clé "lignes") pour charger les produits.</DialogDescription>
+                <DialogDescription>Collez le contenu JSON pour charger les produits.</DialogDescription>
             </DialogHeader>
             <div className="py-4">
                 <Textarea
@@ -81,6 +81,8 @@ export default function NewInventoryPage() {
       if (!isAdmin && currentUser?.lieuId) {
         setSelectedLieuStockId(String(currentUser.lieuId));
       }
+      setPageIsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAdmin, currentUser]);
 
     useEffect(() => {
@@ -119,9 +121,11 @@ export default function NewInventoryPage() {
             }
         };
 
-        loadData();
+        if(currentUser) {
+            loadData();
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams, productMap]);
+    }, [searchParams, productMap, currentUser]);
 
     const handleScan = async () => {
         if (!barcode.trim() || !currentUser || !selectedLieuStockId) return;
@@ -254,27 +258,41 @@ export default function NewInventoryPage() {
     };
     
     const handleJsonImport = (jsonString: string) => {
+        if (!selectedLieuStockId) {
+            toast({ variant: 'destructive', title: 'Action requise', description: "Veuillez d'abord sélectionner un lieu de stock." });
+            return;
+        }
+        const lieuStockSelectionne = lieuStockMap.get(Number(selectedLieuStockId));
+        if (!lieuStockSelectionne) {
+             toast({ variant: 'destructive', title: 'Erreur', description: "Le lieu de stock sélectionné est invalide." });
+            return;
+        }
+
         try {
             const data = JSON.parse(jsonString);
-            if (!data.lignes || !Array.isArray(data.lignes)) {
-                throw new Error("Le JSON doit contenir une clé 'lignes' avec un tableau de produits.");
+            
+            if (!Array.isArray(data) || data.length === 0 || !data[0].produits || !Array.isArray(data[0].produits)) {
+                throw new Error("Le format JSON est invalide. Il doit être un tableau avec un objet contenant une clé 'produits'.");
             }
+            
+            const importedProducts = data[0].produits;
 
-            const newItems: ScannedProduit[] = data.lignes.map((ligne: any) => {
-                if (!ligne.produitId || !ligne.nomProduit || typeof ligne.qteScanneTotaleUnites === 'undefined') {
+            const newItems: ScannedProduit[] = importedProducts.map((ligne: any) => {
+                if (typeof ligne.produitId === 'undefined' || typeof ligne.qteScanne === 'undefined') {
                     console.warn("Ligne JSON ignorée (champs manquants):", ligne);
                     return null;
                 }
+                const productDetails = productMap.get(ligne.produitId);
                 return {
                     produitId: ligne.produitId,
-                    nomProduit: ligne.nomProduit,
-                    refProduit: productMap.get(ligne.produitId)?.ref || 'N/A',
-                    lieuStockNom: ligne.lieuStockNom || 'N/A',
-                    qteScanne: ligne.qteScanneTotaleUnites,
-                    barcode: 'N/A', // Not available in this format
-                    typeQuantiteScanne: 'UNITE', // Import all as units for simplicity
+                    nomProduit: ligne.nomProduit || productDetails?.nom || 'Nom inconnu',
+                    refProduit: ligne.refProduit || productDetails?.ref || 'N/A',
+                    lieuStockNom: lieuStockSelectionne.nom, // Utiliser le nom du lieu sélectionné
+                    qteScanne: ligne.qteScanne,
+                    barcode: ligne.barcode || productDetails?.codeBarre || 'N/A',
+                    typeQuantiteScanne: ligne.typeQuantiteScanne || 'UNITE',
                 };
-            }).filter(Boolean);
+            }).filter(Boolean) as ScannedProduit[];
 
             setScannedItems(newItems);
             toast({ title: 'Importation JSON réussie', description: `${newItems.length} produits chargés dans le panier.` });
