@@ -252,8 +252,8 @@ export async function getStocks(): Promise<Stock[]> {
     return apiFetch('/stocks');
 }
 
-export async function getStocksByLieu(lieuStockId: number): Promise<Stock[]> {
-    return apiFetch(`/stocks/lieu/${lieuStockId}`);
+export async function getStocksByLieuNom(lieuStockNom: string): Promise<Stock[]> {
+    return apiFetch(`/stocks/lieuStock/${encodeURIComponent(lieuStockNom)}`);
 }
 
 // ========== Ventes (POS) API ==========

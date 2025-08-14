@@ -28,24 +28,20 @@ export default function StockPage() {
 
     React.useEffect(() => {
         const fetchStocks = async () => {
-            // Wait for currentUser to be available
-            if (!currentUser) return;
+            if (!currentUser) return; // Exit if user data is not ready
 
             setIsLoading(true);
             try {
                 let data: Stock[] = [];
-                // Check if the user role is BOUTIQUIER
-                const isBoutiquier = currentUser.roleNom === 'BOUTIQUIER';
+                const isNotAdmin = currentUser.roleNom !== 'ADMIN';
 
-                if (isBoutiquier) {
-                    if (currentUser.lieuId) {
-                        data = await api.getStocksByLieu(currentUser.lieuId);
+                if (isNotAdmin) {
+                    if (currentUser.lieuNom) {
+                        data = await api.getStocksByLieuNom(currentUser.lieuNom);
                     } else {
-                        // This case should ideally not happen if a lieuId is always assigned to a BOUTIQUIER
                         toast({ variant: 'destructive', title: 'Configuration manquante', description: 'Aucun lieu de stock n\'est assigné à votre compte.' });
                     }
                 } else {
-                    // For all other roles, fetch all stocks
                     data = await api.getStocks();
                 }
                 
@@ -59,9 +55,8 @@ export default function StockPage() {
             }
         };
         
-        // Ensure the component is mounted and currentUser is populated
-        if (isMounted && currentUser) {
-            fetchStocks();
+        if (isMounted) {
+          fetchStocks();
         }
     }, [isMounted, currentUser, toast]);
 
