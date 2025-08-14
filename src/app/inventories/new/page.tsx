@@ -301,12 +301,6 @@ export default function NewInventoryPage() {
             toast({ variant: 'destructive', title: "Erreur d'importation JSON", description: errorMessage });
         }
     };
-    
-    const pageTitle = useMemo(() => {
-        if (mode === 'edit_final') return `Modifier l'Inventaire N°${editingInventoryId}`;
-        return "Nouvel Inventaire";
-    }, [mode, editingInventoryId]);
-
 
     if(pageIsLoading) {
         return (
@@ -323,7 +317,17 @@ export default function NewInventoryPage() {
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center">
-                <h1 className="font-headline text-3xl font-semibold">{pageTitle}</h1>
+                <h1 className="font-headline text-3xl font-semibold">
+                  {mode === 'edit_final' ? (
+                    `Modifier l'Inventaire N°${editingInventoryId}`
+                  ) : selectedLieuStockId && lieuStockMap.has(Number(selectedLieuStockId)) ? (
+                    <>
+                      Nouvel inventaire de <span className="font-bold">{lieuStockMap.get(Number(selectedLieuStockId))?.nom}</span>
+                    </>
+                  ) : (
+                    "Nouvel Inventaire"
+                  )}
+                </h1>
             </div>
             
             <div className="grid gap-8 md:grid-cols-3">
@@ -494,3 +498,5 @@ export default function NewInventoryPage() {
         </div>
     );
 }
+
+    
