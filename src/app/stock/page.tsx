@@ -1,5 +1,4 @@
 
-
 "use client";
 import * as React from "react";
 import {
@@ -60,7 +59,7 @@ export default function StockPage() {
         const filteredData = stocks.filter(item => {
             return (
                 item.produitNom.toLowerCase().includes(lowercasedFilter) ||
-                item.lieuStockNom.toLowerCase().includes(lowercasedFilter)
+                (item.lieuStockNom && item.lieuStockNom.toLowerCase().includes(lowercasedFilter))
             );
         });
         setFilteredStocks(filteredData);
