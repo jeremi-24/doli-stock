@@ -57,7 +57,7 @@ export type InventaireStatus = 'CONFIRME' | 'EN_ATTENTE_CONFIRMATION';
 
 export type InventaireLigne = {
     produitId: number;
-    ref: string;
+    refProduit: string;
     nomProduit: string;
     lieuStockNom: string;
     qteAvantScanTotaleUnites: number;

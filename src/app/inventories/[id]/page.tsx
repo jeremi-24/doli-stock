@@ -185,7 +185,10 @@ export default function InventoryDetailPage() {
                     <TableBody>
                         {inventory.lignes.map((ligne, index) => (
                              <TableRow key={`${ligne.produitId}-${index}`}>
-                                <TableCell className="font-medium">{ligne.nomProduit}</TableCell>
+                                <TableCell>
+                                    <div className="font-medium">{ligne.nomProduit}</div>
+                                    <div className="text-xs text-muted-foreground font-mono">{ligne.refProduit}</div>
+                                </TableCell>
                                 <TableCell>{ligne.lieuStockNom}</TableCell>
                                 
                                 {/* Avant Scan */}
