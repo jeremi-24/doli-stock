@@ -23,7 +23,7 @@ export default function InventoryDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { confirmInventaire } = useApp();
+  const { confirmInventaire, isMounted } = useApp();
   
   const [inventory, setInventory] = useState<Inventaire | null | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,8 +51,10 @@ export default function InventoryDetailPage() {
   }, [id, router, toast]);
 
   useEffect(() => {
-    fetchInventory();
-  }, [fetchInventory]);
+    if (isMounted) {
+      fetchInventory();
+    }
+  }, [isMounted, fetchInventory]);
 
   const handleConfirm = async (isPremier: boolean) => {
       if (!inventory) return;
@@ -187,7 +189,7 @@ export default function InventoryDetailPage() {
                              <TableRow key={`${ligne.produitId}-${index}`}>
                                 <TableCell>
                                     <div className="font-medium">{ligne.nomProduit}</div>
-                                    <div className="text-xs text-muted-foreground font-mono">{ligne.refProduit}</div>
+                                    <div className="text-xs text-muted-foreground font-mono">{ligne.ref}</div>
                                 </TableCell>
                                 <TableCell>{ligne.lieuStockNom}</TableCell>
                                 
