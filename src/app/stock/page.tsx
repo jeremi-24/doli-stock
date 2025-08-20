@@ -1,4 +1,5 @@
 
+
 "use client";
 import * as React from "react";
 import {
@@ -56,19 +57,19 @@ export default function StockPage() {
             }
         };
         
-        if (isMounted) {
+        if (isMounted && currentUser) {
           fetchStocks();
         }
     }, [isMounted, currentUser, toast]);
 
     const filteredStocks = React.useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
-        
         const lieuSelectionne = lieuxStock.find(l => String(l.id) === selectedLieu);
 
         return stocks.filter(item => {
             const matchesLieu = selectedLieu === 'all' || (lieuSelectionne && item.lieuStockNom === lieuSelectionne.nom);
             const matchesSearch = item.produitNom.toLowerCase().includes(lowercasedFilter) ||
+                                 (item.produitRef && item.produitRef.toLowerCase().includes(lowercasedFilter)) ||
                                  (item.lieuStockNom && item.lieuStockNom.toLowerCase().includes(lowercasedFilter));
             return matchesLieu && matchesSearch;
         });
@@ -81,8 +82,12 @@ export default function StockPage() {
         const lieu = lieuxStock.find(l => String(l.id) === selectedLieu);
         return `État du Stock - ${lieu?.nom || 'Inconnu'}`;
     }, [selectedLieu, lieuxStock]);
+    
+    const isAdmin = React.useMemo(() => {
+        if (!currentUser) return false;
+        return currentUser.roleNom === 'ADMIN';
+    }, [currentUser]);
 
-    const isAdmin = React.useMemo(() => currentUser?.roleNom === 'ADMIN', [currentUser]);
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -104,40 +109,40 @@ export default function StockPage() {
             </div>
             <Card>
             <CardHeader className="flex flex-col gap-2">
-    <div className="flex items-center justify-between">
-      <CardTitle className="font-headline flex items-center gap-2">
-        <Warehouse /> Vue d'ensemble des stocks ({filteredStocks.length})
-      </CardTitle>
-      {isMounted && isAdmin && (
-        <Select value={selectedLieu} onValueChange={setSelectedLieu}>
-          <SelectTrigger className="w-[180px] border-black">
-            <SelectValue placeholder="Filtrer par lieu" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous les lieux</SelectItem>
-            {lieuxStock.map(lieu => (
-              <SelectItem key={lieu.id} value={String(lieu.id)}>
-                {lieu.nom}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-    </div>
-    <CardDescription>
-      Consultez la quantité de chaque produit dans les différents lieux de stock.
-    </CardDescription>
-  </CardHeader>
+                <div className="flex items-center justify-between">
+                <CardTitle className="font-headline flex items-center gap-2">
+                    <Warehouse /> Vue d'ensemble des stocks ({filteredStocks.length})
+                </CardTitle>
+                {isMounted && isAdmin && (
+                    <Select value={selectedLieu} onValueChange={setSelectedLieu}>
+                    <SelectTrigger className="w-[180px] border-black">
+                        <SelectValue placeholder="Filtrer par lieu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Tous les lieux</SelectItem>
+                        {lieuxStock.map(lieu => (
+                        <SelectItem key={lieu.id} value={String(lieu.id)}>
+                            {lieu.nom}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                )}
+                </div>
+                <CardDescription>
+                Consultez la quantité de chaque produit dans les différents lieux de stock.
+                </CardDescription>
+            </CardHeader>
                 <CardContent>
                     <div className="rounded-lg border">
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Produit</TableHead>
+                                    <TableHead>Référence</TableHead>
                                     <TableHead>Lieu de Stock</TableHead>
                                     <TableHead className="text-right">Nombre de Cartons</TableHead>
-                                    <TableHead className="text-right">Unité hors Cartons</TableHead>
-                                    <TableHead className="text-right font-semibold">Stock Total (en Unités)</TableHead>
+                                    <TableHead className="text-right">Unités hors Cartons</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -151,10 +156,10 @@ export default function StockPage() {
                                     filteredStocks.map((stockItem) => (
                                         <TableRow key={stockItem.id}>
                                             <TableCell className="font-medium">{stockItem.produitNom}</TableCell>
+                                            <TableCell>{stockItem.produitRef}</TableCell>
                                             <TableCell>{stockItem.lieuStockNom}</TableCell>
                                             <TableCell className="text-right">{stockItem.qteCartons}</TableCell>
                                             <TableCell className="text-right">{stockItem.qteUnitesRestantes}</TableCell>
-                                            <TableCell className="text-right font-semibold">{stockItem.quantiteTotale}</TableCell>
                                         </TableRow>
                                     ))
                                 ) : (

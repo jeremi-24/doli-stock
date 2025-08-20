@@ -1,4 +1,5 @@
 
+
 export type Client = {
   id: number;
   nom: string;
@@ -30,13 +31,11 @@ export type Produit = {
 
 export type Stock = {
     id: number;
-    produitId: number;
     produitNom: string;
-    lieuStockId: number;
+    produitRef: string;
     lieuStockNom: string;
     qteCartons: number;
     qteUnitesRestantes: number;
-    quantiteTotale: number;
     produit?: Produit;
 };
 
