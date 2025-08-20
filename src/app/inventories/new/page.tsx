@@ -12,7 +12,7 @@ import { useApp } from '@/context/app-provider';
 import type { ScannedProduit, Produit, InventairePayload, InventaireLignePayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, ClipboardPaste, Building2 } from 'lucide-react';
+import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, ClipboardPaste, Building2, Minus, Plus } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -75,7 +75,7 @@ export default function NewInventoryPage() {
     const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
     const lieuStockMap = useMemo(() => new Map(lieuxStock.map(l => [l.id, l])), [lieuxStock]);
 
-    const isAdmin = useMemo(() => currentUser?.roleNom === 'ADMIN', [currentUser]);
+    const isAdmin = useMemo(() => pageIsLoading ? false : currentUser?.roleNom === 'ADMIN', [currentUser, pageIsLoading]);
     
     useEffect(() => {
         const lieu = selectedLieuStockId ? lieuStockMap.get(Number(selectedLieuStockId)) : null;
@@ -87,11 +87,12 @@ export default function NewInventoryPage() {
     }, [selectedLieuStockId, lieuStockMap]);
     
     useEffect(() => {
-      if (!isAdmin && currentUser?.lieuId) {
-        setSelectedLieuStockId(String(currentUser.lieuId));
+      if (currentUser) {
+        if (!isAdmin && currentUser.lieuId) {
+            setSelectedLieuStockId(String(currentUser.lieuId));
+        }
+        setPageIsLoading(false);
       }
-      setPageIsLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAdmin, currentUser]);
 
     useEffect(() => {
@@ -110,7 +111,7 @@ export default function NewInventoryPage() {
                         const items: ScannedProduit[] = inventoryData.lignes.map((ligne: any) => ({
                             produitId: ligne.produitId,
                             nomProduit: ligne.nomProduit,
-                            refProduit: productMap.get(ligne.produitId)?.ref || 'N/A',
+                            ref: ligne.ref,
                             lieuStockNom: ligne.lieuStockNom,
                             qteScanne: ligne.qteScanneTotaleUnites,
                             barcode: 'N/A',
@@ -133,8 +134,7 @@ export default function NewInventoryPage() {
         if(currentUser) {
             loadData();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams, productMap, currentUser]);
+    }, [searchParams, productMap, currentUser, router, toast]);
 
     const handleScan = async () => {
         if (!barcode.trim() || !currentUser || !selectedLieuStockId) return;
@@ -166,7 +166,7 @@ export default function NewInventoryPage() {
                     {
                         produitId: product.id,
                         nomProduit: product.nom,
-                        refProduit: product.ref,
+                        ref: product.ref,
                         lieuStockNom: lieuStockNom, 
                         qteScanne: quantity,
                         barcode: product.codeBarre,
@@ -209,6 +209,21 @@ export default function NewInventoryPage() {
             setQuantity(1);
         }
     };
+    
+    const handleQuantityChange = (produitId: number, type: 'UNITE' | 'CARTON', newQuantity: number) => {
+        if (newQuantity <= 0) {
+            handleRemoveItem(produitId, type);
+            return;
+        }
+
+        setScannedItems(currentCart =>
+            currentCart.map(item =>
+                item.produitId === produitId && item.typeQuantiteScanne === type
+                    ? { ...item, qteScanne: newQuantity }
+                    : item
+            )
+        );
+    };
 
     const handleRemoveItem = (produitId: number, type: 'UNITE' | 'CARTON') => {
         const newItems = scannedItems.filter(item => !(item.produitId === produitId && item.typeQuantiteScanne === type));
@@ -239,7 +254,7 @@ export default function NewInventoryPage() {
             qteScanne: item.qteScanne,
             lieuStockId: globalLieuStockId,
             typeQuantiteScanne: item.typeQuantiteScanne,
-            ref: item.refProduit,
+            ref: item.ref,
         }));
 
         const payload: InventairePayload = {
@@ -298,37 +313,29 @@ export default function NewInventoryPage() {
                 throw new Error("Le format JSON est invalide ou la clé 'produits' est introuvable.");
             }
     
-            console.log(`Nombre de lignes dans le JSON : ${importedProducts.length}`);
-    
-            // Traitement de TOUTES les lignes sans filtrage
             const newItems: ScannedProduit[] = [];
             let skippedCount = 0;
             let processedCount = 0;
     
             importedProducts.forEach((ligne: any, index: number) => {
-                // Vérification des champs obligatoires uniquement
                 if (typeof ligne.produitId === 'undefined' || ligne.produitId === null) {
-                    console.warn(`Ligne ${index + 1} ignorée - produitId manquant:`, ligne);
                     skippedCount++;
                     return;
                 }
     
                 if (typeof ligne.qteScanne === 'undefined' || ligne.qteScanne === null) {
-                    console.warn(`Ligne ${index + 1} ignorée - qteScanne manquant:`, ligne);
                     skippedCount++;
                     return;
                 }
     
-                // Récupération des détails du produit
                 const productDetails = productMap.get(ligne.produitId);
     
-                // Création de l'item SANS vérification de doublons
                 const newItem: ScannedProduit = {
                     produitId: ligne.produitId,
                     nomProduit: ligne.nomProduit || productDetails?.nom || `Produit ${ligne.produitId}`,
-                    refProduit: ligne.refProduit || ligne.ref || productDetails?.ref || 'N/A',
+                    ref: ligne.refProduit || ligne.ref || productDetails?.ref || 'N/A',
                     lieuStockNom: lieuStockSelectionne.nom,
-                    qteScanne: Number(ligne.qteScanne), // Conversion explicite en nombre
+                    qteScanne: Number(ligne.qteScanne),
                     barcode: ligne.barcode || productDetails?.codeBarre || 'N/A',
                     typeQuantiteScanne: ligne.typeQuantiteScanne || 'UNITE',
                 };
@@ -336,11 +343,7 @@ export default function NewInventoryPage() {
                 newItems.push(newItem);
                 processedCount++;
             });
-    
-            console.log(`Lignes traitées : ${processedCount}, Lignes ignorées : ${skippedCount}`);
-            console.log(`Total d'items créés : ${newItems.length}`);
             
-            // Ajout de TOUS les nouveaux items sans vérification de doublons
             setScannedItems(prevItems => [...newItems, ...prevItems]);
             
             toast({ 
@@ -349,7 +352,6 @@ export default function NewInventoryPage() {
             });
     
         } catch (error) {
-            console.error('Erreur lors de l\'importation JSON:', error);
             const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de l'analyse du JSON.";
             toast({ variant: 'destructive', title: "Erreur d'importation JSON", description: errorMessage });
         }
@@ -481,12 +483,22 @@ export default function NewInventoryPage() {
                                     {scannedItems.length > 0 ? scannedItems.map(item => (
                                       <TableRow key={`${item.produitId}-${item.typeQuantiteScanne}`}>
                                         <TableCell className="font-medium">{item.nomProduit}</TableCell>
-                                        <TableCell className="text-muted-foreground">{item.refProduit}</TableCell>
+                                        <TableCell className="text-muted-foreground">{item.ref}</TableCell>
                                         <TableCell>{item.lieuStockNom}</TableCell>
                                         <TableCell className="text-center font-semibold">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {item.typeQuantiteScanne === 'CARTON' ? <Box className="h-4 w-4" /> : <UnitIcon className="h-4 w-4" />}
-                                                {item.qteScanne} {item.typeQuantiteScanne === 'UNITE' && item.qteScanne > 1 ? 'Unités' : item.typeQuantiteScanne}
+                                            <div className="flex items-center justify-center gap-1">
+                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produitId, item.typeQuantiteScanne, item.qteScanne - 1)} disabled={isSaving}><Minus className="h-3 w-3"/></Button>
+                                                <Input
+                                                  type="number"
+                                                  value={item.qteScanne}
+                                                  onChange={e => handleQuantityChange(item.produitId, item.typeQuantiteScanne, parseInt(e.target.value) || 0)}
+                                                  className="h-8 w-14 text-center p-0"
+                                                  disabled={isSaving}
+                                                />
+                                                <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produitId, item.typeQuantiteScanne, item.qteScanne + 1)} disabled={isSaving}><Plus className="h-3 w-3"/></Button>
+                                                <div className="flex items-center justify-center gap-2 ml-2">
+                                                    {item.typeQuantiteScanne === 'CARTON' ? <Box className="h-4 w-4" /> : <UnitIcon className="h-4 w-4" />}
+                                                </div>
                                             </div>
                                         </TableCell>
                                         <TableCell>

@@ -80,7 +80,7 @@ export type Inventaire = {
 export type ScannedProduit = {
   produitId: number;
   nomProduit: string;
-  refProduit: string;
+  ref: string;
   qteScanne: number;
   lieuStockNom: string;
   barcode: string;
