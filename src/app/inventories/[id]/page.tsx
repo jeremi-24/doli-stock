@@ -212,7 +212,7 @@ export default function InventoryDetailPage() {
         )}
         <div className="ml-auto flex items-center gap-2">
           {canEdit && !isEditMode && (
-            <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
+            <Button size="sm" className="border-black"  variant="outline" onClick={() => setIsEditMode(true)}>
               <FilePenLine className="h-4 w-4 mr-2" /> Modifier
             </Button>
           )}
