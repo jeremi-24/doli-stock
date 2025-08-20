@@ -17,25 +17,27 @@ import type { Stock } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import * as api from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 export default function StockPage() {
-    const { currentUser, isMounted } = useApp();
+    const { currentUser, isMounted, lieuxStock } = useApp();
     const [stocks, setStocks] = React.useState<Stock[]>([]);
-    const [filteredStocks, setFilteredStocks] = React.useState<Stock[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState("");
+    const [selectedLieu, setSelectedLieu] = React.useState<string>("all");
     const { toast } = useToast();
 
     React.useEffect(() => {
         const fetchStocks = async () => {
-            if (!currentUser) return; // Exit if user data is not ready
+            if (!currentUser) return;
 
             setIsLoading(true);
             try {
                 let data: Stock[] = [];
-                const isNotAdmin = currentUser.roleNom !== 'ADMIN';
+                const isAdmin = currentUser.roleNom === 'ADMIN';
 
-                if (isNotAdmin) {
+                if (!isAdmin) {
                     if (currentUser.lieuNom) {
                         data = await api.getStocksByLieuNom(currentUser.lieuNom);
                     } else {
@@ -46,7 +48,6 @@ export default function StockPage() {
                 }
                 
                 setStocks(data || []);
-                setFilteredStocks(data || []);
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
                 toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
@@ -55,37 +56,59 @@ export default function StockPage() {
             }
         };
         
-        if (isMounted) {
+        if (isMounted && currentUser) {
           fetchStocks();
         }
     }, [isMounted, currentUser, toast]);
 
-    React.useEffect(() => {
+    const filteredStocks = React.useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
-        const filteredData = stocks.filter(item => {
-            return (
-                item.produitNom.toLowerCase().includes(lowercasedFilter) ||
-                (item.lieuStockNom && item.lieuStockNom.toLowerCase().includes(lowercasedFilter))
-            );
+        return stocks.filter(item => {
+            const matchesLieu = selectedLieu === 'all' || String(item.lieuStockId) === selectedLieu;
+            const matchesSearch = item.produitNom.toLowerCase().includes(lowercasedFilter) ||
+                                 (item.lieuStockNom && item.lieuStockNom.toLowerCase().includes(lowercasedFilter));
+            return matchesLieu && matchesSearch;
         });
-        setFilteredStocks(filteredData);
-    }, [searchTerm, stocks]);
+    }, [searchTerm, stocks, selectedLieu]);
+
+    const pageTitle = React.useMemo(() => {
+        if (selectedLieu === 'all') {
+            return "État du Stock";
+        }
+        const lieu = lieuxStock.find(l => String(l.id) === selectedLieu);
+        return `État du Stock - ${lieu?.nom || 'Inconnu'}`;
+    }, [selectedLieu, lieuxStock]);
+
+    const isAdmin = currentUser?.roleNom === 'ADMIN';
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center gap-4">
-                <h1 className="font-headline text-3xl font-semibold">État du Stock</h1>
+                <h1 className="font-headline text-3xl font-semibold">{pageTitle}</h1>
                 <div className="ml-auto flex items-center gap-2">
                     <div className="relative">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
-                            placeholder="Rechercher..."
+                            placeholder="Rechercher un produit..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-8 sm:w-[300px]"
+                            className="pl-8 sm:w-[200px]"
                         />
                     </div>
+                    {isMounted && isAdmin && (
+                        <Select value={selectedLieu} onValueChange={setSelectedLieu}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filtrer par lieu" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous les lieux</SelectItem>
+                                {lieuxStock.map(lieu => (
+                                    <SelectItem key={lieu.id} value={String(lieu.id)}>{lieu.nom}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
             </div>
             <Card>
@@ -129,7 +152,7 @@ export default function StockPage() {
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={5} className="h-24 text-center">
-                                            Aucun stock trouvé.
+                                            Aucun stock trouvé pour les critères sélectionnés.
                                         </TableCell>
                                     </TableRow>
                                 )}
