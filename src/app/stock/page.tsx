@@ -35,9 +35,9 @@ export default function StockPage() {
             setIsLoading(true);
             try {
                 let data: Stock[] = [];
-                const isAdmin = currentUser.roleNom === 'ADMIN';
+                const isAdminUser = currentUser.roleNom === 'ADMIN';
 
-                if (!isAdmin) {
+                if (!isAdminUser) {
                     if (currentUser.lieuNom) {
                         data = await api.getStocksByLieuNom(currentUser.lieuNom);
                     } else {
@@ -56,20 +56,23 @@ export default function StockPage() {
             }
         };
         
-        if (isMounted && currentUser) {
+        if (isMounted) {
           fetchStocks();
         }
     }, [isMounted, currentUser, toast]);
 
     const filteredStocks = React.useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
+        
+        const lieuSelectionne = lieuxStock.find(l => String(l.id) === selectedLieu);
+
         return stocks.filter(item => {
-            const matchesLieu = selectedLieu === 'all' || String(item.lieuStockId) === selectedLieu;
+            const matchesLieu = selectedLieu === 'all' || (lieuSelectionne && item.lieuStockNom === lieuSelectionne.nom);
             const matchesSearch = item.produitNom.toLowerCase().includes(lowercasedFilter) ||
                                  (item.lieuStockNom && item.lieuStockNom.toLowerCase().includes(lowercasedFilter));
             return matchesLieu && matchesSearch;
         });
-    }, [searchTerm, stocks, selectedLieu]);
+    }, [searchTerm, stocks, selectedLieu, lieuxStock]);
 
     const pageTitle = React.useMemo(() => {
         if (selectedLieu === 'all') {
@@ -79,7 +82,7 @@ export default function StockPage() {
         return `État du Stock - ${lieu?.nom || 'Inconnu'}`;
     }, [selectedLieu, lieuxStock]);
 
-    const isAdmin = currentUser?.roleNom === 'ADMIN';
+    const isAdmin = React.useMemo(() => currentUser?.roleNom === 'ADMIN', [currentUser]);
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
