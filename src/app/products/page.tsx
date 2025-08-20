@@ -288,11 +288,13 @@ export default function ProductsPage() {
     const filteredProduits = React.useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
         const filtered = produits.filter(item => {
-            const matchesSearch = item.nom.toLowerCase().includes(lowercasedFilter) || (item.ref && item.ref.toLowerCase().includes(lowercasedFilter));
+            const matchesSearch =
+              (item.nom?.toLowerCase() ?? '').includes(lowercasedFilter) ||
+              (item.ref && typeof item.ref === 'string' && item.ref.toLowerCase().includes(lowercasedFilter));
             const matchesCategory = categoryFilter === 'all' || String(item.categorieId) === categoryFilter;
             return matchesSearch && matchesCategory;
         });
-        return filtered.sort((a, b) => a.nom.localeCompare(b.nom));
+        return filtered.sort((a, b) => (a.nom ?? '').localeCompare(b.nom ?? ''));
     }, [searchTerm, categoryFilter, produits]);
 
 
@@ -640,3 +642,5 @@ export default function ProductsPage() {
         </div>
     );
 }
+
+    
