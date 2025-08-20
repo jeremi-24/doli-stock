@@ -158,8 +158,8 @@ export default function StockPage() {
                                             <TableCell className="font-medium">{stockItem.produitNom}</TableCell>
                                             <TableCell>{stockItem.produitRef}</TableCell>
                                             <TableCell>{stockItem.lieuStockNom}</TableCell>
-                                            <TableCell className="text-right">{stockItem.qteCartons}</TableCell>
-                                            <TableCell className="text-right">{stockItem.qteUnitesRestantes}</TableCell>
+                                            <TableCell className="text-right font-bold">{stockItem.qteCartons}</TableCell>
+                                            <TableCell className="text-right font-bold">{stockItem.qteUnitesRestantes}</TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
