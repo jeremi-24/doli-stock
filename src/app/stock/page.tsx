@@ -99,30 +99,35 @@ export default function StockPage() {
                             className="pl-8 sm:w-[200px]"
                         />
                     </div>
-                    {isMounted && isAdmin && (
-                        <Select value={selectedLieu} onValueChange={setSelectedLieu}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Filtrer par lieu" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tous les lieux</SelectItem>
-                                {lieuxStock.map(lieu => (
-                                    <SelectItem key={lieu.id} value={String(lieu.id)}>{lieu.nom}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
+                    
                 </div>
             </div>
             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2">
-                        <Warehouse /> Vue d'ensemble des stocks ({filteredStocks.length})
-                    </CardTitle>
-                    <CardDescription>
-                        Consultez la quantité de chaque produit dans les différents lieux de stock.
-                    </CardDescription>
-                </CardHeader>
+            <CardHeader className="flex flex-col gap-2">
+    <div className="flex items-center justify-between">
+      <CardTitle className="font-headline flex items-center gap-2">
+        <Warehouse /> Vue d'ensemble des stocks ({filteredStocks.length})
+      </CardTitle>
+      {isMounted && isAdmin && (
+        <Select value={selectedLieu} onValueChange={setSelectedLieu}>
+          <SelectTrigger className="w-[180px] border-black">
+            <SelectValue placeholder="Filtrer par lieu" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les lieux</SelectItem>
+            {lieuxStock.map(lieu => (
+              <SelectItem key={lieu.id} value={String(lieu.id)}>
+                {lieu.nom}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+    <CardDescription>
+      Consultez la quantité de chaque produit dans les différents lieux de stock.
+    </CardDescription>
+  </CardHeader>
                 <CardContent>
                     <div className="rounded-lg border">
                         <Table>
