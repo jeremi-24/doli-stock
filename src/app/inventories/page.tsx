@@ -116,9 +116,11 @@ export default function InventoriesPage() {
                         <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/${inv.id}`)}>
                             <Eye className="h-4 w-4" /><span className="sr-only">Voir les détails</span>
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/new?edit=${inv.id}`)}>
-                            <Pencil className="h-4 w-4" /><span className="sr-only">Modifier</span>
-                        </Button>
+                        {inv.statut === 'EN_ATTENTE_CONFIRMATION' && (
+                            <Button variant="ghost" size="icon" onClick={() => router.push(`/inventories/${inv.id}`)}>
+                                <Pencil className="h-4 w-4" /><span className="sr-only">Modifier</span>
+                            </Button>
+                        )}
                         <Button variant="ghost" size="icon" onClick={() => handleExport(inv.id)} disabled={exportingId === inv.id}>
                            {exportingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                            <span className="sr-only">Exporter</span>

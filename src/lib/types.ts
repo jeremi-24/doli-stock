@@ -36,7 +36,6 @@ export type Stock = {
     lieuStockNom: string;
     qteCartons: number;
     qteUnitesRestantes: number;
-    produit?: Produit;
 };
 
 
@@ -76,6 +75,7 @@ export type Inventaire = {
   date: string;
   lignes: InventaireLigne[];
   statut: InventaireStatus;
+  lieuStockId: number;
 };
 export type ScannedProduit = {
   produitId: number;

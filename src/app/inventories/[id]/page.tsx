@@ -1,15 +1,15 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Calendar, Check, X, MoveRight, Package as UnitIcon, Box, Loader2, FileUp, AlertTriangle, CheckCircle, FilePenLine } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Check, X, MoveRight, Package as UnitIcon, Box, Loader2, FileUp, AlertTriangle, CheckCircle, FilePenLine, Save, Minus, Plus } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import type { Inventaire, InventaireLigne } from '@/lib/types';
+import type { Inventaire, InventaireLigne, InventairePayload, InventaireLignePayload } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -18,18 +18,25 @@ import { useApp } from '@/context/app-provider';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import * as api from '@/lib/api';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from '@/components/ui/input';
 
 export default function InventoryDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { confirmInventaire, isMounted } = useApp();
+  const { confirmInventaire, isMounted, updateInventaire, currentUser, produits } = useApp();
   
   const [inventory, setInventory] = useState<Inventaire | null | undefined>(undefined);
+  const [editableLines, setEditableLines] = useState<InventaireLigne[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
 
   const fetchInventory = useCallback(async () => {
+    if (!isMounted) return;
     const inventoryId = Number(id);
     if (isNaN(inventoryId)) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Identifiant d\'inventaire invalide.' });
@@ -41,6 +48,9 @@ export default function InventoryDetailPage() {
         setIsLoading(true);
         const data = await api.getInventaire(inventoryId);
         setInventory(data);
+        if (data?.lignes) {
+            setEditableLines(JSON.parse(JSON.stringify(data.lignes))); // Deep copy
+        }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
         toast({ variant: 'destructive', title: 'Erreur', description: `Impossible de charger l'inventaire: ${errorMessage}` });
@@ -48,13 +58,57 @@ export default function InventoryDetailPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [id, router, toast]);
+  }, [id, router, toast, isMounted]);
 
   useEffect(() => {
-    if (isMounted) {
-      fetchInventory();
+    fetchInventory();
+  }, [fetchInventory]);
+  
+  const handleQuantityChange = (produitId: number, field: 'qteScanneCartons' | 'qteScanneUnitesRestantes', value: number) => {
+    setEditableLines(prevLines =>
+        prevLines.map(line =>
+            line.produitId === produitId ? { ...line, [field]: Math.max(0, value) } : line
+        )
+    );
+  };
+
+  const handleSave = async () => {
+    if (!inventory || !currentUser) return;
+    setIsSaving(true);
+    
+    const payloadLignes: InventaireLignePayload[] = editableLines.map(line => {
+      const produit = productMap.get(line.produitId);
+      const qteParCarton = produit?.qteParCarton || 1;
+      const qteScanne = line.qteScanneCartons * qteParCarton + line.qteScanneUnitesRestantes;
+      
+      return {
+        produitId: line.produitId,
+        ref: line.ref,
+        qteScanne: qteScanne,
+        // Ces champs sont requis par le payload mais le recalcul se fera côté backend
+        lieuStockId: inventory.lieuStockId,
+        typeQuantiteScanne: 'UNITE', // Le backend s'attend à une valeur, même si elle est recalculée
+      };
+    });
+
+    const payload: InventairePayload = {
+      charge: currentUser.email,
+      lieuStockId: inventory.lieuStockId,
+      produits: payloadLignes,
+    };
+    
+    try {
+        const updatedInventory = await updateInventaire(inventory.id, payload);
+        if (updatedInventory) {
+            setInventory(updatedInventory);
+            setEditableLines(JSON.parse(JSON.stringify(updatedInventory.lignes)));
+            toast({ title: 'Inventaire mis à jour', description: 'Les écarts ont été recalculés.' });
+            setIsEditMode(false);
+        }
+    } finally {
+        setIsSaving(false);
     }
-  }, [isMounted, fetchInventory]);
+  };
 
   const handleConfirm = async (isPremier: boolean) => {
       if (!inventory) return;
@@ -63,6 +117,7 @@ export default function InventoryDetailPage() {
           const result = await confirmInventaire(inventory.id, isPremier);
           if(result) {
             setInventory(result);
+            setEditableLines(JSON.parse(JSON.stringify(result.lignes)));
           }
       } finally {
           setIsConfirming(false);
@@ -134,6 +189,7 @@ export default function InventoryDetailPage() {
   }
 
   const isConfirmed = inventory.statut === 'CONFIRME';
+  const canEdit = !isConfirmed && !isSaving;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -147,13 +203,20 @@ export default function InventoryDetailPage() {
         </h1>
         {isConfirmed ? (
             <Badge variant="default" className="bg-green-600 text-white gap-2">
-                <CheckCircle className="h-4 w-4"/> Confirmé et Appliqué
+                <CheckCircle className="h-4 w-4"/> Confirmé
             </Badge>
         ) : (
             <Badge variant="secondary" className="bg-orange-500 text-white gap-2">
-                <AlertTriangle className="h-4 w-4"/> En attente de confirmation
+                <AlertTriangle className="h-4 w-4"/> En attente
             </Badge>
         )}
+        <div className="ml-auto flex items-center gap-2">
+          {canEdit && !isEditMode && (
+            <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
+              <FilePenLine className="h-4 w-4 mr-2" /> Modifier
+            </Button>
+          )}
+        </div>
       </div>
       <Card>
         <CardHeader>
@@ -170,7 +233,7 @@ export default function InventoryDetailPage() {
                         <TableRow>
                             <TableHead rowSpan={2} className="align-middle">Produit</TableHead>
                             <TableHead rowSpan={2} className="align-middle">Lieu de Stock</TableHead>
-                            <TableHead colSpan={2} className="text-center border-b border-l">Quantité Avant Scan</TableHead>
+                            <TableHead colSpan={2} className="text-center border-b border-l">Avant Scan</TableHead>
                             <TableHead colSpan={2} className="text-center border-b border-l">Quantité Scannée</TableHead>
                             <TableHead colSpan={2} className="text-center border-b border-l">Écart</TableHead>
                             <TableHead rowSpan={2} className="text-center align-middle border-l">Écart Total</TableHead>
@@ -178,14 +241,16 @@ export default function InventoryDetailPage() {
                         <TableRow>
                             <TableHead className="text-center">Total (U)</TableHead>
                             <TableHead className="text-center border-l">Détail</TableHead>
-                            <TableHead className="text-center border-l">Total (U)</TableHead>
-                            <TableHead className="text-center border-l">Détail</TableHead>
+                            <TableHead className="text-center border-l">Carton</TableHead>
+                            <TableHead className="text-center border-l">Unité</TableHead>
                             <TableHead className="text-center border-l">Carton</TableHead>
                             <TableHead className="text-center border-l">Unité</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {inventory.lignes.map((ligne, index) => (
+                        {editableLines.map((ligne, index) => {
+                            const originalLigne = inventory.lignes.find(l => l.produitId === ligne.produitId)!;
+                             return (
                              <TableRow key={`${ligne.produitId}-${index}`}>
                                 <TableCell>
                                     <div className="font-medium">{ligne.nomProduit}</div>
@@ -194,19 +259,40 @@ export default function InventoryDetailPage() {
                                 <TableCell>{ligne.lieuStockNom}</TableCell>
                                 
                                 {/* Avant Scan */}
-                                <TableCell className="text-center font-mono">{ligne.qteAvantScanTotaleUnites}</TableCell>
-                                <TableCell className="text-center border-l"><QteDisplay cartons={ligne.qteAvantScanCartons} unites={ligne.qteAvantScanUnitesRestantes} /></TableCell>
+                                <TableCell className="text-center font-mono">{originalLigne.qteAvantScanTotaleUnites}</TableCell>
+                                <TableCell className="text-center border-l"><QteDisplay cartons={originalLigne.qteAvantScanCartons} unites={originalLigne.qteAvantScanUnitesRestantes} /></TableCell>
 
                                  {/* Scanné */}
-                                <TableCell className="text-center font-mono border-l">{ligne.qteScanneTotaleUnites}</TableCell>
-                                <TableCell className="text-center border-l"><QteDisplay cartons={ligne.qteScanneCartons} unites={ligne.qteScanneUnitesRestantes} /></TableCell>
+                                <TableCell className="text-center font-mono border-l">
+                                  {isEditMode ? (
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleQuantityChange(ligne.produitId, 'qteScanneCartons', ligne.qteScanneCartons - 1)}><Minus className="h-3 w-3"/></Button>
+                                      <Input type="number" value={ligne.qteScanneCartons} onChange={e => handleQuantityChange(ligne.produitId, 'qteScanneCartons', parseInt(e.target.value, 10) || 0)} className="h-8 w-14 text-center"/>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleQuantityChange(ligne.produitId, 'qteScanneCartons', ligne.qteScanneCartons + 1)}><Plus className="h-3 w-3"/></Button>
+                                    </div>
+                                  ) : (
+                                    <span>{originalLigne.qteScanneCartons}</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-center border-l">
+                                   {isEditMode ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleQuantityChange(ligne.produitId, 'qteScanneUnitesRestantes', ligne.qteScanneUnitesRestantes - 1)}><Minus className="h-3 w-3"/></Button>
+                                        <Input type="number" value={ligne.qteScanneUnitesRestantes} onChange={e => handleQuantityChange(ligne.produitId, 'qteScanneUnitesRestantes', parseInt(e.target.value, 10) || 0)} className="h-8 w-14 text-center"/>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleQuantityChange(ligne.produitId, 'qteScanneUnitesRestantes', ligne.qteScanneUnitesRestantes + 1)}><Plus className="h-3 w-3"/></Button>
+                                      </div>
+                                    ) : (
+                                      <span>{originalLigne.qteScanneUnitesRestantes}</span>
+                                    )}
+                                </TableCell>
 
                                 {/* Écart */}
-                                <TableCell className="text-center border-l"><EcartBadge ecart={ligne.ecartCartons} type="carton"/></TableCell>
-                                <TableCell className="text-center border-l"><EcartBadge ecart={ligne.ecartUnites} type="unite"/></TableCell>
-                                <TableCell className="text-center border-l"><EcartBadge ecart={ligne.ecartTotalUnites} type="total"/></TableCell>
+                                <TableCell className="text-center border-l"><EcartBadge ecart={originalLigne.ecartCartons} type="carton"/></TableCell>
+                                <TableCell className="text-center border-l"><EcartBadge ecart={originalLigne.ecartUnites} type="unite"/></TableCell>
+                                <TableCell className="text-center border-l"><EcartBadge ecart={originalLigne.ecartTotalUnites} type="total"/></TableCell>
                              </TableRow>
-                        ))}
+                             )
+                        })}
                     </TableBody>
                 </Table>
             </div>
@@ -215,7 +301,15 @@ export default function InventoryDetailPage() {
             <Button variant="outline" onClick={() => router.push('/inventories')}>
                 Retour à l'historique
             </Button>
-            {!isConfirmed && (
+            {isEditMode ? (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={() => { setIsEditMode(false); setEditableLines(JSON.parse(JSON.stringify(inventory.lignes))); }}>Annuler</Button>
+                <Button onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="h-4 w-4 mr-2"/>}
+                  {isSaving ? "Enregistrement..." : "Recalculer et Enregistrer"}
+                </Button>
+              </div>
+            ) : canEdit && (
                  <div className="flex items-center gap-2">
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
