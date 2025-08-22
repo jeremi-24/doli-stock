@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -12,7 +11,7 @@ import { useApp } from '@/context/app-provider';
 import type { ScannedReapproProduit, Produit, InventairePayload, InventaireLignePayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, ClipboardPaste, Building2, Minus, Plus } from 'lucide-react';
+import { ScanLine, Save, Loader2, Trash2, Box, Package as UnitIcon, Server, ClipboardPaste, Building2, Minus, Plus, RefreshCw, AlertTriangle } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,6 +24,7 @@ type Draft = {
     scannedItems: ScannedReapproProduit[];
     selectedLieuStockId: string | undefined;
     source: string;
+    isFirstInventory: boolean;
 };
 
 function JSONImportDialog({ onImport, onOpenChange }: { onImport: (jsonString: string) => void, onOpenChange: (open: boolean) => void }) {
@@ -65,9 +65,7 @@ export default function NewInventoryPage() {
 
     const [mode, setMode] = useState<'new' | 'edit_final'>('new');
     const [pageIsLoading, setPageIsLoading] = useState(true);
-
     const [editingInventoryId, setEditingInventoryId] = useState<number | null>(null);
-
     const [scannedItems, setScannedItems] = useState<ScannedReapproProduit[]>([]);
     const [barcode, setBarcode] = useState("");
     const [quantity, setQuantity] = useState(1);
@@ -78,93 +76,165 @@ export default function NewInventoryPage() {
     const [isFirstInventory, setIsFirstInventory] = useState(false);
     const [isJsonDialogOpen, setIsJsonDialogOpen] = useState(false);
     const [selectedLieuStockId, setSelectedLieuStockId] = useState<string | undefined>(undefined);
-    const [source, setSource] = useState(""); // Re-ajout du champ source
+    const [source, setSource] = useState("");
+    const [hasDraftData, setHasDraftData] = useState(false);
+    const [draftToRestore, setDraftToRestore] = useState<Draft | null>(null);
+    
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
 
     const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
     const lieuStockMap = useMemo(() => new Map(lieuxStock.map(l => [l.id, l])), [lieuxStock]);
-
     const isAdmin = useMemo(() => pageIsLoading ? false : currentUser?.roleNom === 'ADMIN', [currentUser, pageIsLoading]);
     
-    // --- Brouillon Logique ---
-    const draftKey = useMemo(() => {
-        if (pageIsLoading || !currentUser || !selectedLieuStockId) return null;
-        return `inventory_draft_${currentUser.id}_${selectedLieuStockId}_${editingInventoryId || 'new'}`;
-    }, [currentUser, selectedLieuStockId, editingInventoryId, pageIsLoading]);
+    // Génération de la clé de sauvegarde simplifiée
+    const getDraftKey = useCallback(() => {
+        if (!currentUser?.id) return null;
+        const baseKey = `inventory_draft_${currentUser.id}`;
+        if (mode === 'edit_final' && editingInventoryId) {
+            return `${baseKey}_edit_${editingInventoryId}`;
+        }
+        return `${baseKey}_new_${selectedLieuStockId || 'no_lieu'}`;
+    }, [currentUser?.id, mode, editingInventoryId, selectedLieuStockId]);
 
+    // Fonction de sauvegarde
     const saveDraft = useCallback(() => {
-        if (!draftKey) return;
+        const draftKey = getDraftKey();
+        if (!draftKey || (!scannedItems.length && !source)) return;
+        
         const draft: Draft = {
             timestamp: Date.now(),
             scannedItems,
             selectedLieuStockId,
             source,
+            isFirstInventory,
         };
-        localStorage.setItem(draftKey, JSON.stringify(draft));
-    }, [draftKey, scannedItems, selectedLieuStockId, source]);
-    
+        
+        try {
+            localStorage.setItem(draftKey, JSON.stringify(draft));
+            console.log('Draft saved:', draftKey, draft); // Debug
+        } catch (error) {
+            console.warn('Impossible de sauvegarder le brouillon:', error);
+        }
+    }, [getDraftKey, scannedItems, selectedLieuStockId, source, isFirstInventory]);
+
+    // Fonction de suppression du brouillon
     const clearDraft = useCallback(() => {
-        if (draftKey) {
+        const draftKey = getDraftKey();
+        if (!draftKey) return;
+        
+        try {
             localStorage.removeItem(draftKey);
+            setHasDraftData(false);
+            setDraftToRestore(null);
+            console.log('Draft cleared:', draftKey); // Debug
+        } catch (error) {
+            console.warn('Impossible de supprimer le brouillon:', error);
         }
-    }, [draftKey]);
+    }, [getDraftKey]);
 
+    // Fonction de chargement du brouillon
+    const loadDraft = useCallback(() => {
+        const draftKey = getDraftKey();
+        if (!draftKey) return null;
+        
+        try {
+            const savedDraft = localStorage.getItem(draftKey);
+            if (savedDraft) {
+                const draft: Draft = JSON.parse(savedDraft);
+                const now = Date.now();
+                // Vérifier que le brouillon n'est pas trop ancien (24h)
+                if (now - draft.timestamp < 24 * 60 * 60 * 1000) {
+                    console.log('Draft found:', draftKey, draft); // Debug
+                    return draft;
+                } else {
+                    // Supprimer les brouillons trop anciens
+                    localStorage.removeItem(draftKey);
+                }
+            }
+        } catch (error) {
+            console.warn('Impossible de charger le brouillon:', error);
+        }
+        return null;
+    }, [getDraftKey]);
+
+    // Fonction de restauration
+    const restoreFromDraft = useCallback(() => {
+        if (!draftToRestore) return;
+        
+        setScannedItems(draftToRestore.scannedItems || []);
+        setSelectedLieuStockId(draftToRestore.selectedLieuStockId);
+        setSource(draftToRestore.source || "");
+        setIsFirstInventory(draftToRestore.isFirstInventory || false);
+        
+        toast({
+            title: "Travail restauré",
+            description: `${draftToRestore.scannedItems?.length || 0} produits récupérés depuis la dernière session.`
+        });
+        
+        setHasDraftData(false);
+        setDraftToRestore(null);
+    }, [draftToRestore, toast]);
+
+    // Sauvegarde automatique avec délai
     useEffect(() => {
-        if (pageIsLoading) return;
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        if (pageIsLoading || !currentUser) return;
+        
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+        
         if (scannedItems.length > 0 || source) {
-            saveTimeoutRef.current = setTimeout(saveDraft, 1000);
+            saveTimeoutRef.current = setTimeout(() => {
+                saveDraft();
+            }, 1000);
         }
+        
         return () => {
-            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
         };
-    }, [scannedItems, source, saveDraft, pageIsLoading]);
+    }, [scannedItems, source, selectedLieuStockId, isFirstInventory, saveDraft, pageIsLoading, currentUser]);
 
-    // Save on exit
+    // Sauvegarde avant fermeture de la page
     useEffect(() => {
-        if (pageIsLoading) return;
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        if (pageIsLoading || !currentUser) return;
+        
+        const handleBeforeUnload = () => {
             if (scannedItems.length > 0) {
                 saveDraft();
             }
         };
+
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [scannedItems, saveDraft, pageIsLoading]);
+    }, [scannedItems, saveDraft, pageIsLoading, currentUser]);
 
-    // Restore draft logic
-    useEffect(() => {
-        if (!pageIsLoading && draftKey && scannedItems.length === 0) {
-            const savedDraft = localStorage.getItem(draftKey);
-            if (savedDraft) {
-                try {
-                    const draft: Draft = JSON.parse(savedDraft);
-                    const now = Date.now();
-                    // Restore if draft is less than 24 hours old
-                    if (now - draft.timestamp < 24 * 60 * 60 * 1000) {
-                        toast({
-                            title: "Brouillon trouvé",
-                            description: `Un inventaire non terminé a été trouvé pour ce lieu.`,
-                            action: (
-                                <>
-                                    <Button variant="secondary" size="sm" onClick={() => { setScannedItems(draft.scannedItems); setSource(draft.source || ""); toast({title: "Brouillon restauré."})}}>Restaurer</Button>
-                                    <Button variant="destructive" size="sm" onClick={clearDraft}>Ignorer</Button>
-                                </>
-                            )
-                        })
-                    } else {
-                        clearDraft();
-                    }
-                } catch (e) {
-                    console.error("Failed to parse draft", e);
-                    clearDraft();
-                }
-            }
-        }
-    }, [pageIsLoading, draftKey, toast, clearDraft, scannedItems.length]);
-    // --- Fin Brouillon Logique ---
+    // Vérification du brouillon au chargement
+   // Vérification du brouillon au chargement
+useEffect(() => {
+    // On sort si les conditions de base не sont pas remplies OU si aucun lieu n'est encore sélectionné.
+    if (pageIsLoading || !currentUser || mode === 'edit_final' || !selectedLieuStockId) {
+        return;
+    }
     
+    const checkForDraft = () => {
+        // loadDraft utilisera maintenant la clé correcte car selectedLieuStockId est défini.
+        const draft = loadDraft();
+        if (draft && draft.scannedItems && draft.scannedItems.length > 0) {
+            setDraftToRestore(draft);
+            setHasDraftData(true);
+        }
+    };
+    
+    // Le timeout n'est plus vraiment nécessaire, mais on peut le garder avec une valeur faible
+    // pour s'assurer que le rendu est stable.
+    const timeoutId = setTimeout(checkForDraft, 100); 
+
+    return () => clearTimeout(timeoutId);
+}, [pageIsLoading, currentUser, mode, selectedLieuStockId, loadDraft]); // Les dépendances sont correctes
+
+
     useEffect(() => {
         const lieu = selectedLieuStockId ? lieuStockMap.get(Number(selectedLieuStockId)) : null;
         if (lieu) {
@@ -201,7 +271,7 @@ export default function NewInventoryPage() {
                             produitId: ligne.produitId,
                             nomProduit: ligne.nomProduit,
                             lieuStockNom: ligne.lieuStockNom,
-                            qteAjoutee: ligne.qteScanneTotaleUnites, // Map qteScanne to qteAjoutee
+                            qteAjoutee: ligne.qteScanneTotaleUnites,
                             barcode: 'N/A',
                             typeQuantite: 'UNITE',
                         }));
@@ -222,7 +292,6 @@ export default function NewInventoryPage() {
             loadData();
         }
     }, [searchParams, productMap, currentUser, router, toast, isAdmin, pageIsLoading]);
-
 
     const handleScan = async () => {
         if (!barcode.trim() || !currentUser || !selectedLieuStockId) return;
@@ -312,6 +381,7 @@ export default function NewInventoryPage() {
 
     const handleClearCart = () => {
         setScannedItems([]);
+        setSource("");
         clearDraft();
         toast({ title: 'Panier vidé', description: 'Tous les produits scannés ont été retirés.' });
     };
@@ -342,7 +412,7 @@ export default function NewInventoryPage() {
                 qteScanne: item.qteAjoutee,
                 lieuStockId: globalLieuStockId,
                 typeQuantiteScanne: item.typeQuantite,
-                ref: product?.ref || 'N/A', // Assurez-vous que la ref est envoyée
+                ref: product?.ref || 'N/A',
             };
         });
 
@@ -439,7 +509,6 @@ export default function NewInventoryPage() {
         }
     };
 
-
     if(pageIsLoading) {
         return (
             <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -454,6 +523,45 @@ export default function NewInventoryPage() {
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            {/* Alerte pour restaurer le brouillon */}
+            {hasDraftData && draftToRestore && (
+                <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+                    <CardContent className="pt-6">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                                <RefreshCw className="h-5 w-5 text-blue-600 mt-0.5" />
+                                <div>
+                                    <p className="font-medium text-blue-900 dark:text-blue-100">Travail non sauvegardé détecté</p>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                                        Un inventaire avec {draftToRestore.scannedItems?.length || 0} produits a été trouvé 
+                                        {draftToRestore.selectedLieuStockId && ` pour ${lieuStockMap.get(Number(draftToRestore.selectedLieuStockId))?.nom}`}.
+                                    </p>
+                                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                        Dernière sauvegarde : {new Date(draftToRestore.timestamp).toLocaleString()}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => {
+                                        setHasDraftData(false);
+                                        setDraftToRestore(null);
+                                    }}
+                                >
+                                    Ignorer
+                                </Button>
+                                <Button size="sm" onClick={restoreFromDraft}>
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    Restaurer
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             <div className="flex items-center">
                 <h1 className="font-headline text-3xl font-semibold">
                   {mode === 'edit_final' ? (
@@ -546,7 +654,15 @@ export default function NewInventoryPage() {
                      <Card>
                         <CardHeader className="flex flex-row items-start justify-between">
                             <div>
-                                <CardTitle className="font-headline flex items-center gap-2"><UnitIcon />Produits Scannés</CardTitle>
+                                <CardTitle className="font-headline flex items-center gap-2">
+                                    <UnitIcon />
+                                    Produits Scannés
+                                    {scannedItems.length > 0 && (
+                                        <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded-full ml-2">
+                                            Sauvegarde auto
+                                        </span>
+                                    )}
+                                </CardTitle>
                                 <CardDescription>
                                     {`Liste des produits comptabilisés pour l'inventaire ${selectedLieuStockId ? `à ${lieuStockMap.get(Number(selectedLieuStockId))?.nom}` : ''}.`}
                                 </CardDescription>
@@ -667,5 +783,3 @@ export default function NewInventoryPage() {
         </div>
     );
 }
-
-    

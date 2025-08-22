@@ -1,4 +1,4 @@
-
+d draft feature
 # STA - Stock Management
 
 ![Logo STA](public/logosta.jpg)
