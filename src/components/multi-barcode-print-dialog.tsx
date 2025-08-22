@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from 'react';
@@ -12,7 +11,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { PlusCircle, Trash2, Printer, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { PlusCircle, Trash2, Printer, Loader2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
@@ -29,18 +29,29 @@ export function MultiBarcodePrintDialog({
   const [requests, setRequests] = useState<BarcodePrintRequest[]>([]);
   const [isPrinting, setIsPrinting] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
 
   const productsMap = useMemo(() => new Map(allProducts.map(p => [p.id, p])), [allProducts]);
-  
-  const availableProducts = useMemo(() => {
-    const selectedIds = new Set(requests.map(r => r.produitId));
-    return allProducts.filter(p => !selectedIds.has(p.id));
-  }, [allProducts, requests]);
 
-  const handleAddProduct = (productId: number) => {
-    if (!requests.some(r => r.produitId === productId)) {
-      setRequests(prev => [...prev, { produitId: productId, quantite: 1 }]);
-    }
+  const handleProductToggle = (productId: number, checked: boolean) => {
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(productId);
+      } else {
+        newSet.delete(productId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleAddSelectedProducts = () => {
+    const newRequests = Array.from(selectedProducts)
+      .filter(id => !requests.some(r => r.produitId === id))
+      .map(id => ({ produitId: id, quantite: 1 }));
+    
+    setRequests(prev => [...prev, ...newRequests]);
+    setSelectedProducts(new Set());
     setPopoverOpen(false);
   };
 
@@ -80,6 +91,11 @@ export function MultiBarcodePrintDialog({
     }
   };
 
+  const availableProducts = useMemo(() => {
+    const selectedIds = new Set(requests.map(r => r.produitId));
+    return allProducts.filter(p => !selectedIds.has(p.id));
+  }, [allProducts, requests]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
@@ -97,12 +113,12 @@ export function MultiBarcodePrintDialog({
                 <PopoverTrigger asChild>
                   <Button variant="outline" role="combobox" aria-expanded={popoverOpen} className="w-full justify-start">
                     <PlusCircle className="mr-2 h-4 w-4"/>
-                    Ajouter un produit...
+                    Ajouter des produits...
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                   <Command>
-                    <CommandInput placeholder="Rechercher un produit..." />
+                    <CommandInput placeholder="Rechercher des produits..." />
                     <CommandEmpty>Aucun produit trouvé.</CommandEmpty>
                     <CommandGroup>
                       <ScrollArea className="h-48">
@@ -110,16 +126,38 @@ export function MultiBarcodePrintDialog({
                           <CommandItem
                             key={produit.id}
                             value={`${produit.nom} ${produit.ref}`}
-                            onSelect={() => handleAddProduct(produit.id)}
+                            onSelect={() => {}} // Empêche la fermeture automatique
+                            className="flex items-center gap-2 cursor-pointer"
                           >
-                            <div>
-                                <p>{produit.nom}</p>
-                                <p className="text-xs text-muted-foreground">{produit.ref}</p>
-                            </div>
+                            <Checkbox
+                              id={`product-${produit.id}`}
+                              checked={selectedProducts.has(produit.id)}
+                              onCheckedChange={(checked) => handleProductToggle(produit.id, checked as boolean)}
+                              onClick={(e) => e.stopPropagation()} // Empêche la propagation
+                            />
+                            <label 
+                              htmlFor={`product-${produit.id}`}
+                              className="flex-1 cursor-pointer"
+                            >
+                              <p>{produit.nom}</p>
+                              <p className="text-xs text-muted-foreground">{produit.ref}</p>
+                            </label>
                           </CommandItem>
                         ))}
                       </ScrollArea>
                     </CommandGroup>
+                    {selectedProducts.size > 0 && (
+                      <div className="border-t p-2">
+                        <Button 
+                          onClick={handleAddSelectedProducts}
+                          className="w-full"
+                          size="sm"
+                        >
+                          <Check className="mr-2 h-4 w-4" />
+                          Ajouter {selectedProducts.size} produit{selectedProducts.size > 1 ? 's' : ''}
+                        </Button>
+                      </div>
+                    )}
                   </Command>
                 </PopoverContent>
               </Popover>
