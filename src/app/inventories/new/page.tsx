@@ -229,9 +229,22 @@ export default function NewInventoryPage() {
                 activeEl.tagName === 'TEXTAREA' || 
                 (activeEl.tagName === 'INPUT' && activeEl.id !== 'barcode')
             );
-
+    
             if (isTypingElsewhere) return;
-
+    
+            // Gestion des touches C et U pour changer le type
+            if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                e.preventDefault();
+                setScanType('CARTON');
+                return;
+            }
+            
+            if (e.key.toLowerCase() === 'u' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                e.preventDefault();
+                setScanType('UNITE');
+                return;
+            }
+    
             if (e.key >= '0' && e.key <= '9') {
                 e.preventDefault();
                 setQuantity(currentQuantity => {
@@ -256,7 +269,7 @@ export default function NewInventoryPage() {
                 });
             }
         };
-
+    
         window.addEventListener('keydown', handleGlobalKeyDown);
         return () => {
             window.removeEventListener('keydown', handleGlobalKeyDown);
@@ -672,17 +685,20 @@ export default function NewInventoryPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="scanType">Type</Label>
-                                    <Select value={scanType} onValueChange={(value: 'UNITE' | 'CARTON') => setScanType(value)} disabled={isScanning || isSaving || !selectedLieuStockId}>
-                                        <SelectTrigger id="scanType">
-                                            <SelectValue placeholder="Type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="UNITE">Unité</SelectItem>
-                                            <SelectItem value="CARTON">Carton</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+    <Label htmlFor="scanType">Type</Label>
+    <Select value={scanType} onValueChange={(value: 'UNITE' | 'CARTON') => setScanType(value)} disabled={isScanning || isSaving || !selectedLieuStockId}>
+        <SelectTrigger id="scanType">
+            <SelectValue placeholder="Type" />
+        </SelectTrigger>
+        <SelectContent>
+            <SelectItem value="UNITE">Unité</SelectItem>
+            <SelectItem value="CARTON">Carton</SelectItem>
+        </SelectContent>
+    </Select>
+    <p className="text-xs text-muted-foreground">
+        Raccourcis : <kbd className="px-1 py-0.5 bg-muted rounded text-xs">U</kbd> pour Unité, <kbd className="px-1 py-0.5 bg-muted rounded text-xs">C</kbd> pour Carton
+    </p>
+</div>
                             </div>
                             <Button onClick={handleScan} disabled={!barcode || isScanning || isSaving || quantity < 1 || !selectedLieuStockId} className="w-full">
                                 {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Ajouter à l\'inventaire'}
