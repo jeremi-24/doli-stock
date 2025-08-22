@@ -368,7 +368,11 @@ export default function NewInventoryPage() {
 
         if (productCache.has(barcode)) {
             processScan(productCache.get(barcode)!);
-            return; // on laisse le bloc finally s'exécuter
+            setBarcode("");
+    setQuantity(1);
+    quantityHasBeenManuallySet.current = false;
+    barcodeInputRef.current?.focus();
+    return;
         }
 
         setIsScanning(true);
@@ -390,7 +394,9 @@ export default function NewInventoryPage() {
             setBarcode("");
             setQuantity(1);
             quantityHasBeenManuallySet.current = false;
-            barcodeInputRef.current?.focus();
+            setTimeout(() => {
+                barcodeInputRef.current?.focus();
+            }, 100)
         }
     };
     
