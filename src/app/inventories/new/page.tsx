@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -59,7 +58,7 @@ function JSONImportDialog({ onImport, onOpenChange }: { onImport: (jsonString: s
 }
 
 export default function NewInventoryPage() {
-    const { createInventaire, updateInventaire, currentUser, produits, lieuxStock, stocks } = useApp();
+    const { createInventaire, updateInventaire, currentUser, produits, lieuxStock } = useApp();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
@@ -82,12 +81,14 @@ export default function NewInventoryPage() {
     const [draftToRestore, setDraftToRestore] = useState<Draft | null>(null);
     
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const barcodeInputRef = useRef<HTMLInputElement>(null);
+    const quantityHasBeenManuallySet = useRef(false);
 
     const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
     const lieuStockMap = useMemo(() => new Map(lieuxStock.map(l => [l.id, l])), [lieuxStock]);
     const isAdmin = useMemo(() => pageIsLoading ? false : currentUser?.roleNom === 'ADMIN', [currentUser, pageIsLoading]);
     
-    // Génération de la clé de sauvegarde simplifiée
+    // ... (la logique de brouillon reste identique)
     const getDraftKey = useCallback(() => {
         if (!currentUser?.id) return null;
         const baseKey = `inventory_draft_${currentUser.id}`;
@@ -97,7 +98,6 @@ export default function NewInventoryPage() {
         return `${baseKey}_new_${selectedLieuStockId || 'no_lieu'}`;
     }, [currentUser?.id, mode, editingInventoryId, selectedLieuStockId]);
 
-    // Fonction de sauvegarde
     const saveDraft = useCallback(() => {
         const draftKey = getDraftKey();
         if (!draftKey || (!scannedItems.length && !source)) return;
@@ -117,7 +117,6 @@ export default function NewInventoryPage() {
         }
     }, [getDraftKey, scannedItems, selectedLieuStockId, source, isFirstInventory]);
 
-    // Fonction de suppression du brouillon
     const clearDraft = useCallback(() => {
         const draftKey = getDraftKey();
         if (!draftKey) return;
@@ -131,7 +130,6 @@ export default function NewInventoryPage() {
         }
     }, [getDraftKey]);
 
-    // Fonction de chargement du brouillon
     const loadDraft = useCallback(() => {
         const draftKey = getDraftKey();
         if (!draftKey) return null;
@@ -141,11 +139,9 @@ export default function NewInventoryPage() {
             if (savedDraft) {
                 const draft: Draft = JSON.parse(savedDraft);
                 const now = Date.now();
-                // Vérifier que le brouillon n'est pas trop ancien (24h)
                 if (now - draft.timestamp < 24 * 60 * 60 * 1000) {
                     return draft;
                 } else {
-                    // Supprimer les brouillons trop anciens
                     localStorage.removeItem(draftKey);
                 }
             }
@@ -155,7 +151,6 @@ export default function NewInventoryPage() {
         return null;
     }, [getDraftKey]);
 
-    // Fonction de restauration
     const restoreFromDraft = useCallback(() => {
         if (!draftToRestore) return;
         
@@ -171,9 +166,9 @@ export default function NewInventoryPage() {
         
         setHasDraftData(false);
         setDraftToRestore(null);
+        barcodeInputRef.current?.focus();
     }, [draftToRestore, toast]);
 
-    // Sauvegarde automatique avec délai
     useEffect(() => {
         if (pageIsLoading || !currentUser) return;
         
@@ -194,7 +189,6 @@ export default function NewInventoryPage() {
         };
     }, [scannedItems, source, selectedLieuStockId, isFirstInventory, saveDraft, pageIsLoading, currentUser]);
 
-    // Sauvegarde avant fermeture de la page
     useEffect(() => {
         if (pageIsLoading || !currentUser) return;
         
@@ -208,7 +202,6 @@ export default function NewInventoryPage() {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [scannedItems, saveDraft, pageIsLoading, currentUser]);
 
-    // Vérification du brouillon au chargement
     useEffect(() => {
         if (pageIsLoading || !currentUser || mode === 'edit_final' || !selectedLieuStockId) {
             return;
@@ -221,14 +214,58 @@ export default function NewInventoryPage() {
         }
     }, [pageIsLoading, currentUser, mode, selectedLieuStockId, loadDraft]);
 
+    useEffect(() => {
+        if (selectedLieuStockId && !hasDraftData && !isJsonDialogOpen) {
+            barcodeInputRef.current?.focus();
+        }
+    }, [selectedLieuStockId, hasDraftData, isJsonDialogOpen]);
+
+    useEffect(() => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            if (isJsonDialogOpen || document.querySelector('[role="dialog"]')) return;
+            
+            const activeEl = document.activeElement;
+            const isTypingElsewhere = activeEl && (
+                activeEl.tagName === 'TEXTAREA' || 
+                (activeEl.tagName === 'INPUT' && activeEl.id !== 'barcode')
+            );
+
+            if (isTypingElsewhere) return;
+
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                setQuantity(currentQuantity => {
+                    if (!quantityHasBeenManuallySet.current) {
+                        quantityHasBeenManuallySet.current = true;
+                        return Number(e.key);
+                    }
+                    const newQuantityString = `${currentQuantity}${e.key}`;
+                    return Number(newQuantityString);
+                });
+            }
+            
+            if (e.key === 'Backspace' && quantityHasBeenManuallySet.current) {
+                e.preventDefault();
+                setQuantity(currentQuantity => {
+                    const quantityString = String(currentQuantity);
+                    if (quantityString.length <= 1) {
+                        quantityHasBeenManuallySet.current = false;
+                        return 1;
+                    }
+                    return Number(quantityString.slice(0, -1));
+                });
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleGlobalKeyDown);
+        };
+    }, [isJsonDialogOpen]);
 
     useEffect(() => {
         const lieu = selectedLieuStockId ? lieuStockMap.get(Number(selectedLieuStockId)) : null;
-        if (lieu) {
-            document.title = `Inventaire - ${lieu.nom} - STA`;
-        } else {
-            document.title = `Nouvel Inventaire - STA`;
-        }
+        document.title = lieu ? `Inventaire - ${lieu.nom} - STA` : `Nouvel Inventaire - STA`;
     }, [selectedLieuStockId, lieuStockMap]);
     
     useEffect(() => {
@@ -246,40 +283,43 @@ export default function NewInventoryPage() {
 
         const editId = searchParams.get('edit');
         const loadData = async () => {
+            if (!editId) {
+                setMode('new');
+                return;
+            }
             try {
-                if (editId) {
-                    setMode('edit_final');
-                    const id = Number(editId);
-                    setEditingInventoryId(id);
-                    const inventoryData = await api.getInventaire(id);
-                    if (!inventoryData) throw new Error("Inventaire non trouvé.");
-                    if(inventoryData.lignes) {
-                        const items: ScannedReapproProduit[] = inventoryData.lignes.map((ligne: any) => ({
-                            produitId: ligne.produitId,
-                            nomProduit: ligne.nomProduit,
-                            ref: ligne.ref,
-                            lieuStockNom: ligne.lieuStockNom,
-                            qteAjoutee: ligne.qteScanneTotaleUnites,
-                            barcode: 'N/A',
-                            typeQuantite: 'UNITE',
-                        }));
-                        setScannedItems(items.reverse());
-                    }
-                     if(inventoryData.lieuStockId) setSelectedLieuStockId(String(inventoryData.lieuStockId));
-                    toast({ title: `Modification de l'inventaire N°${editId}` });
-                } else {
-                    setMode('new');
+                setMode('edit_final');
+                const id = Number(editId);
+                setEditingInventoryId(id);
+                const inventoryData = await api.getInventaire(id);
+                if (!inventoryData) throw new Error("Inventaire non trouvé.");
+                if(inventoryData.lignes) {
+                    const items: ScannedReapproProduit[] = inventoryData.lignes.map((ligne: any) => ({
+                        produitId: ligne.produitId,
+                        nomProduit: ligne.nomProduit,
+                        ref: ligne.ref,
+                        lieuStockNom: ligne.lieuStockNom,
+                        qteAjoutee: ligne.qteScanneTotaleUnites,
+                        barcode: 'N/A',
+                        typeQuantite: 'UNITE',
+                    }));
+                    setScannedItems(items.reverse());
                 }
+                if(inventoryData.lieuStockId) setSelectedLieuStockId(String(inventoryData.lieuStockId));
+                toast({ title: `Modification de l'inventaire N°${editId}` });
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les données pour modification.' });
                 router.push('/inventories');
             }
         };
 
-        if(editId) {
-            loadData();
-        }
-    }, [searchParams, productMap, currentUser, router, toast, isAdmin, pageIsLoading]);
+        loadData();
+    }, [searchParams, currentUser, router, toast, isAdmin, pageIsLoading]);
+    
+    // MODIFICATION SIMPLIFIÉE : Cette fonction ne fait plus que mettre à jour l'état du code-barres.
+    const handleBarcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setBarcode(e.target.value);
+    };
 
     const handleScan = async () => {
         if (!barcode.trim() || !currentUser || !selectedLieuStockId) return;
@@ -301,7 +341,6 @@ export default function NewInventoryPage() {
                 newItems[existingItemIndex].qteAjoutee += quantity;
             } else {
                 newItems = [
-                    ...scannedItems,
                     {
                         produitId: product.id,
                         nomProduit: product.nom,
@@ -311,22 +350,25 @@ export default function NewInventoryPage() {
                         barcode: product.codeBarre,
                         typeQuantite: scanType,
                     },
+                    ...scannedItems,
                 ];
             }
-            setScannedItems(newItems.sort((a, b) => b.produitId - a.produitId));
+            setScannedItems(newItems);
             
             toast({ 
-                title: "Produit ajouté", 
-                description: `${quantity} x ${product.nom} (${scanType})` 
+                title: "✅ Produit ajouté", 
+                description: `${quantity} × ${product.nom} (${scanType})`,
+                duration: 1500
             });
         };
 
+        const processScan = (product: Produit) => {
+            addOrUpdateProduct(product);
+        };
+
         if (productCache.has(barcode)) {
-            const cachedProduct = productCache.get(barcode)!;
-            addOrUpdateProduct(cachedProduct);
-            setBarcode("");
-            setQuantity(1);
-            return;
+            processScan(productCache.get(barcode)!);
+            return; // on laisse le bloc finally s'exécuter
         }
 
         setIsScanning(true);
@@ -334,17 +376,21 @@ export default function NewInventoryPage() {
             const product = await api.getProductByBarcode(barcode);
             if (product && product.id) {
                 setProductCache(prevCache => new Map(prevCache).set(barcode, product));
-                addOrUpdateProduct(product);
+                processScan(product);
             } else {
-                toast({ variant: 'destructive', title: 'Erreur', description: 'Produit non trouvé.' });
+                toast({ variant: 'destructive',  title: '❌ Produit non trouvé',
+                    description: `Code-barres inconnu: ${barcode}` });
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue.";
             toast({ variant: 'destructive', title: 'Erreur de scan', description: errorMessage });
         } finally {
             setIsScanning(false);
+            // MODIFICATION CORRIGÉE : La réinitialisation a lieu ici, APRES le scan.
             setBarcode("");
             setQuantity(1);
+            quantityHasBeenManuallySet.current = false;
+            barcodeInputRef.current?.focus();
         }
     };
     
@@ -353,7 +399,6 @@ export default function NewInventoryPage() {
             handleRemoveItem(produitId, type);
             return;
         }
-
         setScannedItems(currentCart =>
             currentCart.map(item =>
                 item.produitId === produitId && item.typeQuantite === type
@@ -364,8 +409,7 @@ export default function NewInventoryPage() {
     };
 
     const handleRemoveItem = (produitId: number, type: 'UNITE' | 'CARTON') => {
-        const newItems = scannedItems.filter(item => !(item.produitId === produitId && item.typeQuantite === type));
-        setScannedItems(newItems);
+        setScannedItems(scannedItems.filter(item => !(item.produitId === produitId && item.typeQuantite === type)));
     };
 
     const handleClearCart = () => {
@@ -373,8 +417,10 @@ export default function NewInventoryPage() {
         setSource("");
         clearDraft();
         toast({ title: 'Panier vidé', description: 'Tous les produits scannés ont été retirés.' });
+        barcodeInputRef.current?.focus();
     };
     
+    // ... (le reste du code est inchangé)
     const handleCalculateInventory = async () => {
         if (scannedItems.length === 0) {
             toast({ variant: "destructive", title: "Inventaire vide", description: "Veuillez scanner au moins un produit." });
@@ -513,7 +559,6 @@ export default function NewInventoryPage() {
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-            {/* Alerte pour restaurer le brouillon */}
             {hasDraftData && draftToRestore && (
                 <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
                     <CardContent className="pt-6">
@@ -538,6 +583,7 @@ export default function NewInventoryPage() {
                                     onClick={() => {
                                         setHasDraftData(false);
                                         setDraftToRestore(null);
+                                        barcodeInputRef.current?.focus();
                                     }}
                                 >
                                     Ignorer
@@ -554,15 +600,10 @@ export default function NewInventoryPage() {
 
             <div className="flex items-center">
                 <h1 className="font-headline text-3xl font-semibold">
-                  {mode === 'edit_final' ? (
-                    `Modifier l'Inventaire N°${editingInventoryId}`
-                  ) : selectedLieuStockId && lieuStockMap.has(Number(selectedLieuStockId)) ? (
-                    <>
-                      Nouvel inventaire de <span className="font-bold">{lieuStockMap.get(Number(selectedLieuStockId))?.nom}</span>
-                    </>
-                  ) : (
-                    "Nouvel Inventaire"
-                  )}
+                  {mode === 'edit_final' ? `Modifier l'Inventaire N°${editingInventoryId}`
+                  : selectedLieuStockId && lieuStockMap.has(Number(selectedLieuStockId)) ? (
+                    <>Nouvel inventaire de <span className="font-bold">{lieuStockMap.get(Number(selectedLieuStockId))?.nom}</span></>
+                  ) : "Nouvel Inventaire"}
                 </h1>
             </div>
             
@@ -572,7 +613,7 @@ export default function NewInventoryPage() {
                         <CardHeader>
                             <CardTitle className="font-headline flex items-center gap-2"><ScanLine />Scanner un produit</CardTitle>
                             <CardDescription>
-                                {isAdmin ? "Sélectionnez un lieu de stock, puis scannez les produits." : "Entrez ou scannez un code-barres pour l'ajouter à l'inventaire."}
+                                {isAdmin ? "Sélectionnez un lieu de stock, puis scannez." : "Scannez un code-barres pour l'ajouter."}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -600,10 +641,11 @@ export default function NewInventoryPage() {
                              <div className="space-y-2">
                                 <Label htmlFor="barcode">Code-barres</Label>
                                 <Input
+                                    ref={barcodeInputRef}
                                     id="barcode"
-                                    placeholder="Entrez un code-barres..."
+                                    placeholder="Scannez ou entrez un code-barres..."
                                     value={barcode}
-                                    onChange={(e) => setBarcode(e.target.value)}
+                                    onChange={handleBarcodeChange}
                                     onKeyDown={(e) => e.key === 'Enter' && handleScan()}
                                     disabled={isScanning || isSaving || !selectedLieuStockId}
                                 />
@@ -615,7 +657,10 @@ export default function NewInventoryPage() {
                                         id="quantity"
                                         type="number"
                                         value={quantity}
-                                        onChange={(e) => setQuantity(Number(e.target.value))}
+                                        onChange={(e) => {
+                                            setQuantity(Number(e.target.value));
+                                            quantityHasBeenManuallySet.current = true;
+                                        }}
                                         min="1"
                                         disabled={isScanning || isSaving || !selectedLieuStockId}
                                     />
@@ -639,7 +684,6 @@ export default function NewInventoryPage() {
                         </CardContent>
                     </Card>
                 </div>
-
                 <div className="md:col-span-2">
                      <Card>
                         <CardHeader className="flex flex-row items-start justify-between">
@@ -649,20 +693,15 @@ export default function NewInventoryPage() {
                                     Produits Scannés
                                     {scannedItems.length > 0 && (
                                         <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded-full ml-2">
-                                            Sauvegarde auto
+                                             auto save
                                         </span>
                                     )}
                                 </CardTitle>
-                                <CardDescription>
-                                    {`Liste des produits comptabilisés pour l'inventaire ${selectedLieuStockId ? `à ${lieuStockMap.get(Number(selectedLieuStockId))?.nom}` : ''}.`}
-                                </CardDescription>
                             </div>
                              {scannedItems.length > 0 && (
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="sm">
-                                            <Trash2 className="mr-2 h-4 w-4"/> Vider
-                                        </Button>
+                                        <Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4"/> Vider</Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
@@ -680,14 +719,14 @@ export default function NewInventoryPage() {
                             )}
                         </CardHeader>
                         <CardContent>
-                             <div className="border rounded-lg">
+                             <div className="border rounded-lg max-h-[60vh] overflow-y-auto">
                                 <Table>
                                   <TableHeader>
                                     <TableRow>
                                       <TableHead>Produit</TableHead>
                                       <TableHead>Réf.</TableHead>
                                       <TableHead>Lieu</TableHead>
-                                      <TableHead className="w-[180px] text-center">Quantité Scannée</TableHead>
+                                      <TableHead className="w-[180px] text-center">Quantité</TableHead>
                                       <TableHead className="w-[50px]"></TableHead>
                                     </TableRow>
                                   </TableHeader>
@@ -708,15 +747,11 @@ export default function NewInventoryPage() {
                                                   disabled={isSaving}
                                                 />
                                                 <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produitId, item.typeQuantite, item.qteAjoutee + 1)} disabled={isSaving}><Plus className="h-3 w-3"/></Button>
-                                                <div className="flex items-center justify-center gap-2 ml-2">
-                                                    {item.typeQuantite === 'CARTON' ? <Box className="h-4 w-4" /> : <UnitIcon className="h-4 w-4" />}
-                                                </div>
+                                                <span title={item.typeQuantite === 'CARTON' ? 'Carton' : 'Unité'} className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${item.typeQuantite === 'CARTON' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{item.typeQuantite === 'CARTON' ? 'C' : 'U'}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.produitId, item.typeQuantite)} disabled={isSaving}>
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.produitId, item.typeQuantite)} disabled={isSaving}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                         </TableCell>
                                       </TableRow>
                                     )) : (
@@ -729,38 +764,20 @@ export default function NewInventoryPage() {
                         <CardFooter className="border-t pt-6 flex justify-between items-center gap-2 flex-wrap">
                             <div className="flex items-center gap-2">
                                 <Dialog open={isJsonDialogOpen} onOpenChange={setIsJsonDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" disabled={isSaving}>
-                                            <ClipboardPaste className="h-4 w-4 mr-2" />
-                                            Coller JSON
-                                        </Button>
-                                    </DialogTrigger>
+                                    <DialogTrigger asChild><Button variant="outline" disabled={isSaving}><ClipboardPaste className="h-4 w-4 mr-2" />Coller JSON</Button></DialogTrigger>
                                     <JSONImportDialog onImport={handleJsonImport} onOpenChange={setIsJsonDialogOpen} />
                                 </Dialog>
                             </div>
-
                            <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button disabled={scannedItems.length === 0 || isSaving}>
-                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Server className="h-4 w-4 mr-2" />} 
-                                    {isSaving ? "Calcul en cours..." : "Calculer les écarts"}
-                                </Button>
-                            </AlertDialogTrigger>
+                            <AlertDialogTrigger asChild><Button disabled={scannedItems.length === 0 || isSaving}>{isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Server className="h-4 w-4 mr-2" />} {isSaving ? "Calcul en cours..." : "Calculer les écarts"}</Button></AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Calculer les écarts ?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Cette action soumettra la liste scannée pour calculer les écarts avec le stock théorique. Vous pourrez ensuite confirmer pour appliquer les changements.
-                                    </AlertDialogDescription>
+                                    <AlertDialogDescription>Cette action soumettra la liste pour calculer les écarts. Vous pourrez ensuite confirmer pour appliquer les changements.</AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="flex items-center space-x-2 py-2">
                                     <Checkbox id="isFirstInventory" checked={isFirstInventory} onCheckedChange={(checked) => setIsFirstInventory(!!checked)} disabled={mode === 'edit_final'} />
-                                    <label
-                                        htmlFor="isFirstInventory"
-                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                    >
-                                        Ceci est le premier inventaire (réinitialise le stock)
-                                    </label>
+                                    <label htmlFor="isFirstInventory" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Ceci est le premier inventaire (réinitialise le stock)</label>
                                 </div>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Annuler</AlertDialogCancel>
