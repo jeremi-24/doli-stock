@@ -123,6 +123,7 @@ export type Reapprovisionnement = {
 export type ScannedReapproProduit = {
   produitId: number;
   nomProduit: string;
+  ref: string;
   qteAjoutee: number;
   lieuStockNom: string;
   barcode: string;

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -111,7 +112,6 @@ export default function NewInventoryPage() {
         
         try {
             localStorage.setItem(draftKey, JSON.stringify(draft));
-            console.log('Draft saved:', draftKey, draft); // Debug
         } catch (error) {
             console.warn('Impossible de sauvegarder le brouillon:', error);
         }
@@ -126,7 +126,6 @@ export default function NewInventoryPage() {
             localStorage.removeItem(draftKey);
             setHasDraftData(false);
             setDraftToRestore(null);
-            console.log('Draft cleared:', draftKey); // Debug
         } catch (error) {
             console.warn('Impossible de supprimer le brouillon:', error);
         }
@@ -144,7 +143,6 @@ export default function NewInventoryPage() {
                 const now = Date.now();
                 // Vérifier que le brouillon n'est pas trop ancien (24h)
                 if (now - draft.timestamp < 24 * 60 * 60 * 1000) {
-                    console.log('Draft found:', draftKey, draft); // Debug
                     return draft;
                 } else {
                     // Supprimer les brouillons trop anciens
@@ -211,28 +209,17 @@ export default function NewInventoryPage() {
     }, [scannedItems, saveDraft, pageIsLoading, currentUser]);
 
     // Vérification du brouillon au chargement
-   // Vérification du brouillon au chargement
-useEffect(() => {
-    // On sort si les conditions de base не sont pas remplies OU si aucun lieu n'est encore sélectionné.
-    if (pageIsLoading || !currentUser || mode === 'edit_final' || !selectedLieuStockId) {
-        return;
-    }
-    
-    const checkForDraft = () => {
-        // loadDraft utilisera maintenant la clé correcte car selectedLieuStockId est défini.
+    useEffect(() => {
+        if (pageIsLoading || !currentUser || mode === 'edit_final' || !selectedLieuStockId) {
+            return;
+        }
+        
         const draft = loadDraft();
         if (draft && draft.scannedItems && draft.scannedItems.length > 0) {
             setDraftToRestore(draft);
             setHasDraftData(true);
         }
-    };
-    
-    // Le timeout n'est plus vraiment nécessaire, mais on peut le garder avec une valeur faible
-    // pour s'assurer que le rendu est stable.
-    const timeoutId = setTimeout(checkForDraft, 100); 
-
-    return () => clearTimeout(timeoutId);
-}, [pageIsLoading, currentUser, mode, selectedLieuStockId, loadDraft]); // Les dépendances sont correctes
+    }, [pageIsLoading, currentUser, mode, selectedLieuStockId, loadDraft]);
 
 
     useEffect(() => {
@@ -270,6 +257,7 @@ useEffect(() => {
                         const items: ScannedReapproProduit[] = inventoryData.lignes.map((ligne: any) => ({
                             produitId: ligne.produitId,
                             nomProduit: ligne.nomProduit,
+                            ref: ligne.ref,
                             lieuStockNom: ligne.lieuStockNom,
                             qteAjoutee: ligne.qteScanneTotaleUnites,
                             barcode: 'N/A',
@@ -317,6 +305,7 @@ useEffect(() => {
                     {
                         produitId: product.id,
                         nomProduit: product.nom,
+                        ref: product.ref || 'N/A',
                         lieuStockNom: lieuStockNom, 
                         qteAjoutee: quantity,
                         barcode: product.codeBarre,
@@ -487,6 +476,7 @@ useEffect(() => {
                 const newItem: ScannedReapproProduit = {
                     produitId: ligne.produitId,
                     nomProduit: ligne.nomProduit || productDetails?.nom || `Produit ${ligne.produitId}`,
+                    ref: ligne.ref || productDetails?.ref || 'N/A',
                     lieuStockNom: lieuStockSelectionne.nom,
                     qteAjoutee: Number(ligne.qteScanne),
                     barcode: ligne.barcode || productDetails?.codeBarre || 'N/A',
@@ -695,6 +685,7 @@ useEffect(() => {
                                   <TableHeader>
                                     <TableRow>
                                       <TableHead>Produit</TableHead>
+                                      <TableHead>Réf.</TableHead>
                                       <TableHead>Lieu</TableHead>
                                       <TableHead className="w-[180px] text-center">Quantité Scannée</TableHead>
                                       <TableHead className="w-[50px]"></TableHead>
@@ -704,6 +695,7 @@ useEffect(() => {
                                     {scannedItems.length > 0 ? scannedItems.map(item => (
                                       <TableRow key={`${item.produitId}-${item.typeQuantite}`}>
                                         <TableCell className="font-medium">{item.nomProduit}</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">{item.ref}</TableCell>
                                         <TableCell>{item.lieuStockNom}</TableCell>
                                         <TableCell className="text-center font-semibold">
                                             <div className="flex items-center justify-center gap-1">
@@ -728,7 +720,7 @@ useEffect(() => {
                                         </TableCell>
                                       </TableRow>
                                     )) : (
-                                      <TableRow><TableCell colSpan={4} className="h-24 text-center">Aucun produit scanné.</TableCell></TableRow>
+                                      <TableRow><TableCell colSpan={5} className="h-24 text-center">Aucun produit scanné.</TableCell></TableRow>
                                     )}
                                   </TableBody>
                                 </Table>
