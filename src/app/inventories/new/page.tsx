@@ -227,7 +227,7 @@ export default function NewInventoryPage() {
             const activeEl = document.activeElement;
             const isTypingElsewhere = activeEl && (
                 activeEl.tagName === 'TEXTAREA' || 
-                (activeEl.tagName === 'INPUT' && activeEl.id !== 'barcode')
+                (activeEl.tagName === 'INPUT' && activeEl.id !== 'barcode') // Permettre les raccourcis même si le champ barcode est actif
             );
     
             if (isTypingElsewhere) return;
@@ -245,7 +245,14 @@ export default function NewInventoryPage() {
                 return;
             }
     
+            // Gestion des chiffres pour la quantité - seulement si pas de frappe rapide (scan)
             if (e.key >= '0' && e.key <= '9') {
+                // Si l'utilisateur tape rapidement (comme lors d'un scan), on laisse passer
+                if (activeEl && activeEl.id === 'barcode' && barcode.length > 0) {
+                    // Si il y a déjà du contenu dans barcode et qu'on tape vite, c'est probablement un scan
+                    return;
+                }
+                
                 e.preventDefault();
                 setQuantity(currentQuantity => {
                     if (!quantityHasBeenManuallySet.current) {
