@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,22 +9,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from "@/components/ui/badge";
 import type { Reapprovisionnement } from '@/lib/types';
 import * as api from '@/lib/api';
-import { PlusCircle, PackagePlus, Eye, Loader2, User, ChevronsRight } from 'lucide-react';
+import { PlusCircle, PackagePlus, Eye, Loader2, User, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { useApp } from '@/context/app-provider';
 
 export default function ReapprovisionnementsPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { currentUser, isMounted } = useApp();
   const [reapprovisionnements, setReapprovisionnements] = useState<Reapprovisionnement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isAdmin = useMemo(() => currentUser?.roleNom === 'ADMIN', [currentUser]);
+
   useEffect(() => {
     async function fetchReapprovisionnements() {
+      if (!isMounted || !currentUser) return;
+      setIsLoading(true);
       try {
-        setIsLoading(true);
-        const data = await api.getReapprovisionnements();
+        let data: Reapprovisionnement[] = [];
+        if (isAdmin) {
+          data = await api.getReapprovisionnements();
+        } else if (currentUser.lieuId) {
+          data = await api.getReapprovisionnementsByLieu(currentUser.lieuId);
+        }
         setReapprovisionnements(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
@@ -34,7 +44,7 @@ export default function ReapprovisionnementsPage() {
       }
     }
     fetchReapprovisionnements();
-  }, [toast]);
+  }, [toast, isMounted, currentUser, isAdmin]);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -59,7 +69,7 @@ export default function ReapprovisionnementsPage() {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Agent</TableHead>
-                  <TableHead>Source</TableHead>
+                  <TableHead>Lieu de Stock</TableHead>
                   <TableHead>Nb. Lignes</TableHead>
                   <TableHead><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
@@ -71,7 +81,7 @@ export default function ReapprovisionnementsPage() {
                   <TableRow key={reappro.id}>
                     <TableCell>{format(new Date(reappro.date), 'd MMMM yyyy à HH:mm', { locale: fr })}</TableCell>
                     <TableCell><Badge variant="outline" className="flex items-center gap-1.5"><User className="h-3 w-3" /> {reappro.agent}</Badge></TableCell>
-                    <TableCell><Badge variant="secondary" className="flex items-center gap-1.5"><ChevronsRight className="h-3 w-3" /> {reappro.source}</Badge></TableCell>
+                    <TableCell><Badge variant="secondary" className="flex items-center gap-1.5"><Building2 className="h-3 w-3" /> {reappro.lieuStockNom}</Badge></TableCell>
                     <TableCell>{reappro.lignes.length}</TableCell>
                     <TableCell className="text-right">
                        <Button variant="ghost" size="icon" onClick={() => router.push(`/reapprovisionnements/${reappro.id}`)}>

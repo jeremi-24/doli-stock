@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, ChevronsRight, Truck, Calendar, Box, Package as UnitIcon } from 'lucide-react';
+import { ArrowLeft, User, Truck, Calendar, Box, Package as UnitIcon, Building2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Reapprovisionnement } from '@/lib/types';
 import * as api from '@/lib/api';
@@ -87,7 +87,7 @@ export default function ReapprovisionnementDetailPage() {
           <CardTitle className="font-headline text-3xl flex items-center gap-2"><Truck /> Réapprovisionnement N°{String(reappro.id).padStart(5, '0')}</CardTitle>
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 text-sm">
             <div className="flex items-center gap-2"><User className="h-4 w-4"/> Agent: <span className="font-medium text-foreground">{reappro.agent}</span></div>
-            <div className="flex items-center gap-2"><ChevronsRight className="h-4 w-4"/> Source: <span className="font-medium text-foreground">{reappro.source}</span></div>
+            <div className="flex items-center gap-2"><Building2 className="h-4 w-4"/> Lieu de stock: <span className="font-medium text-foreground">{reappro.lieuStockNom}</span></div>
             <div className="flex items-center gap-2"><Calendar className="h-4 w-4"/> Date: <span className="font-medium text-foreground">{format(new Date(reappro.date), 'd MMMM yyyy à HH:mm', { locale: fr })}</span></div>
           </div>
         </CardHeader>
@@ -97,7 +97,6 @@ export default function ReapprovisionnementDetailPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Produit</TableHead>
-                            <TableHead>Lieu de Stock</TableHead>
                             <TableHead className="text-right">Total (Unités)</TableHead>
                             <TableHead className="text-right">Détail Ajouté</TableHead>
                         </TableRow>
@@ -106,7 +105,6 @@ export default function ReapprovisionnementDetailPage() {
                         {reappro.lignes.map((ligne) => (
                              <TableRow key={ligne.id}>
                                 <TableCell className="font-medium">{ligne.produitNom}</TableCell>
-                                <TableCell>{ligne.lieuStockNom}</TableCell>
                                 <TableCell className="text-right font-semibold text-green-600 font-mono">+{ligne.qteAjouteeTotaleUnites}</TableCell>
                                 <TableCell className="text-right"><QteDisplay cartons={ligne.qteAjouteeCartons} unites={ligne.qteAjouteeUnites} /></TableCell>
                              </TableRow>
@@ -124,5 +122,3 @@ export default function ReapprovisionnementDetailPage() {
     </div>
   );
 }
-
-    

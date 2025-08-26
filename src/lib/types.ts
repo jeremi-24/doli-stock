@@ -77,7 +77,7 @@ export type Inventaire = {
   statut: InventaireStatus;
   lieuStockId: number;
 };
-export type ScannedProduit = {
+export type ScannedInventaireProduit = {
   produitId: number;
   nomProduit: string;
   ref: string;
@@ -115,10 +115,11 @@ export type ReapproLigne = {
 };
 export type Reapprovisionnement = {
   id: number;
-  source: string;
   agent: string;
   date: string;
   lignes: ReapproLigne[];
+  lieuStockId: number;
+  lieuStockNom: string;
 };
 export type ScannedReapproProduit = {
   produitId: number;
@@ -135,8 +136,8 @@ export type ReapproPayloadLigne = {
     typeQuantite: 'UNITE' | 'CARTON';
 };
 export type ReapproPayload = {
-  source: string;
   agent: string;
+  lieuStockId: number;
   lignes: ReapproPayloadLigne[];
 };
 

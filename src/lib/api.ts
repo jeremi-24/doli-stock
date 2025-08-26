@@ -332,6 +332,9 @@ export async function exportInventaire(id: number): Promise<void> {
 export async function getReapprovisionnements(): Promise<Reapprovisionnement[]> {
   return apiFetch('/reappro');
 }
+export async function getReapprovisionnementsByLieu(lieuId: number): Promise<Reapprovisionnement[]> {
+    return apiFetch(`/reappro/lieu/${lieuId}`);
+}
 export async function getReapprovisionnement(id: number): Promise<Reapprovisionnement> {
   return apiFetch(`/reappro/${id}`);
 }
