@@ -1,4 +1,5 @@
 
+
 import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload, Notification, BarcodePrintRequest, FactureModele } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -251,7 +252,9 @@ export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promis
 export async function getStocks(): Promise<Stock[]> {
     return apiFetch('/stocks');
 }
-
+export async function getStocksByLieuId(lieuId: number): Promise<Stock[]> {
+    return apiFetch(`/stocks/lieu/${lieuId}`);
+}
 export async function getStocksByLieuNom(lieuStockNom: string): Promise<Stock[]> {
     return apiFetch(`/stocks/lieuStock/${encodeURIComponent(lieuStockNom)}`);
 }
@@ -414,3 +417,5 @@ export async function deleteFactureModele(id: string): Promise<any> {
     return apiFetch(`/facture-modeles/${id}`, { method: 'DELETE' });
 }
 */
+
+    

@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import * as api from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSearchParams } from "next/navigation";
 
 
 export default function StockPage() {
@@ -26,7 +27,10 @@ export default function StockPage() {
     const [stocks, setStocks] = React.useState<Stock[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState("");
-    const [selectedLieu, setSelectedLieu] = React.useState<string>("all");
+    const searchParams = useSearchParams();
+    const lieuParam = searchParams.get('lieu');
+    
+    const [selectedLieu, setSelectedLieu] = React.useState<string>(lieuParam || "all");
     const { toast } = useToast();
 
     React.useEffect(() => {
@@ -64,16 +68,15 @@ export default function StockPage() {
 
     const filteredStocks = React.useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
-        const lieuSelectionne = lieuxStock.find(l => String(l.id) === selectedLieu);
-
+        
         return stocks.filter(item => {
-            const matchesLieu = selectedLieu === 'all' || (lieuSelectionne && item.lieuStockNom === lieuSelectionne.nom);
+            const matchesLieu = selectedLieu === 'all' || String(item.lieuStockId) === selectedLieu;
             const matchesSearch = item.produitNom.toLowerCase().includes(lowercasedFilter) ||
                                  (item.produitRef && item.produitRef.toLowerCase().includes(lowercasedFilter)) ||
                                  (item.lieuStockNom && item.lieuStockNom.toLowerCase().includes(lowercasedFilter));
             return matchesLieu && matchesSearch;
         });
-    }, [searchTerm, stocks, selectedLieu, lieuxStock]);
+    }, [searchTerm, stocks, selectedLieu]);
 
     const pageTitle = React.useMemo(() => {
         if (selectedLieu === 'all') {
@@ -177,3 +180,5 @@ export default function StockPage() {
         </div>
     );
 }
+
+    

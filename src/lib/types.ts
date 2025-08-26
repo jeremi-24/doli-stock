@@ -31,11 +31,14 @@ export type Produit = {
 
 export type Stock = {
     id: number;
+    produitId: number;
     produitNom: string;
     produitRef: string;
+    lieuStockId: number;
     lieuStockNom: string;
     qteCartons: number;
     qteUnitesRestantes: number;
+    quantiteTotale: number;
 };
 
 
@@ -356,3 +359,5 @@ export type FactureModele = {
   footer?: string;
   color?: string;
 };
+
+    

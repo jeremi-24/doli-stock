@@ -1,19 +1,20 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScanLine, Search, Package, DollarSign, Archive, TrendingUp, AlertCircle, History } from "lucide-react";
+import { ScanLine, Search, Package, DollarSign, Archive, TrendingUp, AlertCircle, History, Building2, Eye } from "lucide-react";
 import { useApp } from "@/context/app-provider";
 import type { Produit, Facture } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import * as api from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 function BarcodeScannerCard() {
     const [barcode, setBarcode] = useState("");
@@ -88,13 +89,91 @@ function BarcodeScannerCard() {
     );
 }
 
+function StockLocationStats() {
+    const { lieuxStock, stocks, produits } = useApp();
+    const router = useRouter();
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+    };
+
+    const locationStats = useMemo(() => {
+        const productMap = new Map(produits.map(p => [p.id, p]));
+        
+        return lieuxStock.map(lieu => {
+            const locationStocks = stocks.filter(s => s.lieuStockId === lieu.id);
+            
+            const stockValue = locationStocks.reduce((sum, stock) => {
+                const product = productMap.get(stock.produitId);
+                return sum + (stock.quantiteTotale * (product?.prix ?? 0));
+            }, 0);
+            
+            const lowStockCount = locationStocks.filter(stock => {
+                const product = productMap.get(stock.produitId);
+                return product ? stock.quantiteTotale <= (product.qteMin ?? 0) : false;
+            }).length;
+
+            return {
+                ...lieu,
+                uniqueProducts: locationStocks.length,
+                stockValue,
+                lowStockCount
+            };
+        });
+    }, [lieuxStock, stocks, produits]);
+
+    if (!locationStats.length) {
+        return null;
+    }
+
+    return (
+        <div className="space-y-4">
+            <h2 className="font-headline text-2xl font-semibold">Performance par Lieu de Stock</h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {locationStats.map(lieu => (
+                    <Card key={lieu.id}>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-xl font-headline">
+                                <Building2 className="h-5 w-5"/>
+                                {lieu.nom}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                           <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Valeur du stock</span>
+                                <span className="font-semibold">{formatCurrency(lieu.stockValue)}</span>
+                           </div>
+                           <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Produits uniques</span>
+                                <span className="font-semibold">{lieu.uniqueProducts}</span>
+                           </div>
+                           <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Alertes stock faible</span>
+                                <span className={cn("font-semibold", lieu.lowStockCount > 0 ? "text-orange-500" : "text-green-600")}>{lieu.lowStockCount}</span>
+                           </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button variant="outline" size="sm" onClick={() => router.push(`/stock?lieu=${lieu.id}`)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Voir le détail
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 
 export default function DashboardPage() {
-  const { produits, factures, isMounted } = useApp();
+  const { produits, factures, isMounted, hasPermission } = useApp();
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
+
+  const showAdminView = useMemo(() => hasPermission('REPORT_VIEW'), [hasPermission]);
   
   if (!isMounted || !produits || !factures) {
     return (
@@ -166,6 +245,9 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {showAdminView && <StockLocationStats />}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
          <BarcodeScannerCard />
          <Card className="lg:col-span-1">
@@ -190,3 +272,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
