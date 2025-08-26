@@ -105,10 +105,10 @@ export default function ReapprovisionnementDetailPage() {
                             return (
                              <TableRow key={ligne.id}>
                                 <TableCell>
-                                  <div className="font-medium">{ligne.produitNom || produit?.nom || `Produit ID: ${ligne.produitId}`}</div>
-                                  <div className="text-xs text-muted-foreground font-mono">{produit?.ref || 'N/A'}</div>
+                                  <div className="font-semibold text-md">{produit?.ref || 'N/A'}</div>
+                                  <div className="text-lg text-muted-foreground  font-medium">{ligne.produitNom || produit?.nom || `Produit ID: ${ligne.produitId}`}</div>
                                 </TableCell>
-                                <TableCell className="text-right font-semibold text-green-600 font-mono">+{ligne.qteAjoutee}</TableCell>
+                                <TableCell className="text-right text-lg font-semibold text-green-600 font-medium">+{ligne.qteAjoutee}</TableCell>
                                 <TableCell className="text-right">
                                   <Badge variant={ligne.typeQuantite === 'CARTON' ? 'default' : 'secondary'}>
                                     {ligne.typeQuantite}
