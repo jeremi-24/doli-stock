@@ -90,81 +90,142 @@ function BarcodeScannerCard() {
 }
 
 function StockLocationStats() {
-    const { lieuxStock, stocks, produits } = useApp();
-    const router = useRouter();
+  const { lieuxStock, stocks, produits, isMounted } = useApp();
+  const router = useRouter();
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-    };
+  const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+  };
 
-    const locationStats = useMemo(() => {
-        const productMap = new Map(produits.map(p => [p.id, p]));
-        
-        return lieuxStock.map(lieu => {
-            const locationStocks = stocks.filter(s => s.lieuStockId === lieu.id);
-            
-            const stockValue = locationStocks.reduce((sum, stock) => {
-                const product = productMap.get(stock.produitId);
-                return sum + (stock.quantiteTotale * (product?.prix ?? 0));
-            }, 0);
-            
-            const lowStockCount = locationStocks.filter(stock => {
-                const product = productMap.get(stock.produitId);
-                return product ? stock.quantiteTotale <= (product.qteMin ?? 0) : false;
-            }).length;
+  const locationStats = useMemo(() => {
+      // Ne pas calculer si l'app n'est pas encore montée ou si les données ne sont pas chargées
+      if (!isMounted || !lieuxStock.length || !stocks.length || !produits.length) {
+          return [];
+      }
 
-            return {
-                ...lieu,
-                uniqueProducts: locationStocks.length,
-                stockValue,
-                lowStockCount
-            };
-        });
-    }, [lieuxStock, stocks, produits]);
+      const productMap = new Map(produits.map(p => [p.id, p]));
+      
+      return lieuxStock.map(lieu => {
+          // Filtrer par nom du lieu au lieu de l'ID
+          const locationStocks = stocks.filter(stock => stock.lieuStockNom === lieu.nom);
+          
+          const stockValue = locationStocks.reduce((sum, stock) => {
+              // Trouver le produit par référence au lieu de l'ID
+              const product = produits.find(p => p.ref === stock.produitRef);
+              if (!product) {
+                  console.warn(`Produit non trouvé pour ref: ${stock.produitRef}`);
+                  return sum;
+              }
+              
+              // Calculer la quantité totale (cartons + unités restantes)
+              const quantiteTotale = (stock.qteCartons * product.qteParCarton) + stock.qteUnitesRestantes;
+              return sum + (quantiteTotale * product.prix);
+          }, 0);
+          
+          const lowStockCount = locationStocks.filter(stock => {
+              const product = produits.find(p => p.ref === stock.produitRef);
+              if (!product) return false;
+              
+              const quantiteTotale = (stock.qteCartons * product.qteParCarton) + stock.qteUnitesRestantes;
+              return quantiteTotale > 0 && quantiteTotale <= product.qteMin;
+          }).length;
 
-    if (!locationStats.length) {
-        return null;
-    }
+          return {
+              ...lieu,
+              uniqueProducts: locationStocks.length,
+              stockValue,
+              lowStockCount
+          };
+      });
+  }, [lieuxStock, stocks, produits, isMounted]);
 
-    return (
-        <div className="space-y-4">
-            <h2 className="font-headline text-2xl font-semibold">Performance par Lieu de Stock</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {locationStats.map(lieu => (
-                    <Card key={lieu.id}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-xl font-headline">
-                                <Building2 className="h-5 w-5"/>
-                                {lieu.nom}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                           <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Valeur du stock</span>
-                                <span className="font-semibold">{formatCurrency(lieu.stockValue)}</span>
-                           </div>
-                           <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Produits uniques</span>
-                                <span className="font-semibold">{lieu.uniqueProducts}</span>
-                           </div>
-                           <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Alertes stock faible</span>
-                                <span className={cn("font-semibold", lieu.lowStockCount > 0 ? "text-orange-500" : "text-green-600")}>{lieu.lowStockCount}</span>
-                           </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button variant="outline" size="sm" onClick={() => router.push(`/stock?lieu=${lieu.id}`)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Voir le détail
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                ))}
-            </div>
-        </div>
-    );
+  // Afficher un skeleton pendant le chargement
+  if (!isMounted || !lieuxStock.length || !stocks.length || !produits.length) {
+      return (
+          <div className="space-y-4">
+              <div className="h-8 w-64 bg-gray-200 rounded animate-pulse"></div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {[1, 2, 3].map(i => (
+                      <Card key={i}>
+                          <CardHeader>
+                              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                              <div className="flex justify-between">
+                                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+                                  <div className="h-4 w-16 bg-gray-200 rounded animate-pulse"></div>
+                              </div>
+                              <div className="flex justify-between">
+                                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                                  <div className="h-4 w-8 bg-gray-200 rounded animate-pulse"></div>
+                              </div>
+                              <div className="flex justify-between">
+                                  <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
+                                  <div className="h-4 w-8 bg-gray-200 rounded animate-pulse"></div>
+                              </div>
+                          </CardContent>
+                          <CardFooter>
+                              <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+                          </CardFooter>
+                      </Card>
+                  ))}
+              </div>
+          </div>
+      );
+  }
+
+  // Ne pas afficher si pas de statistiques après chargement
+  if (!locationStats.length) {
+      return (
+          <div className="space-y-4">
+              <h2 className="font-headline text-2xl font-semibold">Performance par Lieu de Stock</h2>
+              <div className="text-center py-8 text-muted-foreground">
+                  Aucune donnée de stock disponible pour les lieux configurés.
+              </div>
+          </div>
+      );
+  }
+
+  return (
+      <div className="space-y-4">
+          <h2 className="font-headline text-2xl font-semibold">Performance par Lieu de Stock</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {locationStats.map(lieu => (
+                  <Card key={lieu.id}>
+                      <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-xl font-headline">
+                              <Building2 className="h-5 w-5"/>
+                              {lieu.nom}
+                          </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                         <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Valeur du stock</span>
+                              <span className="font-semibold">{formatCurrency(lieu.stockValue)}</span>
+                         </div>
+                         <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Produits uniques</span>
+                              <span className="font-semibold">{lieu.uniqueProducts}</span>
+                         </div>
+                         <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Alertes stock faible</span>
+                              <span className={cn("font-semibold", lieu.lowStockCount > 0 ? "text-orange-500" : "text-green-600")}>
+                                  {lieu.lowStockCount}
+                              </span>
+                         </div>
+                      </CardContent>
+                      <CardFooter>
+                          <Button variant="outline" size="sm" onClick={() => router.push(`/stock?lieu=${lieu.id}`)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Voir le détail
+                          </Button>
+                      </CardFooter>
+                  </Card>
+              ))}
+          </div>
+      </div>
+  );
 }
-
 
 export default function DashboardPage() {
   const { produits, factures, isMounted, hasPermission } = useApp();

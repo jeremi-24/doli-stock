@@ -258,6 +258,23 @@ export async function getStocksByLieuId(lieuId: number): Promise<Stock[]> {
 export async function getStocksByLieuNom(lieuStockNom: string): Promise<Stock[]> {
     return apiFetch(`/stocks/lieuStock/${encodeURIComponent(lieuStockNom)}`);
 }
+export async function exportStockByLieu(lieuId: number): Promise<void> {
+  const blob = await apiFetch(`/stocks/export/lieu/${lieuId}`, {
+    method: 'GET',
+    headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  }) as Blob;
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `stock_lieu_${lieuId}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+  return Promise.resolve();
+}
+
 
 // ========== Ventes (POS) API ==========
 export async function getVentes(): Promise<Vente[]> {

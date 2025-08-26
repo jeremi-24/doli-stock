@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -12,15 +11,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Building2, PlusCircle, MoreHorizontal, Pencil, Trash2, Download, Loader2 } from 'lucide-react';
 import type { LieuStock } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useRouter } from 'next/navigation';
+import * as api from '@/lib/api';
 
 const lieuStockSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
@@ -35,6 +34,7 @@ export default function LieuxStockPage() {
     const [editingLieuStock, setEditingLieuStock] = useState<LieuStock | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedLieux, setSelectedLieux] = useState<number[]>([]);
+    const [exportingId, setExportingId] = useState<number | null>(null);
 
     const form = useForm<z.infer<typeof lieuStockSchema>>({
         resolver: zodResolver(lieuStockSchema),
@@ -107,6 +107,19 @@ export default function LieuxStockPage() {
             // Error is handled in context
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleExport = async (lieuId: number, lieuNom: string) => {
+        setExportingId(lieuId);
+        toast({ title: `Export pour ${lieuNom}`, description: "Génération du fichier Excel en cours..." });
+        try {
+            await api.exportStockByLieu(lieuId);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
+            toast({ variant: 'destructive', title: "Erreur d'export", description: errorMessage });
+        } finally {
+            setExportingId(null);
         }
     };
     
@@ -204,6 +217,11 @@ export default function LieuxStockPage() {
                                                         <DropdownMenuItem onClick={() => handleEdit(lieu)}>
                                                             <Pencil className="mr-2 h-4 w-4" /> Modifier
                                                         </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => handleExport(lieu.id, lieu.nom)} disabled={exportingId === lieu.id}>
+                                                          {isMounted && exportingId === lieu.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                                                          Exporter en Excel
+                                                        </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
@@ -279,4 +297,5 @@ export default function LieuxStockPage() {
         </div>
     );
 }
+    
     
