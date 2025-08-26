@@ -1,34 +1,32 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, User, Truck, Calendar, Box, Package as UnitIcon, Building2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Reapprovisionnement } from '@/lib/types';
+import type { Reapprovisionnement, Produit } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useApp } from '@/context/app-provider';
+import { Badge } from '@/components/ui/badge';
 
-const QteDisplay = ({ cartons, unites }: { cartons: number, unites: number }) => (
-    <div className="flex items-center justify-end gap-2 text-xs">
-        {cartons > 0 && <span className="flex items-center gap-1"><Box className="h-3 w-3" />{cartons} C</span>}
-        {unites > 0 && <span className="flex items-center gap-1"><UnitIcon className="h-3 w-3" />{unites} U</span>}
-        {(cartons === 0 && unites === 0) && '0'}
-    </div>
-)
 
 export default function ReapprovisionnementDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { produits } = useApp();
   
   const [reappro, setReappro] = useState<Reapprovisionnement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
 
   useEffect(() => {
     if (id) {
@@ -97,18 +95,28 @@ export default function ReapprovisionnementDetailPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Produit</TableHead>
-                            <TableHead className="text-right">Total (Unités)</TableHead>
-                            <TableHead className="text-right">Détail Ajouté</TableHead>
+                            <TableHead className="text-right">Quantité Ajoutée</TableHead>
+                            <TableHead className="text-right">Type</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {reappro.lignes.map((ligne) => (
+                        {reappro.lignes.map((ligne) => {
+                            const produit = productMap.get(ligne.produitId);
+                            return (
                              <TableRow key={ligne.id}>
-                                <TableCell className="font-medium">{ligne.produitNom}</TableCell>
-                                <TableCell className="text-right font-semibold text-green-600 font-mono">+{ligne.qteAjouteeTotaleUnites}</TableCell>
-                                <TableCell className="text-right"><QteDisplay cartons={ligne.qteAjouteeCartons} unites={ligne.qteAjouteeUnites} /></TableCell>
+                                <TableCell>
+                                  <div className="font-medium">{ligne.produitNom || produit?.nom || `Produit ID: ${ligne.produitId}`}</div>
+                                  <div className="text-xs text-muted-foreground font-mono">{produit?.ref || 'N/A'}</div>
+                                </TableCell>
+                                <TableCell className="text-right font-semibold text-green-600 font-mono">+{ligne.qteAjoutee}</TableCell>
+                                <TableCell className="text-right">
+                                  <Badge variant={ligne.typeQuantite === 'CARTON' ? 'default' : 'secondary'}>
+                                    {ligne.typeQuantite}
+                                  </Badge>
+                                </TableCell>
                              </TableRow>
-                        ))}
+                            )
+                        })}
                     </TableBody>
                 </Table>
             </div>

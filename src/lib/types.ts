@@ -106,12 +106,9 @@ export type ReapproLigne = {
   id: number;
   produitId: number;
   produitNom: string;
-  qteAjouteeDansLigne: number;
+  qteAjoutee: number;
   typeQuantite: string;
-  lieuStockNom: string;
-  qteAjouteeCartons: number;
-  qteAjouteeUnites: number;
-  qteAjouteeTotaleUnites: number;
+  lieuStockId: number;
 };
 export type Reapprovisionnement = {
   id: number;

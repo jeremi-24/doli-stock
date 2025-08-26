@@ -44,7 +44,7 @@ export default function NewReapproPage() {
     const barcodeInputRef = useRef<HTMLInputElement>(null);
 
     const lieuStockMap = useMemo(() => new Map(lieuxStock.map(l => [l.id, l])), [lieuxStock]);
-    const isAdmin = useMemo(() => isMounted && currentUser?.roleNom === 'ADMIN', [currentUser, isMounted]);
+    const isAdmin = useMemo(() => currentUser?.roleNom === 'ADMIN', [currentUser]);
 
     const getDraftKey = useCallback(() => {
         if (!currentUser?.id || !selectedLieuStockId) return null;
@@ -118,13 +118,13 @@ export default function NewReapproPage() {
     }, [pageIsLoading, currentUser, selectedLieuStockId, loadDraft]);
 
     useEffect(() => {
-        if (isMounted) {
-            if (!isAdmin && currentUser?.lieuId) {
+        if (currentUser) {
+            if (currentUser.roleNom !== 'ADMIN' && currentUser.lieuId) {
                 setSelectedLieuStockId(String(currentUser.lieuId));
             }
             setPageIsLoading(false);
         }
-    }, [isMounted, isAdmin, currentUser]);
+    }, [currentUser]);
 
     useEffect(() => {
         if (selectedLieuStockId && !hasDraftData) {
@@ -391,3 +391,5 @@ export default function NewReapproPage() {
         </div>
     );
 }
+
+    
