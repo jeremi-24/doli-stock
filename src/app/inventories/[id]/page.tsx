@@ -253,8 +253,8 @@ export default function InventoryDetailPage() {
                              return (
                              <TableRow key={`${ligne.produitId}-${index}`}>
                                 <TableCell>
-                                    <div className="font-medium">{ligne.nomProduit}</div>
-                                    <div className="text-xs text-muted-foreground font-mono">{ligne.ref}</div>
+                                    <div className="font-medium">{ligne.ref}</div>
+                                    <div className="text-xs text-muted-foreground font-medium">{ligne.nomProduit}</div>
                                 </TableCell>
                                 <TableCell>{ligne.lieuStockNom}</TableCell>
                                 
