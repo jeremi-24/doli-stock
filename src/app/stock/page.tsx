@@ -70,21 +70,21 @@ export default function StockPage() {
         const lowercasedFilter = searchTerm.toLowerCase();
         
         return stocks.filter(item => {
-            const matchesLieu = selectedLieu === 'all' || String(item.lieuStockId) === selectedLieu;
+            // Filtrer par nom de lieu au lieu de l'ID
+            const matchesLieu = selectedLieu === 'all' || item.lieuStockNom === selectedLieu;
+            
             const matchesSearch = item.produitNom.toLowerCase().includes(lowercasedFilter) ||
                                  (item.produitRef && item.produitRef.toLowerCase().includes(lowercasedFilter)) ||
                                  (item.lieuStockNom && item.lieuStockNom.toLowerCase().includes(lowercasedFilter));
             return matchesLieu && matchesSearch;
         });
     }, [searchTerm, stocks, selectedLieu]);
-
     const pageTitle = React.useMemo(() => {
         if (selectedLieu === 'all') {
             return "État du Stock";
         }
-        const lieu = lieuxStock.find(l => String(l.id) === selectedLieu);
-        return `État du Stock - ${lieu?.nom || 'Inconnu'}`;
-    }, [selectedLieu, lieuxStock]);
+        return `État du Stock - ${selectedLieu}`;
+    }, [selectedLieu]);
     
     const isAdmin = React.useMemo(() => {
         if (!currentUser) return false;
@@ -124,12 +124,12 @@ export default function StockPage() {
                     <SelectContent>
                         <SelectItem value="all">Tous les lieux</SelectItem>
                         {lieuxStock.map(lieu => (
-                        <SelectItem key={lieu.id} value={String(lieu.id)}>
-                            {lieu.nom}
-                        </SelectItem>
+                            <SelectItem key={lieu.id} value={lieu.nom}>
+                                {lieu.nom}
+                            </SelectItem>
                         ))}
                     </SelectContent>
-                    </Select>
+                </Select>
                 )}
                 </div>
                 <CardDescription>
