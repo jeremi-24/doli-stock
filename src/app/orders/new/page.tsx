@@ -10,12 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useApp } from '@/context/app-provider';
 import type { LigneCommandePayload, Stock, Commande, Produit } from '@/lib/types';
-import { PlusCircle, Trash2, FileText, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, FileText, Loader2, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 type LignePanier = {
     produitId: number;
@@ -103,6 +106,15 @@ export default function NewOrderPage() {
   const [lignes, setLignes] = useState<LignePanier[]>([]);
   const [selectedProduitId, setSelectedProduitId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
+  const [openCombobox, setOpenCombobox] = useState(false);
+  const [canSelectClient, setCanSelectClient] = useState(false);
+
+  useEffect(() => {
+    if (isMounted && currentUser) {
+      const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
+      setCanSelectClient(adminRoles.includes(currentUser.roleNom));
+    }
+  }, [isMounted, currentUser]);
 
   const availableProducts = useMemo(() => {
     return produits
@@ -110,12 +122,6 @@ export default function NewOrderPage() {
       .filter(p => !lignes.some(ligne => ligne.produitId === p.id));
   }, [produits, lignes]);
   
-  const canSelectClient = useMemo(() => {
-      if (!currentUser || !currentUser.roleNom) return false;
-      const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
-      return adminRoles.includes(currentUser.roleNom);
-  }, [currentUser]);
-
   useEffect(() => {
     if (currentUser && !canSelectClient && currentUser.clientId) {
       setClientId(String(currentUser.clientId));
@@ -241,22 +247,56 @@ export default function NewOrderPage() {
           <div className="space-y-2 pt-4 border-t">
             <Label>3. Ajouter des Produits</Label>
             <div className="flex items-center gap-2">
-              <Select 
-                value={selectedProduitId} 
-                onValueChange={setSelectedProduitId} 
-                disabled={isSaving}
-              >
-                <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un produit" />
-                </SelectTrigger>
-                <SelectContent>
-                    {availableProducts.map(p => 
-                        <SelectItem key={p.id} value={String(p.id)}>
-                            {p.nom} ({p.quantiteTotaleGlobale} en stock)
-                        </SelectItem>
-                    )}
-                </SelectContent>
-              </Select>
+                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openCombobox}
+                            className="w-full justify-between"
+                            disabled={isSaving}
+                        >
+                            {selectedProduitId
+                                ? availableProducts.find(p => String(p.id) === selectedProduitId)?.nom
+                                : "Sélectionner un produit..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                            <CommandInput placeholder="Rechercher un produit..." />
+                            <CommandList>
+                                <CommandEmpty>Aucun produit trouvé.</CommandEmpty>
+                                <CommandGroup>
+                                    {availableProducts.map(p => (
+                                        <CommandItem
+                                            key={p.id}
+                                            value={`${p.nom} ${p.ref}`}
+                                            onSelect={() => {
+                                                setSelectedProduitId(String(p.id));
+                                                setOpenCombobox(false);
+                                            }}
+                                        >
+                                            <Check
+                                                className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    selectedProduitId === String(p.id) ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            <div className="flex justify-between w-full">
+                                                <div>
+                                                    <p className="font-medium">{p.nom}</p>
+                                                    <p className="text-xs text-muted-foreground">{p.ref}</p>
+                                                </div>
+                                                <p className="font-semibold">{formatCurrency(p.prix)}</p>
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
               <Button onClick={handleAddItem} variant="outline" size="icon" aria-label="Ajouter le produit" disabled={isSaving || !selectedProduitId}><PlusCircle className="h-4 w-4" /></Button>
             </div>
           </div>
