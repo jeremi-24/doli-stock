@@ -32,6 +32,20 @@ function DocumentViewer() {
     const invoiceRef = useRef<HTMLDivElement>(null);
     const deliverySlipRef = useRef<HTMLDivElement>(null);
 
+
+
+    const formatDateForFileName = (isoDate: string) => {
+        const date = new Date(isoDate);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+      
+        return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+      };
+      
     const loadDocuments = useCallback(() => {
         if (isMounted) {
             const commandeId = Number(id);
@@ -106,8 +120,8 @@ function DocumentViewer() {
     };
     
     const handlePrintAll = async () => {
-        if (invoiceRef.current && facture) await handlePrint(invoiceRef, `Facture-${facture.idFacture}`);
-        if (deliverySlipRef.current && bonLivraison) await handlePrint(deliverySlipRef, `BL-${bonLivraison.id}`);
+        if (invoiceRef.current && facture) await handlePrint(invoiceRef, `Facture-${facture.idFacture}-${facture.clientNom}-${facture.dateFacture}`);
+        if (deliverySlipRef.current && bonLivraison) await handlePrint(deliverySlipRef, `BL-${bonLivraison.id}-${bonLivraison.dateLivraison}`);
     }
 
 
@@ -160,10 +174,10 @@ function DocumentViewer() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => handlePrint(invoiceRef, `Facture-${facture.idFacture}`)} disabled={isPrinting}>
+                    <Button variant="outline" onClick={() => handlePrint(invoiceRef, `Facture-${facture.idFacture}-${facture.clientNom}-${formatDateForFileName(facture.dateFacture)}`)} disabled={isPrinting}>
                         {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer Facture
                     </Button>
-                    <Button variant="outline" onClick={() => handlePrint(deliverySlipRef, `BL-${bonLivraison.id}`)} disabled={isPrinting}>
+                    <Button variant="outline" onClick={() => handlePrint(deliverySlipRef, `BL-${bonLivraison.id}-${formatDateForFileName(bonLivraison.dateLivraison)}`)} disabled={isPrinting}>
                         {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer BL
                     </Button>
                     <Button onClick={handlePrintAll} disabled={isPrinting}>

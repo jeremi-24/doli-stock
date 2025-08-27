@@ -5,6 +5,7 @@ import type { BonLivraison, Facture, ShopInfo } from '@/lib/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import React from 'react';
+import Image from 'next/image';
 
 export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivraison: BonLivraison, facture: Facture, shopInfo: ShopInfo }>(({ bonLivraison, facture, shopInfo }, ref) => {
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -12,6 +13,15 @@ export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivrai
     return (
         <div ref={ref} className="bg-white text-black p-6 font-mono text-[10px] w-full border border-gray-300">
             <div className="text-center mb-4">
+                <div>
+                <Image 
+    src={shopInfo.logoUrl || '/default-logo.png'} 
+    alt="Logo" 
+    width={100} 
+    height={100} 
+    className="mx-auto mb-2"
+/>
+                </div>
                 <h1 className="text-xl font-bold">{shopInfo.nom || 'MEGA TRAM'}</h1>
                 <p>MECANIQUE GENERALE TRANSPORT ET MANUTENTION</p>
                 <p>BP 228 KEGUE TEL: {shopInfo.telephone || '90 15 56 57 / 22 61 89 96 / 99 08 85 80'}</p>
