@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useApp } from '@/context/app-provider';
-import type { LigneCommandePayload, Stock, Commande, Produit } from '@/lib/types';
+import type { LigneCommandePayload, Stock, Commande, Produit, CommandePayload } from '@/lib/types';
 import { PlusCircle, Trash2, FileText, Loader2, ChevronsUpDown, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -109,19 +109,26 @@ export default function NewOrderPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [openCombobox, setOpenCombobox] = useState(false);
   const [canSelectClient, setCanSelectClient] = useState(false);
+  const [pageIsLoading, setPageIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isMounted && currentUser) {
+    if (isMounted) {
+      setPageIsLoading(false);
+    }
+  }, [isMounted]);
+
+  useEffect(() => {
+    if (!pageIsLoading && currentUser) {
       const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
       setCanSelectClient(adminRoles.includes(currentUser.roleNom));
     }
-  }, [isMounted, currentUser]);
+  }, [pageIsLoading, currentUser]);
 
   useEffect(() => {
-    if (isMounted && currentUser && !canSelectClient && currentUser.clientId) {
+    if (!pageIsLoading && currentUser && !canSelectClient && currentUser.clientId) {
       setClientId(String(currentUser.clientId));
     }
-  }, [isMounted, currentUser, canSelectClient]);
+  }, [pageIsLoading, currentUser, canSelectClient]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -185,12 +192,14 @@ export default function NewOrderPage() {
         qteVoulu: item.qteVoulu,
     }));
     
+    const payload: CommandePayload = {
+      clientId: parseInt(clientId, 10),
+      lieuStockId: parseInt(lieuStockId, 10),
+      lignes: payloadLignes,
+    };
+    
     try {
-        const newCommande = await createCommande({
-            clientId: parseInt(clientId, 10),
-            lieuStockId: parseInt(lieuStockId, 10),
-            lignes: payloadLignes,
-        });
+        const newCommande = await createCommande(payload);
         if (newCommande) {
             router.push('/orders');
         }
@@ -215,7 +224,7 @@ export default function NewOrderPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="client-select">1. Client (Demandeur)</Label>
-              {!isMounted ? (
+              {pageIsLoading ? (
                  <Skeleton className="h-10 w-full" />
               ) : (
                 <Select value={clientId} onValueChange={setClientId} disabled={isSaving || !canSelectClient}>
@@ -238,14 +247,18 @@ export default function NewOrderPage() {
             </div>
             <div className="space-y-2">
                <Label htmlFor="lieu-select">2. Lieu de Livraison (Stock)</Label>
-               <Select value={lieuStockId} onValueChange={setLieuStockId} disabled={isSaving}>
-                  <SelectTrigger id="lieu-select">
-                    <SelectValue placeholder="Sélectionner un lieu" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+               {pageIsLoading ? (
+                  <Skeleton className="h-10 w-full" />
+               ) : (
+                  <Select value={lieuStockId} onValueChange={setLieuStockId} disabled={isSaving}>
+                    <SelectTrigger id="lieu-select">
+                      <SelectValue placeholder="Sélectionner un lieu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+               )}
             </div>
           </div>
           
@@ -262,7 +275,7 @@ export default function NewOrderPage() {
                             disabled={isSaving}
                         >
                             {selectedProduitId
-                                ? availableProducts.find(p => String(p.id) === selectedProduitId)?.nom
+                                ? produits.find(p => String(p.id) === selectedProduitId)?.nom
                                 : "Sélectionner un produit..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -276,7 +289,7 @@ export default function NewOrderPage() {
                                     {availableProducts.map(p => (
                                         <CommandItem
                                             key={p.id}
-                                            value={`${p.nom} ${p.ref}`}
+                                            value={`${p.ref} ${p.nom}`}
                                             onSelect={() => {
                                                 setSelectedProduitId(String(p.id));
                                                 setOpenCombobox(false);
@@ -288,12 +301,12 @@ export default function NewOrderPage() {
                                                     selectedProduitId === String(p.id) ? "opacity-100" : "opacity-0"
                                                 )}
                                             />
-                                            <div className="flex justify-between w-full">
+                                            <div className="flex justify-between w-full items-center">
                                                 <div>
-                                                    <p className="font-medium">{p.nom}</p>
-                                                    <p className="text-xs text-muted-foreground">{p.ref}</p>
+                                                    <p className="font-semibold">{p.ref}</p>
+                                                    <p className="text-xs text-muted-foreground">{p.nom}</p>
                                                 </div>
-                                                <p className="font-semibold">{formatCurrency(p.prix)}</p>
+                                                <p className="text-sm font-mono">{formatCurrency(p.prix)}</p>
                                             </div>
                                         </CommandItem>
                                     ))}
@@ -376,3 +389,5 @@ export default function NewOrderPage() {
     </div>
   );
 }
+
+    
