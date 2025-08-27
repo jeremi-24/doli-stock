@@ -304,7 +304,7 @@ export default function NewOrderPage() {
                                             <div className="flex justify-between w-full items-center">
                                                 <div>
                                                     <p className="font-semibold">{p.ref}</p>
-                                                    <p className="text-xs text-muted-foreground">{p.nom}</p>
+                                                    <p className="text-xs">{p.nom}</p>
                                                 </div>
                                                 <p className="text-sm font-mono">{formatCurrency(p.prix)}</p>
                                             </div>
