@@ -19,6 +19,7 @@ import { fr } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type LignePanier = {
     produitId: number;
@@ -102,7 +103,7 @@ export default function NewOrderPage() {
   const router = useRouter();
   
   const [clientId, setClientId] = useState<string | undefined>(undefined);
-  const [lieuLivraisonId, setLieuLivraisonId] = useState<string | undefined>(undefined);
+  const [lieuStockId, setLieuStockId] = useState<string | undefined>(undefined);
   const [lignes, setLignes] = useState<LignePanier[]>([]);
   const [selectedProduitId, setSelectedProduitId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
@@ -116,17 +117,11 @@ export default function NewOrderPage() {
     }
   }, [isMounted, currentUser]);
 
-  const availableProducts = useMemo(() => {
-    return produits
-      .filter(p => (p.quantiteTotaleGlobale ?? 0) > 0)
-      .filter(p => !lignes.some(ligne => ligne.produitId === p.id));
-  }, [produits, lignes]);
-  
   useEffect(() => {
-    if (currentUser && !canSelectClient && currentUser.clientId) {
+    if (isMounted && currentUser && !canSelectClient && currentUser.clientId) {
       setClientId(String(currentUser.clientId));
     }
-  }, [currentUser, canSelectClient]);
+  }, [isMounted, currentUser, canSelectClient]);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -173,9 +168,15 @@ export default function NewOrderPage() {
 
   const total = useMemo(() => lignes.reduce((acc, item) => acc + (item.prix * item.qteVoulu), 0), [lignes]);
 
+  const availableProducts = useMemo(() => {
+    return produits
+      .filter(p => (p.quantiteTotaleGlobale ?? 0) > 0)
+      .filter(p => !lignes.some(ligne => ligne.produitId === p.id));
+  }, [produits, lignes]);
+
   const handleCreateOrder = async () => {
     if (!clientId) { toast({ variant: "destructive", title: "Veuillez sélectionner un client" }); return; }
-    if (!lieuLivraisonId) { toast({ variant: "destructive", title: "Veuillez sélectionner un lieu de livraison" }); return; }
+    if (!lieuStockId) { toast({ variant: "destructive", title: "Veuillez sélectionner un lieu de livraison" }); return; }
     if (lignes.length === 0) { toast({ variant: "destructive", title: "Aucun article dans la commande" }); return; }
 
     setIsSaving(true);
@@ -187,7 +188,7 @@ export default function NewOrderPage() {
     try {
         const newCommande = await createCommande({
             clientId: parseInt(clientId, 10),
-            lieuLivraisonId: parseInt(lieuLivraisonId, 10),
+            lieuStockId: parseInt(lieuStockId, 10),
             lignes: payloadLignes,
         });
         if (newCommande) {
@@ -214,26 +215,30 @@ export default function NewOrderPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="client-select">1. Client (Demandeur)</Label>
-               <Select value={clientId} onValueChange={setClientId} disabled={isSaving || !canSelectClient}>
-                  <SelectTrigger id="client-select">
-                    <SelectValue placeholder="Sélectionner un client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                   {canSelectClient ? (
-                        clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)
-                    ) : (
-                      clientId && (
-                        <SelectItem value={String(clientId)}>
-                          {clients.find(c => c.id === Number(clientId))?.nom || currentUser?.email}
-                        </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
+              {!isMounted ? (
+                 <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select value={clientId} onValueChange={setClientId} disabled={isSaving || !canSelectClient}>
+                    <SelectTrigger id="client-select">
+                      <SelectValue placeholder="Sélectionner un client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    {canSelectClient ? (
+                          clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)
+                      ) : (
+                        clientId && (
+                          <SelectItem value={String(clientId)}>
+                            {clients.find(c => c.id === Number(clientId))?.nom || currentUser?.email}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+              )}
             </div>
             <div className="space-y-2">
                <Label htmlFor="lieu-select">2. Lieu de Livraison (Stock)</Label>
-               <Select value={lieuLivraisonId} onValueChange={setLieuLivraisonId} disabled={isSaving}>
+               <Select value={lieuStockId} onValueChange={setLieuStockId} disabled={isSaving}>
                   <SelectTrigger id="lieu-select">
                     <SelectValue placeholder="Sélectionner un lieu" />
                   </SelectTrigger>
@@ -350,7 +355,7 @@ export default function NewOrderPage() {
             <Button variant="ghost" onClick={() => router.push('/orders')} disabled={isSaving}>Annuler</Button>
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button disabled={lignes.length === 0 || !clientId || !lieuLivraisonId || isSaving}>
+                    <Button disabled={lignes.length === 0 || !clientId || !lieuStockId || isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Créer la Commande
                     </Button>
@@ -359,7 +364,7 @@ export default function NewOrderPage() {
                     <ConfirmationDialog 
                         commande={{ lignes, total }}
                         clientNom={clients.find(c => c.id === Number(clientId))?.nom}
-                        lieuNom={lieuxStock.find(l => l.id === Number(lieuLivraisonId))?.nom}
+                        lieuNom={lieuxStock.find(l => l.id === Number(lieuStockId))?.nom}
                         onConfirm={handleCreateOrder}
                         isSaving={isSaving}
                     />

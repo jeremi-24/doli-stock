@@ -227,7 +227,7 @@ export type LigneCommandePayload = {
 
 export type CommandePayload = {
   clientId: number;
-  lieuLivraisonId: number;
+  lieuStockId: number;
   lignes: LigneCommandePayload[];
 };
 
@@ -359,5 +359,3 @@ export type FactureModele = {
   footer?: string;
   color?: string;
 };
-
-    
