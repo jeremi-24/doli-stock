@@ -5,7 +5,6 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
@@ -350,12 +349,22 @@ export default function POSPage() {
   return (
     <div className="flex flex-1 h-screen overflow-hidden">
       <div className="flex-1 p-4 md:p-6 flex flex-col">
-        <div className="flex items-center gap-4 mb-4 pt-10 md:pt-0">
+        <div className="flex flex-wrap items-center gap-4 mb-4 pt-10 md:pt-0">
           <h1 className="font-headline text-3xl font-semibold">Point de Vente</h1>
-           <div className="relative ml-auto flex-1 md:grow-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input type="search" placeholder="Rechercher un produit..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
-          </div>
+           <div className="flex-1 flex gap-4 min-w-[300px]">
+             <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input type="search" placeholder="Rechercher un produit..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8"/>
+             </div>
+             <Select value={activeTab} onValueChange={setActiveTab}>
+                <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                    {displayCategories.map(category => (<SelectItem key={category} value={category}>{category}</SelectItem>))}
+                </SelectContent>
+             </Select>
+           </div>
         </div>
 
         <Card className="mb-4">
@@ -387,51 +396,46 @@ export default function POSPage() {
             </CardContent>
         </Card>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mb-4 shrink-0 flex-wrap h-auto justify-start">
-            {displayCategories.map(category => (<TabsTrigger key={category} value={category}>{category}</TabsTrigger>))}
-          </TabsList>
-          <TabsContent value={activeTab} className="mt-0 flex-1 min-h-0">
-              <ScrollArea className="h-full">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pr-4">
-                      {filteredProducts.map(produit => {
-                        const stock = produit.quantiteTotaleGlobale ?? 0;
-                        const isOutOfStock = stock <= 0;
-                        return (
-                          <Card 
-                            key={produit.id} 
-                            className={cn(
-                                "overflow-hidden flex flex-col group",
-                                isOutOfStock && "bg-muted/50"
-                            )} 
-                          >
-                            <div className="aspect-[4/3] bg-muted flex items-center justify-center relative overflow-hidden">
-                                <PackagePlus className="w-16 h-16 text-muted-foreground/50 transition-transform duration-300 group-hover:scale-110" />
-                                <div className="absolute top-2 right-2">
-                                  <StockBadge qte={stock} qteMin={produit.qteMin || 5} />
-                                </div>
+        <div className="flex-1 flex flex-col min-h-0">
+          <ScrollArea className="h-full">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pr-4">
+                  {filteredProducts.map(produit => {
+                    const stock = produit.quantiteTotaleGlobale ?? 0;
+                    const isOutOfStock = stock <= 0;
+                    return (
+                      <Card 
+                        key={produit.id} 
+                        className={cn(
+                            "overflow-hidden flex flex-col group",
+                            isOutOfStock && "bg-muted/50"
+                        )} 
+                      >
+                        <div className="aspect-[4/3] bg-muted flex items-center justify-center relative overflow-hidden">
+                            <PackagePlus className="w-16 h-16 text-muted-foreground/50 transition-transform duration-300 group-hover:scale-110" />
+                            <div className="absolute top-2 right-2">
+                              <StockBadge qte={stock} qteMin={produit.qteMin || 5} />
                             </div>
-                            <div className="p-3 flex-1 flex flex-col justify-between">
-                                <div>
-                                    <h3 className={cn("font-semibold truncate text-base", isOutOfStock && "text-muted-foreground")}>{produit.nom}</h3>
-                                </div>
-                                <p className={cn("text-base font-bold mt-2", isOutOfStock ? "text-muted-foreground" : "text-primary")}>
-                                    {formatCurrency(produit.prix || 0)}
-                                </p>
+                        </div>
+                        <div className="p-3 flex-1 flex flex-col justify-between">
+                            <div>
+                                <h3 className={cn("font-semibold truncate text-base", isOutOfStock && "text-muted-foreground")}>{produit.nom}</h3>
                             </div>
-                             <div className="flex border-t">
-                                <Button variant="ghost" className="rounded-none rounded-bl-md flex-1" onClick={() => handleAddToCart(produit, 'UNITE')} disabled={isOutOfStock}>Unité</Button>
-                                <div className="border-l"/>
-                                <Button variant="ghost" className="rounded-none rounded-br-md flex-1" onClick={() => handleAddToCart(produit, 'CARTON')} disabled={isOutOfStock || !produit.prixCarton}>Carton</Button>
-                            </div>
-                          </Card>
-                        )
-                      })}
-                      {filteredProducts.length === 0 && (<div className="col-span-full text-center text-muted-foreground py-10"><p>Aucun produit trouvé.</p></div>)}
-                  </div>
-              </ScrollArea>
-          </TabsContent>
-        </Tabs>
+                            <p className={cn("text-base font-bold mt-2", isOutOfStock ? "text-muted-foreground" : "text-primary")}>
+                                {formatCurrency(produit.prix || 0)}
+                            </p>
+                        </div>
+                         <div className="flex border-t">
+                            <Button variant="ghost" className="rounded-none rounded-bl-md flex-1" onClick={() => handleAddToCart(produit, 'UNITE')} disabled={isOutOfStock}>Unité</Button>
+                            <div className="border-l"/>
+                            <Button variant="ghost" className="rounded-none rounded-br-md flex-1" onClick={() => handleAddToCart(produit, 'CARTON')} disabled={isOutOfStock || !produit.prixCarton}>Carton</Button>
+                        </div>
+                      </Card>
+                    )
+                  })}
+                  {filteredProducts.length === 0 && (<div className="col-span-full text-center text-muted-foreground py-10"><p>Aucun produit trouvé.</p></div>)}
+              </div>
+          </ScrollArea>
+        </div>
       </div>
 
       <div className="w-[380px] border-l bg-card flex flex-col h-full">
