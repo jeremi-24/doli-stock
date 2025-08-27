@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,74 +98,56 @@ function StockLocationStats() {
   };
 
   const locationStats = useMemo(() => {
-      // Ne pas calculer si l'app n'est pas encore montée ou si les données ne sont pas chargées
-      if (!isMounted || !lieuxStock.length || !stocks.length || !produits.length) {
-          return [];
-      }
-
-      const productMap = new Map(produits.map(p => [p.id, p]));
-      
-      return lieuxStock.map(lieu => {
-          // Filtrer par nom du lieu au lieu de l'ID
-          const locationStocks = stocks.filter(stock => stock.lieuStockNom === lieu.nom);
-          
-          const stockValue = locationStocks.reduce((sum, stock) => {
-              // Trouver le produit par référence au lieu de l'ID
-              const product = produits.find(p => p.ref === stock.produitRef);
-              if (!product) {
-                  console.warn(`Produit non trouvé pour ref: ${stock.produitRef}`);
-                  return sum;
-              }
-              
-              // Calculer la quantité totale (cartons + unités restantes)
-              const quantiteTotale = (stock.qteCartons * product.qteParCarton) + stock.qteUnitesRestantes;
-              return sum + (quantiteTotale * product.prix);
-          }, 0);
-          
-          const lowStockCount = locationStocks.filter(stock => {
-              const product = produits.find(p => p.ref === stock.produitRef);
-              if (!product) return false;
-              
-              const quantiteTotale = (stock.qteCartons * product.qteParCarton) + stock.qteUnitesRestantes;
-              return quantiteTotale > 0 && quantiteTotale <= product.qteMin;
-          }).length;
-
-          return {
-              ...lieu,
-              uniqueProducts: locationStocks.length,
-              stockValue,
-              lowStockCount
-          };
-      });
+    if (!isMounted || !lieuxStock.length || !stocks.length || !produits.length) {
+        return [];
+    }
+  
+    const productMap = new Map(produits.map(p => [p.id, p]));
+  
+    return lieuxStock.map(lieu => {
+        const locationStocks = stocks.filter(stock => stock.lieuStockNom === lieu.nom);
+        
+        const stockValue = locationStocks.reduce((sum, stock) => {
+            const product = produits.find(p => p.id === stock.produitId);
+            if (!product || !product.prix) {
+                return sum;
+            }
+            return sum + (stock.quantiteTotale * product.prix);
+        }, 0);
+        
+        const lowStockCount = locationStocks.filter(stock => {
+            const product = produits.find(p => p.id === stock.produitId);
+            if (!product) return false;
+            
+            return stock.quantiteTotale > 0 && stock.quantiteTotale <= (product.qteMin || 0);
+        }).length;
+  
+        return {
+            ...lieu,
+            uniqueProducts: locationStocks.length,
+            stockValue,
+            lowStockCount
+        };
+    });
   }, [lieuxStock, stocks, produits, isMounted]);
 
-  // Afficher un skeleton pendant le chargement
-  if (!isMounted || !lieuxStock.length || !stocks.length || !produits.length) {
+  if (!isMounted) {
       return (
           <div className="space-y-4">
-              <div className="h-8 w-64 bg-gray-200 rounded animate-pulse"></div>
+              <Skeleton className="h-8 w-64" />
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {[1, 2, 3].map(i => (
                       <Card key={i}>
                           <CardHeader>
-                              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+                              <Skeleton className="h-6 w-32" />
                           </CardHeader>
                           <CardContent className="space-y-3">
-                              <div className="flex justify-between">
-                                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
-                                  <div className="h-4 w-16 bg-gray-200 rounded animate-pulse"></div>
-                              </div>
-                              <div className="flex justify-between">
-                                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-                                  <div className="h-4 w-8 bg-gray-200 rounded animate-pulse"></div>
-                              </div>
-                              <div className="flex justify-between">
-                                  <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
-                                  <div className="h-4 w-8 bg-gray-200 rounded animate-pulse"></div>
-                              </div>
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-4 w-full" />
                           </CardContent>
                           <CardFooter>
-                              <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+                              <Skeleton className="h-8 w-24" />
                           </CardFooter>
                       </Card>
                   ))}
@@ -173,17 +155,9 @@ function StockLocationStats() {
           </div>
       );
   }
-
-  // Ne pas afficher si pas de statistiques après chargement
+  
   if (!locationStats.length) {
-      return (
-          <div className="space-y-4">
-              <h2 className="font-headline text-2xl font-semibold">Performance par Lieu de Stock</h2>
-              <div className="text-center py-8 text-muted-foreground">
-                  Aucune donnée de stock disponible pour les lieux configurés.
-              </div>
-          </div>
-      );
+      return null;
   }
 
   return (
@@ -215,7 +189,7 @@ function StockLocationStats() {
                          </div>
                       </CardContent>
                       <CardFooter>
-                          <Button variant="outline" size="sm" onClick={() => router.push(`/stock?lieu=${lieu.id}`)}>
+                          <Button variant="outline" size="sm" onClick={() => router.push(`/stock?lieu=${lieu.nom}`)}>
                               <Eye className="mr-2 h-4 w-4" />
                               Voir le détail
                           </Button>
@@ -236,7 +210,7 @@ export default function DashboardPage() {
 
   const showAdminView = useMemo(() => hasPermission('REPORT_VIEW'), [hasPermission]);
   
-  if (!isMounted || !produits || !factures) {
+  if (!isMounted) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <Skeleton className="h-8 w-48" />
