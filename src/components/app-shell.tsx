@@ -169,6 +169,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <LayoutDashboard />,
       label: 'Tableau de Bord',
       active: pathname === '/',
+      permission: 'PRODUIT_READ',
     },
     {
       href: '/stock',
