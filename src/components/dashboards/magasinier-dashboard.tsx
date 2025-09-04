@@ -12,6 +12,7 @@ import { useApp } from "@/context/app-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import * as api from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { Produit } from "@/lib/types";
 
 function BarcodeScannerCard() {
     const [barcode, setBarcode] = useState("");
@@ -98,7 +99,7 @@ export function MagasinierDashboard() {
     }
     
     const localStocks = stocks.filter(s => s.lieuStockNom === currentUser.lieuNom);
-    const productMap = new Map(produits.map(p => [p.id, p]));
+    const productMap = new Map<string, Produit>(produits.map(p => [p.ref, p]));
 
     let stockValue = 0;
     let lowStockCount = 0;
@@ -106,7 +107,7 @@ export function MagasinierDashboard() {
     const lowStockProducts: { nom: string, stock: number, seuil: number }[] = [];
 
     localStocks.forEach(stock => {
-        const product = productMap.get(stock.produitId);
+        const product = productMap.get(stock.produitRef);
         if (product) {
             const totalUnits = (stock.qteCartons || 0) * (product.qteParCarton || 1) + (stock.qteUnitesRestantes || 0);
             
