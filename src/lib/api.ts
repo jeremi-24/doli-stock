@@ -370,7 +370,7 @@ export async function getCommandesByClientId(clientId: number): Promise<Commande
     return apiFetch(`/commandes/client/${clientId}`);
 }
 export async function getCommandesByLieuStockNom(lieuNom: string): Promise<Commande[]> {
-    return apiFetch(`/commandes/lieuStock/search?lieuNom=${encodeURIComponent(lieuNom)}`);
+    return apiFetch(`/commandes/lieuStock/search?nom=${encodeURIComponent(lieuNom)}`);
 }
 export async function createCommande(data: CommandePayload): Promise<Commande> {
     return apiFetch('/commandes', { method: 'POST', body: JSON.stringify(data) });
