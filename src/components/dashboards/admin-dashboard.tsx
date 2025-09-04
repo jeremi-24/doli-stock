@@ -225,7 +225,7 @@ export function AdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalStockValue)}</div>
+            <div className="text-2xl break-words font-bold">{formatCurrency(totalStockValue)}</div>
             <p className="text-xs text-muted-foreground">{totalProducts} produits uniques en stock</p>
           </CardContent>
         </Card>
