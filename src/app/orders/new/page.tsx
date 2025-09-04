@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useApp } from '@/context/app-provider';
 import type { LigneCommandePayload, Stock, Commande, Produit, CommandePayload } from '@/lib/types';
 import { PlusCircle, Trash2, FileText, Loader2, ChevronsUpDown, Check, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -57,7 +57,7 @@ function ConfirmationDialog({
             <div className="max-h-[60vh] overflow-y-auto p-1">
                 <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                     <div><strong>Client:</strong> {clientNom || 'N/A'}</div>
-                    <div><strong>Lieu de Livraison:</strong> {lieuNom || 'N/A'}</div>
+                    <div><strong>Lieu de Stock:</strong> {lieuNom || 'N/A'}</div>
                 </div>
                 <div className="border rounded-lg">
                     <Table>
@@ -138,7 +138,7 @@ export default function NewOrderPage() {
   const handleAddItem = () => {
     if (!selectedProduitId) return;
     const produitInfo = produits.find(p => p.id === parseInt(selectedProduitId, 10));
-
+    
     if (produitInfo) {
       const stockDisponible = produitInfo.quantiteTotaleGlobale ?? 0;
       const newLigne: LignePanier = {
@@ -176,7 +176,7 @@ export default function NewOrderPage() {
 
   const handleCreateOrder = async () => {
     if (!clientId) { toast({ variant: "destructive", title: "Veuillez sélectionner un client" }); return; }
-    if (!lieuStockId) { toast({ variant: "destructive", title: "Veuillez sélectionner un lieu de livraison" }); return; }
+    if (!lieuStockId) { toast({ variant: "destructive", title: "Veuillez sélectionner un lieu de stock" }); return; }
     if (lignes.length === 0) { toast({ variant: "destructive", title: "Aucun article dans la commande" }); return; }
 
     setIsSaving(true);
@@ -241,33 +241,37 @@ export default function NewOrderPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="client-select">1. Client (Demandeur)</Label>
-                        <Select value={clientId} onValueChange={setClientId} disabled={isSaving || !canSelectClient}>
-                            <SelectTrigger id="client-select">
-                                <SelectValue placeholder="Sélectionner un client" />
-                            </SelectTrigger>
-                            <SelectContent>
-                            {canSelectClient ? (
-                                clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)
-                            ) : (
-                                clientId && (
-                                <SelectItem value={String(clientId)}>
-                                    {clients.find(c => c.id === Number(clientId))?.nom || currentUser?.email}
-                                </SelectItem>
-                                )
-                            )}
-                            </SelectContent>
-                        </Select>
+                         {pageIsReady && (
+                            <Select value={clientId} onValueChange={setClientId} disabled={isSaving || !canSelectClient}>
+                                <SelectTrigger id="client-select">
+                                    <SelectValue placeholder="Sélectionner un client" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                {canSelectClient ? (
+                                    clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)
+                                ) : (
+                                    clientId && (
+                                    <SelectItem value={String(clientId)}>
+                                        {clients.find(c => c.id === Number(clientId))?.nom || currentUser?.email}
+                                    </SelectItem>
+                                    )
+                                )}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
                     <div className="space-y-2">
-                    <Label htmlFor="lieu-select">2. Lieu de Livraison (Stock)</Label>
-                        <Select value={lieuStockId} onValueChange={setLieuStockId} disabled={isSaving}>
-                            <SelectTrigger id="lieu-select">
-                                <SelectValue placeholder="Sélectionner un lieu" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                    <Label htmlFor="lieu-select">2. Lieu de Stock</Label>
+                       {pageIsReady && (
+                           <Select value={lieuStockId} onValueChange={setLieuStockId} disabled={isSaving}>
+                               <SelectTrigger id="lieu-select">
+                                   <SelectValue placeholder="Sélectionner un lieu" />
+                               </SelectTrigger>
+                               <SelectContent>
+                                   {lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}
+                               </SelectContent>
+                           </Select>
+                       )}
                     </div>
                 </div>
                 
@@ -284,7 +288,7 @@ export default function NewOrderPage() {
                                     disabled={isSaving}
                                 >
                                     {selectedProduitId
-                                        ? availableProducts.find(p => String(p.id) === selectedProduitId)?.nom
+                                        ? produits.find(p => String(p.id) === selectedProduitId)?.ref
                                         : "Sélectionner un produit..."}
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
