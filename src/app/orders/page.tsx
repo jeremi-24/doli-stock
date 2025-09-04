@@ -66,13 +66,22 @@ export default function OrdersPage() {
     const canGenerateBL = React.useMemo(() => hasPermission('LIVRAISON_GENERATE'), [hasPermission]);
     const canCreateOrder = React.useMemo(() => hasPermission('COMMANDE_CREATE'), [hasPermission]);
 
+    const pageTitle = React.useMemo(() => {
+        if (!currentUser) return "Commandes";
+        const role = currentUser.roleNom;
+        if (role === 'MAGASINIER') {
+            return `Commandes pour ${currentUser.lieuNom || 'votre lieu'}`;
+        }
+        if (['ADMIN', 'DG', 'SECRETARIAT', 'CONTROLLEUR'].includes(role)) {
+            return "Toutes les commandes";
+        }
+        return "Vos commandes";
+    }, [currentUser]);
+
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center gap-4">
-                <h1 className="font-headline text-3xl font-semibold"> {['ADMIN', 'DG', 'SECRETARIAT', 'CONTROLLEUR'].includes(currentUser?.roleNom!) 
-        ? "Toutes les commandes" 
-        : "Vos commandes"
-    }</h1>
+                <h1 className="font-headline text-3xl font-semibold">{pageTitle}</h1>
                 <div className="ml-auto">
                     {canCreateOrder && (
                         <Button size="sm" onClick={() => router.push('/orders/new')}>

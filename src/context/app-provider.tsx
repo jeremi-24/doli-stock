@@ -141,8 +141,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let fetchCommandesPromise;
     if (adminOrControlRoles.includes(currentUser.roleNom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
+    } else if (currentUser.roleNom === 'MAGASINIER' && currentUser.lieuNom) {
+        fetchCommandesPromise = api.getCommandesByLieuStockNom(currentUser.lieuNom).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes par lieu'));
     } else if (currentUser.clientId) {
         fetchCommandesPromise = api.getCommandesByClientId(currentUser.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes Client'));
+    } else {
+        fetchCommandesPromise = Promise.resolve(setCommandes([]));
     }
 
     let fetchLivraisonsPromise;
