@@ -108,14 +108,17 @@ export function MagasinierDashboard() {
     localStocks.forEach(stock => {
         const product = productMap.get(stock.produitId);
         if (product) {
-            stockValue += (product.prix || 0) * stock.quantiteTotale;
-            if (stock.quantiteTotale === 0) {
+            const totalUnits = (stock.qteCartons || 0) * (product.qteParCarton || 1) + (stock.qteUnitesRestantes || 0);
+            
+            stockValue += (product.prix || 0) * totalUnits;
+            
+            if (totalUnits === 0) {
                 outOfStockCount++;
-            } else if (stock.quantiteTotale <= (product.qteMin || 0)) {
+            } else if (totalUnits <= (product.qteMin || 0)) {
                 lowStockCount++;
                 lowStockProducts.push({
                     nom: product.nom,
-                    stock: stock.quantiteTotale,
+                    stock: totalUnits,
                     seuil: product.qteMin || 0
                 });
             }
