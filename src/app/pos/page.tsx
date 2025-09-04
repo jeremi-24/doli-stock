@@ -419,6 +419,7 @@ export default function POSPage() {
                         <div className="p-3 flex-1 flex flex-col justify-between">
                             <div>
                                 <h3 className={cn("font-semibold truncate text-base", isOutOfStock && "text-muted-foreground")}>{produit.nom}</h3>
+                                <h3 className={cn("font-semibold truncate text-base", isOutOfStock && "text-muted-foreground")}>{produit.ref}</h3>
                             </div>
                             <p className={cn("text-base font-bold mt-2", isOutOfStock ? "text-muted-foreground" : "text-primary")}>
                                 {formatCurrency(produit.prix || 0)}
