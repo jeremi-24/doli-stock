@@ -108,28 +108,22 @@ export default function NewOrderPage() {
   const [selectedProduitId, setSelectedProduitId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [openCombobox, setOpenCombobox] = useState(false);
-  const [canSelectClient, setCanSelectClient] = useState(false);
-  const [pageIsLoading, setPageIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isMounted) {
-      setPageIsLoading(false);
-    }
-  }, [isMounted]);
-
-  useEffect(() => {
-    if (!pageIsLoading && currentUser) {
+    if (isMounted && currentUser) {
       const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
-      setCanSelectClient(adminRoles.includes(currentUser.roleNom));
+      if (!adminRoles.includes(currentUser.roleNom) && currentUser.clientId) {
+        setClientId(String(currentUser.clientId));
+      }
     }
-  }, [pageIsLoading, currentUser]);
-
-  useEffect(() => {
-    if (!pageIsLoading && currentUser && !canSelectClient && currentUser.clientId) {
-      setClientId(String(currentUser.clientId));
-    }
-  }, [pageIsLoading, currentUser, canSelectClient]);
+  }, [isMounted, currentUser]);
   
+  const canSelectClient = useMemo(() => {
+    if (!isMounted || !currentUser) return false;
+    const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
+    return adminRoles.includes(currentUser.roleNom);
+  }, [isMounted, currentUser]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   };
@@ -139,11 +133,8 @@ export default function NewOrderPage() {
     const produitInfo = produits.find(p => p.id === parseInt(selectedProduitId, 10));
 
     if (produitInfo) {
+      // Don't check stock here as per new requirement
       const stockDisponible = produitInfo.quantiteTotaleGlobale ?? 0;
-      if (stockDisponible <= 0) {
-        toast({ title: "Rupture de stock", variant: "destructive", description: "Ce produit n'est pas disponible." });
-        return;
-      }
       const newLigne: LignePanier = {
         produitId: produitInfo.id,
         produitNom: produitInfo.nom,
@@ -164,7 +155,7 @@ export default function NewOrderPage() {
     const ligne = lignes.find(l => l.produitId === produitId);
     if (ligne && quantity > ligne.stockDisponible) {
       toast({ title: "Limite de stock dépassée", variant: "destructive", description: `Stock disponible: ${ligne.stockDisponible}` });
-      return;
+      // Ne pas bloquer la saisie, juste informer
     }
     if (quantity < 1) {
       handleRemoveItem(produitId);
@@ -177,7 +168,6 @@ export default function NewOrderPage() {
 
   const availableProducts = useMemo(() => {
     return produits
-      .filter(p => (p.quantiteTotaleGlobale ?? 0) > 0)
       .filter(p => !lignes.some(ligne => ligne.produitId === p.id));
   }, [produits, lignes]);
 
@@ -210,6 +200,28 @@ export default function NewOrderPage() {
     }
   };
 
+  if (!isMounted) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <Skeleton className="h-8 w-64" />
+        <Card>
+          <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </CardContent>
+          <CardFooter>
+            <Skeleton className="h-10 w-32 ml-auto" />
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex items-center">
@@ -224,41 +236,33 @@ export default function NewOrderPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="client-select">1. Client (Demandeur)</Label>
-              {pageIsLoading ? (
-                 <Skeleton className="h-10 w-full" />
-              ) : (
-                <Select value={clientId} onValueChange={setClientId} disabled={isSaving || !canSelectClient}>
-                    <SelectTrigger id="client-select">
-                      <SelectValue placeholder="Sélectionner un client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    {canSelectClient ? (
-                          clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)
-                      ) : (
-                        clientId && (
-                          <SelectItem value={String(clientId)}>
-                            {clients.find(c => c.id === Number(clientId))?.nom || currentUser?.email}
-                          </SelectItem>
-                        )
-                      )}
-                    </SelectContent>
-                  </Select>
-              )}
+              <Select value={clientId} onValueChange={setClientId} disabled={isSaving || !canSelectClient}>
+                  <SelectTrigger id="client-select">
+                    <SelectValue placeholder="Sélectionner un client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                  {canSelectClient ? (
+                        clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.nom}</SelectItem>)
+                    ) : (
+                      clientId && (
+                        <SelectItem value={String(clientId)}>
+                          {clients.find(c => c.id === Number(clientId))?.nom || currentUser?.email}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
             </div>
             <div className="space-y-2">
                <Label htmlFor="lieu-select">2. Lieu de Livraison (Stock)</Label>
-               {pageIsLoading ? (
-                  <Skeleton className="h-10 w-full" />
-               ) : (
-                  <Select value={lieuStockId} onValueChange={setLieuStockId} disabled={isSaving}>
-                    <SelectTrigger id="lieu-select">
-                      <SelectValue placeholder="Sélectionner un lieu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-               )}
+               <Select value={lieuStockId} onValueChange={setLieuStockId} disabled={isSaving}>
+                  <SelectTrigger id="lieu-select">
+                    <SelectValue placeholder="Sélectionner un lieu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lieuxStock.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.nom}</SelectItem>)}
+                  </SelectContent>
+                </Select>
             </div>
           </div>
           
@@ -340,7 +344,6 @@ export default function NewOrderPage() {
                         value={item.qteVoulu} 
                         onChange={(e) => handleQuantityChange(item.produitId, parseInt(e.target.value))} 
                         min="1" 
-                        max={item.stockDisponible} 
                         className="h-8 w-24" 
                         disabled={isSaving}
                       />
@@ -389,5 +392,3 @@ export default function NewOrderPage() {
     </div>
   );
 }
-
-    
