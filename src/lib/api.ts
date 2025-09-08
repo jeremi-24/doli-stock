@@ -275,6 +275,11 @@ export async function exportStockByLieu(lieuId: number): Promise<void> {
   return Promise.resolve();
 }
 
+export async function corrigerStock(produitId: number, lieuStockId: number, nouvelleQuantite: number): Promise<Stock> {
+    const url = `/stocks/corriger?produitId=${produitId}&lieuStockId=${lieuStockId}&nouvelleQuantite=${nouvelleQuantite}`;
+    return apiFetch(url, { method: 'POST' });
+}
+
 
 // ========== Ventes (POS) API ==========
 export async function getVentes(): Promise<Vente[]> {
@@ -437,5 +442,3 @@ export async function deleteFactureModele(id: string): Promise<any> {
     return apiFetch(`/facture-modeles/${id}`, { method: 'DELETE' });
 }
 */
-
-    

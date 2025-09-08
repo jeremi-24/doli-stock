@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/app-provider";
-import { Warehouse, Search, Loader2 } from "lucide-react";
+import { Warehouse, Search, Loader2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { Stock } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -20,10 +20,83 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import * as api from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSearchParams } from "next/navigation";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
+
+function CorrectionDialog({ 
+    stockItem, 
+    open, 
+    onOpenChange, 
+    onConfirm 
+} : {
+    stockItem: Stock | null,
+    open: boolean,
+    onOpenChange: (open: boolean) => void,
+    onConfirm: (nouvelleQuantite: number) => void
+}) {
+    const [newQuantity, setNewQuantity] = React.useState<number>(0);
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        if (stockItem) {
+            setNewQuantity(stockItem.quantiteTotale);
+        }
+    }, [stockItem]);
+
+    const handleConfirm = async () => {
+        setIsLoading(true);
+        try {
+            await onConfirm(newQuantity);
+            onOpenChange(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    if (!stockItem) return null;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Correction de stock pour "{stockItem.produitNom}"</DialogTitle>
+                    <DialogDescription>Lieu de stock: {stockItem.lieuStockNom}</DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-2 gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Quantité Actuelle</Label>
+                        <div className="p-2 border rounded-md bg-muted">
+                            <p>Cartons: <span className="font-bold">{stockItem.qteCartons}</span></p>
+                            <p>Unités: <span className="font-bold">{stockItem.qteUnitesRestantes}</span></p>
+                            <p className="font-bold text-lg mt-2">Total: {stockItem.quantiteTotale} Unités</p>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="newQuantity">Nouvelle Quantité Totale (en unités)</Label>
+                        <Input
+                            id="newQuantity"
+                            type="number"
+                            value={newQuantity}
+                            onChange={(e) => setNewQuantity(Number(e.target.value))}
+                            className="text-lg font-bold"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost" disabled={isLoading}>Annuler</Button></DialogClose>
+                    <Button onClick={handleConfirm} disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Confirmer la Correction
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export default function StockPage() {
-    const { currentUser, isMounted, lieuxStock } = useApp();
+    const { currentUser, isMounted, lieuxStock, corrigerStock } = useApp();
     const [stocks, setStocks] = React.useState<Stock[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState("");
@@ -31,46 +104,53 @@ export default function StockPage() {
     const lieuParam = searchParams.get('lieu');
     
     const [selectedLieu, setSelectedLieu] = React.useState<string>(lieuParam || "all");
+    const [correctingStock, setCorrectingStock] = React.useState<Stock | null>(null);
     const { toast } = useToast();
 
-    React.useEffect(() => {
-        const fetchStocks = async () => {
-            if (!currentUser) return;
+    const fetchStocks = React.useCallback(async () => {
+        if (!currentUser) return;
 
-            setIsLoading(true);
-            try {
-                let data: Stock[] = [];
-                const isAdminUser = currentUser.roleNom === 'ADMIN';
+        setIsLoading(true);
+        try {
+            let data: Stock[] = [];
+            const isAdminUser = currentUser.roleNom === 'ADMIN';
 
-                if (!isAdminUser) {
-                    if (currentUser.lieuNom) {
-                        data = await api.getStocksByLieuNom(currentUser.lieuNom);
-                    } else {
-                        toast({ variant: 'destructive', title: 'Configuration manquante', description: 'Aucun lieu de stock n\'est assigné à votre compte.' });
-                    }
+            if (!isAdminUser) {
+                if (currentUser.lieuNom) {
+                    data = await api.getStocksByLieuNom(currentUser.lieuNom);
                 } else {
-                    data = await api.getStocks();
+                    toast({ variant: 'destructive', title: 'Configuration manquante', description: 'Aucun lieu de stock n\'est assigné à votre compte.' });
                 }
-                
-                setStocks(data || []);
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-                toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
-            } finally {
-                setIsLoading(false);
+            } else {
+                data = await api.getStocks();
             }
-        };
-        
+            
+            setStocks(data || []);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+            toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [currentUser, toast]);
+
+    React.useEffect(() => {
         if (isMounted && currentUser) {
           fetchStocks();
         }
-    }, [isMounted, currentUser, toast]);
+    }, [isMounted, currentUser, fetchStocks]);
+
+    const handleCorrection = async (nouvelleQuantite: number) => {
+        if (!correctingStock) return;
+        await corrigerStock(correctingStock.produitId, correctingStock.lieuStockId, nouvelleQuantite);
+        setCorrectingStock(null);
+        await fetchStocks(); // Re-fetch to get updated stock
+    };
 
     const filteredStocks = React.useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
         
         return stocks.filter(item => {
-            // Filtrer par nom de lieu au lieu de l'ID
             const matchesLieu = selectedLieu === 'all' || item.lieuStockNom === selectedLieu;
             
             const matchesSearch = item.produitNom.toLowerCase().includes(lowercasedFilter) ||
@@ -107,7 +187,6 @@ export default function StockPage() {
                             className="pl-8 sm:w-[200px]"
                         />
                     </div>
-                    
                 </div>
             </div>
             <Card>
@@ -146,12 +225,13 @@ export default function StockPage() {
                                     <TableHead>Lieu de Stock</TableHead>
                                     <TableHead className="text-right">Nombre de Cartons</TableHead>
                                     <TableHead className="text-right">Unités hors Cartons</TableHead>
+                                    {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={isAdmin ? 6 : 5} className="h-24 text-center">
                                             <Loader2 className="animate-spin mx-auto" />
                                         </TableCell>
                                     </TableRow>
@@ -163,11 +243,19 @@ export default function StockPage() {
                                             <TableCell>{stockItem.lieuStockNom}</TableCell>
                                             <TableCell className="text-right font-bold">{stockItem.qteCartons}</TableCell>
                                             <TableCell className="text-right font-bold">{stockItem.qteUnitesRestantes}</TableCell>
+                                            {isAdmin && (
+                                                <TableCell className="text-right">
+                                                    <Button variant="outline" size="sm" onClick={() => setCorrectingStock(stockItem)}>
+                                                        <Pencil className="h-3 w-3 mr-2"/>
+                                                        Corriger
+                                                    </Button>
+                                                </TableCell>
+                                            )}
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={isAdmin ? 6 : 5} className="h-24 text-center">
                                             Aucun stock trouvé pour les critères sélectionnés.
                                         </TableCell>
                                     </TableRow>
@@ -177,8 +265,12 @@ export default function StockPage() {
                     </div>
                 </CardContent>
             </Card>
+            <CorrectionDialog
+                stockItem={correctingStock}
+                open={!!correctingStock}
+                onOpenChange={(open) => !open && setCorrectingStock(null)}
+                onConfirm={handleCorrection}
+            />
         </div>
     );
 }
-
-    

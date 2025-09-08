@@ -36,6 +36,7 @@ interface AppContextType {
   createInventaire: (payload: InventairePayload, premier: boolean) => Promise<Inventaire | null>;
   updateInventaire: (id: number, payload: InventairePayload) => Promise<Inventaire | null>;
   confirmInventaire: (id: number, premier: boolean) => Promise<Inventaire | null>;
+  corrigerStock: (produitId: number, lieuStockId: number, nouvelleQuantite: number) => Promise<void>;
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   createCommande: (payload: CommandePayload) => Promise<Commande | null>;
   createVente: (payload: VenteDirectePayload) => Promise<Vente | null>;
@@ -349,6 +350,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshAllData, toast, handleGenericError]);
 
+  const corrigerStock = useCallback(async (produitId: number, lieuStockId: number, nouvelleQuantite: number) => {
+    try {
+      await api.corrigerStock(produitId, lieuStockId, nouvelleQuantite);
+      await refreshAllData();
+      toast({ title: "Stock corrigé avec succès" });
+    } catch (error) {
+      handleGenericError(error, "Erreur de correction du stock");
+    }
+  }, [refreshAllData, toast, handleGenericError]);
+
   const addReapprovisionnement = useCallback(async (payload: ReapproPayload): Promise<Reapprovisionnement | null> => {
     try {
       const newReappro = await api.createReapprovisionnement(payload);
@@ -477,7 +488,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient, deleteFacture,
-    createInventaire, updateInventaire, confirmInventaire, addReapprovisionnement,
+    createInventaire, updateInventaire, confirmInventaire, corrigerStock, addReapprovisionnement,
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
     shopInfo, setShopInfo, themeColors, setThemeColors,
@@ -491,7 +502,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
     addClient, updateClient, deleteClient, deleteFacture,
-    createInventaire, updateInventaire, confirmInventaire, addReapprovisionnement,
+    createInventaire, updateInventaire, confirmInventaire, corrigerStock, addReapprovisionnement,
     createCommande, createVente, annulerVente, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
     shopInfo, setShopInfo, themeColors, setThemeColors,

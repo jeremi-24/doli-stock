@@ -5,7 +5,7 @@ d draft feature
 
 **STA** est une application web complète et moderne conçue pour la gestion avancée des stocks, des ventes et des opérations commerciales. Elle offre une interface intuitive et des fonctionnalités puissantes pour optimiser les flux de travail, de la réception des produits à la facturation client.
 
-## ✨ Fonctionnalités Principales
+##  Fonctionnalités Principales
 
 - **Tableau de Bord Intuitif** : Visualisez en un coup d'œil les indicateurs clés de performance (KPIs) comme la valeur totale du stock, les alertes de stock faible et l'activité récente.
 - **Gestion de Produits & Catalogue** : Créez, modifiez et organisez facilement vos produits avec des détails riches (prix, références, seuils d'alerte, prix par carton, etc.).
