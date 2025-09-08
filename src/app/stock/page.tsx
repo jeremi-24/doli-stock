@@ -40,7 +40,7 @@ function CorrectionDialog({
 
     React.useEffect(() => {
         if (stockItem) {
-            setNewQuantity(stockItem.quantiteTotale);
+            setNewQuantity(stockItem.quantiteTotale || 0);
         }
     }, [stockItem]);
 
@@ -69,7 +69,7 @@ function CorrectionDialog({
                         <div className="p-2 border rounded-md bg-muted">
                             <p>Cartons: <span className="font-bold">{stockItem.qteCartons}</span></p>
                             <p>Unités: <span className="font-bold">{stockItem.qteUnitesRestantes}</span></p>
-                            <p className="font-bold text-lg mt-2">Total: {stockItem.quantiteTotale} Unités</p>
+                            <p className="font-bold text-lg mt-2">Total: {stockItem.quantiteTotale || 0} Unités</p>
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -225,13 +225,14 @@ export default function StockPage() {
                                     <TableHead>Lieu de Stock</TableHead>
                                     <TableHead className="text-right">Nombre de Cartons</TableHead>
                                     <TableHead className="text-right">Unités hors Cartons</TableHead>
+                                    <TableHead className="text-right">Quantité totale (U)</TableHead>
                                     {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={isAdmin ? 6 : 5} className="h-24 text-center">
+                                        <TableCell colSpan={isAdmin ? 7 : 6} className="h-24 text-center">
                                             <Loader2 className="animate-spin mx-auto" />
                                         </TableCell>
                                     </TableRow>
@@ -243,6 +244,7 @@ export default function StockPage() {
                                             <TableCell>{stockItem.lieuStockNom}</TableCell>
                                             <TableCell className="text-right font-bold">{stockItem.qteCartons}</TableCell>
                                             <TableCell className="text-right font-bold">{stockItem.qteUnitesRestantes}</TableCell>
+                                            <TableCell className="text-right font-extrabold">{stockItem.quantiteTotale}</TableCell>
                                             {isAdmin && (
                                                 <TableCell className="text-right">
                                                     <Button variant="outline" size="sm" onClick={() => setCorrectingStock(stockItem)}>
@@ -255,7 +257,7 @@ export default function StockPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={isAdmin ? 6 : 5} className="h-24 text-center">
+                                        <TableCell colSpan={isAdmin ? 7 : 6} className="h-24 text-center">
                                             Aucun stock trouvé pour les critères sélectionnés.
                                         </TableCell>
                                     </TableRow>
