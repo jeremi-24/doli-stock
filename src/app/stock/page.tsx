@@ -1,5 +1,4 @@
 
-
 "use client";
 import * as React from "react";
 import {
@@ -33,7 +32,7 @@ function CorrectionDialog({
     stockItem: Stock | null,
     open: boolean,
     onOpenChange: (open: boolean) => void,
-    onConfirm: (nouvelleQuantite: number) => void
+    onConfirm: (produitId: number, lieuStockId: number, nouvelleQuantite: number) => void
 }) {
     const [newQuantity, setNewQuantity] = React.useState<number>(0);
     const [isLoading, setIsLoading] = React.useState(false);
@@ -45,9 +44,10 @@ function CorrectionDialog({
     }, [stockItem]);
 
     const handleConfirm = async () => {
+        if (!stockItem) return;
         setIsLoading(true);
         try {
-            await onConfirm(newQuantity);
+            await onConfirm(stockItem.produitId, stockItem.lieuStockId, newQuantity);
             onOpenChange(false);
         } finally {
             setIsLoading(false);
@@ -140,9 +140,8 @@ export default function StockPage() {
         }
     }, [isMounted, currentUser, fetchStocks]);
 
-    const handleCorrection = async (nouvelleQuantite: number) => {
-        if (!correctingStock) return;
-        await corrigerStock(correctingStock.produitId, correctingStock.lieuStockId, nouvelleQuantite);
+    const handleCorrection = async (produitId: number, lieuStockId: number, nouvelleQuantite: number) => {
+        await corrigerStock(produitId, lieuStockId, nouvelleQuantite);
         setCorrectingStock(null);
         await fetchStocks(); // Re-fetch to get updated stock
     };
