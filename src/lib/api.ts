@@ -276,7 +276,7 @@ export async function exportStockByLieu(lieuId: number): Promise<void> {
 }
 
 export async function corrigerStock(produitId: number, lieuStockNom: string, nouvelleQuantite: number): Promise<Stock> {
-    const url = `/stocks/corriger?produitId=${produitId}&lieuNom=${encodeURIComponent(lieuStockNom)}&nouvelleQuantite=${nouvelleQuantite}`;
+    const url = `/stocks/corriger?produitId=${produitId}&lieuStockNom=${encodeURIComponent(lieuStockNom)}&nouvelleQuantite=${nouvelleQuantite}`;
     return apiFetch(url, { method: 'POST' });
 }
 
