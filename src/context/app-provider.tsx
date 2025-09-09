@@ -36,7 +36,7 @@ interface AppContextType {
   createInventaire: (payload: InventairePayload, premier: boolean) => Promise<Inventaire | null>;
   updateInventaire: (id: number, payload: InventairePayload) => Promise<Inventaire | null>;
   confirmInventaire: (id: number, premier: boolean) => Promise<Inventaire | null>;
-  corrigerStock: (produitId: number, lieuStockId: number, nouvelleQuantite: number) => Promise<void>;
+  corrigerStock: (produitId: number, lieuStockNom: string, nouvelleQuantite: number) => Promise<void>;
   addReapprovisionnement: (payload: ReapproPayload) => Promise<Reapprovisionnement | null>;
   createCommande: (payload: CommandePayload) => Promise<Commande | null>;
   createVente: (payload: VenteDirectePayload) => Promise<Vente | null>;
@@ -350,9 +350,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshAllData, toast, handleGenericError]);
 
-  const corrigerStock = useCallback(async (produitId: number, lieuStockId: number, nouvelleQuantite: number) => {
+  const corrigerStock = useCallback(async (produitId: number, lieuStockNom: string, nouvelleQuantite: number) => {
     try {
-      await api.corrigerStock(produitId, lieuStockId, nouvelleQuantite);
+      await api.corrigerStock(produitId, lieuStockNom, nouvelleQuantite);
       await refreshAllData();
       toast({ title: "Stock corrigé avec succès" });
     } catch (error) {
