@@ -119,8 +119,8 @@ export default function NewReapproPage() {
 
     useEffect(() => {
         if (currentUser) {
-            if (currentUser.roleNom !== 'ADMIN' && currentUser.lieuId) {
-                setSelectedLieuStockId(String(currentUser.lieuId));
+            if (currentUser.roleNom !== 'ADMIN' && currentUser.lieuStockId) {
+                setSelectedLieuStockId(String(currentUser.lieuStockId));
             }
             setPageIsLoading(false);
         }

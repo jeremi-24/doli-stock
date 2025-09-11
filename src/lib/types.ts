@@ -242,7 +242,7 @@ export enum EtatVente {
 }
 
 export enum ModePaiement {
-    ESPECES = 'ESPECES',
+    ESPECE = 'ESPECE',
     MOBILE_MONEY = 'MOBILE_MONEY',
     CHEQUE = 'CHEQUE',
     VIREMENT = 'VIREMENT'
@@ -374,7 +374,7 @@ export type CurrentUser = {
   email: string;
   role: Role;
   roleNom: string;
-  lieuId?: number;
+  lieuStockId?: number;
   clientId?: number;
   permissions: Permission[];
   lieuNom?: string;

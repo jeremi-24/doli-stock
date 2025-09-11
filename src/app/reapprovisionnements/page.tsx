@@ -32,8 +32,8 @@ export default function ReapprovisionnementsPage() {
         let data: Reapprovisionnement[] = [];
         if (isAdmin) {
           data = await api.getReapprovisionnements();
-        } else if (currentUser.lieuId) {
-          data = await api.getReapprovisionnementsByLieu(currentUser.lieuId);
+        } else if (currentUser.lieuStockId) {
+          data = await api.getReapprovisionnementsByLieu(currentUser.lieuStockId);
         }
         setReapprovisionnements(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       } catch (error) {

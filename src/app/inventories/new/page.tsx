@@ -291,7 +291,7 @@ export default function NewInventoryPage() {
         if (pageIsLoading) return;
         
         if (!isAdmin && currentUser?.lieuId) {
-            setSelectedLieuStockId(String(currentUser.lieuId));
+            setSelectedLieuStockId(String(currentUser.lieuStockId));
         }
 
         const editId = searchParams.get('edit');

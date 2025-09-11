@@ -26,7 +26,7 @@ function AddPaymentDialog({ venteId, onPaymentAdded, totalDue }: { venteId: numb
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [montant, setMontant] = useState(0);
-    const [modePaiement, setModePaiement] = useState<ModePaiement>(ModePaiement.ESPECES);
+    const [modePaiement, setModePaiement] = useState<ModePaiement>(ModePaiement.ESPECE);
     
     useEffect(() => {
         if(isOpen) setMontant(totalDue);
@@ -230,7 +230,7 @@ export default function SalesPage() {
                             <TableHead>Caissier</TableHead>
                             <TableHead className="text-right">Total</TableHead>
                             <TableHead className="text-right">Payé</TableHead>
-                            <TableHead className="text-right">Solde</TableHead>
+                            <TableHead className="text-right">Montant due</TableHead>
                             <TableHead>État</TableHead>
                             <TableHead className="text-center w-[120px]">Actions</TableHead>
                         </TableRow>

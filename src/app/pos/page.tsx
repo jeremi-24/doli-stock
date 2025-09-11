@@ -96,7 +96,7 @@ function CheckoutDialog({
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
   const [typePaiement, setTypePaiement] = useState<TypePaiement>(TypePaiement.COMPTANT);
   const [montantInitial, setMontantInitial] = useState(0);
-  const [modePaiement, setModePaiement] = useState<ModePaiement>(ModePaiement.ESPECES);
+  const [modePaiement, setModePaiement] = useState<ModePaiement>(ModePaiement.ESPECE);
   const [reference, setReference] = useState("");
 
   const formatCurrency = (amount: number) => {
@@ -108,7 +108,7 @@ function CheckoutDialog({
       setSelectedClientId(defaultClientId ? String(defaultClientId) : undefined);
       setTypePaiement(TypePaiement.COMPTANT);
       setMontantInitial(total);
-      setModePaiement(ModePaiement.ESPECES);
+      setModePaiement(ModePaiement.ESPECE);
       setReference("");
     }
   }, [isOpen, defaultClientId, total]);
@@ -359,7 +359,7 @@ export default function POSPage() {
 
 
   const handleCompleteSale = async (details: { clientId: number, typePaiement: TypePaiement, paiementInitial?: { montant: number, modePaiement: ModePaiement, reference?: string } }) => {
-    if (!currentUser || !currentUser.lieuId) {
+    if (!currentUser || !currentUser.lieuStockId) {
         toast({ variant: 'destructive', title: "Erreur", description: "Lieu de stock de l'utilisateur non défini." });
         return;
     }
@@ -368,7 +368,7 @@ export default function POSPage() {
     
     const payload: VentePayload = {
         caissier: currentUser.email,
-        lieuStockId: currentUser.lieuId,
+        lieuStockId: currentUser.lieuStockId,
         clientId: details.clientId,
         typePaiement: details.typePaiement,
         lignes: cart.map(item => ({

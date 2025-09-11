@@ -35,8 +35,8 @@ export default function InventoriesPage() {
 
             if (isAdmin) {
                 inventairesData = await api.getInventaires();
-            } else if (currentUser.lieuId) {
-                inventairesData = await api.getInventairesByLieu(currentUser.lieuId);
+            } else if (currentUser.lieuStockId) {
+                inventairesData = await api.getInventairesByLieu(currentUser.lieuStockId);
             } else {
                 toast({ variant: 'destructive', title: 'Configuration manquante', description: 'Aucun lieu de stock n\'est assigné à votre compte.' });
             }
