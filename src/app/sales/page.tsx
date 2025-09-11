@@ -6,18 +6,75 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import type { Vente, VenteLigne } from '@/lib/types';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter as DialogFooterButtons, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import type { Vente, VenteLigne, Paiement } from '@/lib/types';
+import { ModePaiement, EtatVente } from '@/lib/types';
 import * as api from '@/lib/api';
-import { Eye, Search, History, Loader2, User, Tag, ShoppingCart, DollarSign, Trash2 } from 'lucide-react';
+import { Eye, Search, History, Loader2, User, Tag, ShoppingCart, DollarSign, Trash2, PlusCircle, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/context/app-provider';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
+function AddPaymentDialog({ venteId, onPaymentAdded, totalDue }: { venteId: number, onPaymentAdded: () => void, totalDue: number }) {
+    const { addPaiementCredit } = useApp();
+    const [isOpen, setIsOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [montant, setMontant] = useState(0);
+    const [modePaiement, setModePaiement] = useState<ModePaiement>(ModePaiement.ESPECES);
+    
+    useEffect(() => {
+        if(isOpen) setMontant(totalDue);
+    }, [isOpen, totalDue]);
+
+    const handleAddPayment = async () => {
+        setIsLoading(true);
+        try {
+            await addPaiementCredit({ venteId, montant, modePaiement });
+            onPaymentAdded();
+            setIsOpen(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm" variant="outline"><PlusCircle className="mr-2 h-4 w-4"/>Ajouter Paiement</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Ajouter un paiement</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="montant">Montant</Label>
+                        <Input id="montant" type="number" value={montant} onChange={e => setMontant(Number(e.target.value))} max={totalDue} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="mode-paiement">Mode</Label>
+                        <Select value={modePaiement} onValueChange={(v) => setModePaiement(v as ModePaiement)}>
+                            <SelectTrigger id="mode-paiement"><SelectValue placeholder="Mode"/></SelectTrigger>
+                            <SelectContent>
+                                {Object.values(ModePaiement).map(mode => <SelectItem key={mode} value={mode}>{mode}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                     </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
+                    <Button onClick={handleAddPayment} disabled={isLoading || montant <= 0 || montant > totalDue}>
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : "Ajouter"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 function SaleDetailsDialog({ vente }: { vente: Vente }) {
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -27,36 +84,56 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
             <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Voir les détails"><Eye className="h-4 w-4" /></Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle className="font-headline">Détails de la Vente #{vente.ref}</DialogTitle>
                     <DialogDescription>
                         Vente effectuée le {vente.date ? format(new Date(vente.date), 'd MMMM yyyy à HH:mm', { locale: fr }) : 'Date inconnue'}.
                     </DialogDescription>
                 </DialogHeader>
-                 <div className="p-2 space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div><span className="text-muted-foreground">Client : </span><span className="font-semibold">{vente.client?.nom || 'N/A'}</span></div>
-                        <div><span className="text-muted-foreground">Caissier : </span><span className="font-semibold">{vente.caissier}</span></div>
-                    </div>
-                    <div className="border rounded-lg">
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="text-center">Qté</TableHead><TableHead className="text-center">Type</TableHead><TableHead className="text-right">P.U.</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                            <TableBody>{vente.lignes.map(l => (
-                                <TableRow key={l.id}>
-                                    <TableCell className="font-medium">{l.produitNom}</TableCell>
-                                    <TableCell className="text-center">{l.qteVendueTotaleUnites}</TableCell>
-                                    <TableCell className="text-center">{l.typeQuantite}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(l.produitPrix)}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(l.total)}</TableCell>
-                                </TableRow>
-                            ))}</TableBody>
-                            <TableFooter>
-                                <TableRow className="text-base font-bold"><TableCell colSpan={4} className="text-right">Montant Total</TableCell><TableCell className="text-right">{formatCurrency(vente.total)}</TableCell></TableRow>
-                            </TableFooter>
-                        </Table>
-                    </div>
-                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-2">
+                     {/* Détails de la vente */}
+                     <div className="space-y-4">
+                         <h3 className="font-semibold text-lg">Produits Vendus</h3>
+                         <div className="border rounded-lg max-h-64 overflow-y-auto">
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="text-center">Qté</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
+                                <TableBody>{vente.lignes.map(l => (
+                                    <TableRow key={l.id}>
+                                        <TableCell className="font-medium">{l.produitNom}</TableCell>
+                                        <TableCell className="text-center">{l.qteVendueTotaleUnites}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(l.total)}</TableCell>
+                                    </TableRow>
+                                ))}</TableBody>
+                            </Table>
+                         </div>
+                         <div className="border rounded-lg p-4 space-y-2">
+                             <div className="flex justify-between font-medium"><span className="text-muted-foreground">Total Vente</span><span>{formatCurrency(vente.total)}</span></div>
+                             <div className="flex justify-between font-medium"><span className="text-muted-foreground">Montant Payé</span><span>{formatCurrency(vente.montantPaye)}</span></div>
+                             <div className="flex justify-between font-bold text-lg"><span className="text-muted-foreground">Solde Restant</span><span className="text-primary">{formatCurrency(vente.soldeRestant)}</span></div>
+                         </div>
+                     </div>
+                     {/* Historique des paiements */}
+                     <div className="space-y-4">
+                         <h3 className="font-semibold text-lg">Historique des Paiements</h3>
+                         <div className="border rounded-lg max-h-96 overflow-y-auto">
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Montant</TableHead><TableHead>Mode</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                {vente.paiements.length > 0 ? vente.paiements.map(p => (
+                                    <TableRow key={p.id}>
+                                        <TableCell>{format(new Date(p.datePaiement), 'd MMM yyyy', { locale: fr })}</TableCell>
+                                        <TableCell>{formatCurrency(p.montant)}</TableCell>
+                                        <TableCell><Badge variant="secondary">{p.modePaiement}</Badge></TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">Aucun paiement enregistré.</TableCell></TableRow>
+                                )}
+                                </TableBody>
+                            </Table>
+                         </div>
+                     </div>
+                 </div>
             </DialogContent>
         </Dialog>
     )
@@ -152,27 +229,37 @@ export default function SalesPage() {
                             <TableHead>Client</TableHead>
                             <TableHead>Caissier</TableHead>
                             <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="text-right">Payé</TableHead>
+                            <TableHead className="text-right">Solde</TableHead>
+                            <TableHead>État</TableHead>
                             <TableHead className="text-center w-[120px]">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                     {isLoading ? (
-                        <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+                        <TableRow><TableCell colSpan={9} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                     ) : filteredSales.length > 0 ? filteredSales.map(vente => {
                         const isAnnulee = vente.statut === 'ANNULEE';
+                        const isCredit = vente.etat === EtatVente.EN_ATTENTE;
                         return (
-                        <TableRow key={vente.id} className={cn(isAnnulee && "bg-destructive/10 text-muted-foreground")}>
+                        <TableRow key={vente.id} className={cn(isAnnulee && "bg-destructive/10 text-muted-foreground", isCredit && "bg-amber-50")}>
                             <TableCell className="font-mono text-xs">{vente.ref}</TableCell>
                             <TableCell>{vente.date ? format(new Date(vente.date), 'd MMM yyyy, HH:mm', { locale: fr }) : "N/A"}</TableCell>
                             <TableCell className="font-medium">{vente.client?.nom || 'N/A'}</TableCell>
                             <TableCell>{vente.caissier}</TableCell>
-                            <TableCell className={cn("text-right font-semibold", !isAnnulee && "text-foreground")}>{formatCurrency(vente.total)}</TableCell>
+                            <TableCell className="text-right font-semibold">{formatCurrency(vente.total)}</TableCell>
+                            <TableCell className="text-right font-medium text-green-600">{formatCurrency(vente.montantPaye)}</TableCell>
+                            <TableCell className="text-right font-bold text-red-600">{formatCurrency(vente.soldeRestant)}</TableCell>
+                            <TableCell>
+                               <Badge variant={isCredit ? "destructive" : "default"} className={cn(!isCredit && "bg-green-600")}>{vente.etat}</Badge>
+                            </TableCell>
                             <TableCell className="text-center">
                                {isAnnulee ? (
                                     <Badge variant="destructive">Annulée</Badge>
                                 ) : (
-                                    <div className="flex items-center justify-center">
+                                    <div className="flex items-center justify-center gap-1">
                                         <SaleDetailsDialog vente={vente} />
+                                        {isCredit && <AddPaymentDialog venteId={vente.id} totalDue={vente.soldeRestant} onPaymentAdded={fetchVentes} />}
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button variant="ghost" size="icon" disabled={isCancelling === vente.id}>
@@ -186,17 +273,17 @@ export default function SalesPage() {
                                                         Cette action est irréversible. Elle annulera la vente et restaurera le stock des produits concernés.
                                                     </AlertDialogDesc>
                                                 </AlertDialogHeader>
-                                                <AlertDialogFooter>
+                                                <DialogFooterButtons>
                                                     <AlertDialogCancel>Retour</AlertDialogCancel>
                                                     <AlertDialogAction onClick={() => handleCancelSale(vente.id)}>Confirmer l'annulation</AlertDialogAction>
-                                                </AlertDialogFooter>
+                                                </DialogFooterButtons>
                                             </AlertDialogContent>
                                         </AlertDialog>
                                     </div>
                                 )}
                             </TableCell>
                         </TableRow>
-                    )}) : (<TableRow><TableCell colSpan={6} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
+                    )}) : (<TableRow><TableCell colSpan={9} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
                     </TableBody>
                 </Table>
             </div>

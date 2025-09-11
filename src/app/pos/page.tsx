@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
-import type { Produit, Categorie, Client, VenteDirectePayload } from '@/lib/types';
+import type { Produit, Categorie, Client, VentePayload } from '@/lib/types';
+import { TypePaiement, ModePaiement } from '@/lib/types';
 import * as api from '@/lib/api';
 import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle, Box as CartonIcon, ScanLine } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -18,9 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 
-type VenteLigne = {
+type VenteLignePanier = {
     id: number;
     produit: Produit;
     quantite: number;
@@ -46,7 +48,7 @@ function ScanSelectionDialog({
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="font-headline">Comment souhaitez-vous vendre  : {produit.nom}</DialogTitle>
+                    <DialogTitle className="font-headline">Comment souhaitez-vous vendre : {produit.nom}</DialogTitle>
                     <DialogDescription> </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 flex justify-around gap-4">
@@ -56,7 +58,7 @@ function ScanSelectionDialog({
                         onClick={() => onSelect('UNITE')}
                     >
                         <Package className="mr-2 h-5 w-5"/>
-                    Vendre l'unité
+                        Vendre l'unité
                     </Button>
                     <Button 
                         size="lg" 
@@ -86,28 +88,55 @@ function CheckoutDialog({
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   total: number;
-  onCompleteSale: (details: { clientId: number }) => void;
+  onCompleteSale: (details: { clientId: number, typePaiement: TypePaiement, paiementInitial?: { montant: number, modePaiement: ModePaiement, reference?: string } }) => void;
   isSaving: boolean;
   clients: Client[];
   defaultClientId?: number;
 }) {
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
-  
+  const [typePaiement, setTypePaiement] = useState<TypePaiement>(TypePaiement.COMPTANT);
+  const [montantInitial, setMontantInitial] = useState(0);
+  const [modePaiement, setModePaiement] = useState<ModePaiement>(ModePaiement.ESPECES);
+  const [reference, setReference] = useState("");
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-  };
-
-  const handleSubmit = () => {
-    if (selectedClientId) {
-      onCompleteSale({ clientId: parseInt(selectedClientId, 10) });
-    }
   };
 
   useEffect(() => {
     if (isOpen) {
       setSelectedClientId(defaultClientId ? String(defaultClientId) : undefined);
+      setTypePaiement(TypePaiement.COMPTANT);
+      setMontantInitial(total);
+      setModePaiement(ModePaiement.ESPECES);
+      setReference("");
     }
-  }, [isOpen, defaultClientId]);
+  }, [isOpen, defaultClientId, total]);
+
+  useEffect(() => {
+    if (typePaiement === TypePaiement.COMPTANT) {
+      setMontantInitial(total);
+    }
+  }, [typePaiement, total]);
+
+  const handleSubmit = () => {
+    if (!selectedClientId) {
+        toast({variant: 'destructive', title: "Veuillez sélectionner un client."})
+        return;
+    }
+
+    const paiementInitial = {
+        montant: montantInitial,
+        modePaiement: modePaiement,
+        reference: reference
+    };
+
+    onCompleteSale({ 
+        clientId: parseInt(selectedClientId, 10), 
+        typePaiement,
+        paiementInitial: typePaiement === TypePaiement.COMPTANT || montantInitial > 0 ? paiementInitial : undefined
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -122,18 +151,36 @@ function CheckoutDialog({
             <p className="text-4xl font-bold">{formatCurrency(total)}</p>
           </div>
           <div className="space-y-2">
+            <Label>Type de Paiement</Label>
+            <RadioGroup value={typePaiement} onValueChange={(v) => setTypePaiement(v as TypePaiement)} className="flex gap-4">
+                <div className="flex items-center space-x-2"><RadioGroupItem value={TypePaiement.COMPTANT} id="comptant"/><Label htmlFor="comptant">Comptant</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value={TypePaiement.CREDIT} id="credit"/><Label htmlFor="credit">Crédit</Label></div>
+            </RadioGroup>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="client-select">Client</Label>
             <Select value={selectedClientId} onValueChange={setSelectedClientId} disabled={isSaving}>
-              <SelectTrigger id="client-select">
-                <SelectValue placeholder="Sélectionner un client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={String(client.id)}>{client.nom}</SelectItem>
-                ))}
-              </SelectContent>
+              <SelectTrigger id="client-select"><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
+              <SelectContent>{clients.map(client => (<SelectItem key={client.id} value={String(client.id)}>{client.nom}</SelectItem>))}</SelectContent>
             </Select>
           </div>
+          {typePaiement === TypePaiement.CREDIT && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="montant-initial">Paiement initial</Label>
+                <Input id="montant-initial" type="number" value={montantInitial} onChange={e => setMontantInitial(Number(e.target.value))} max={total} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mode-paiement">Mode</Label>
+                <Select value={modePaiement} onValueChange={(v) => setModePaiement(v as ModePaiement)}>
+                    <SelectTrigger id="mode-paiement"><SelectValue placeholder="Mode"/></SelectTrigger>
+                    <SelectContent>
+                        {Object.values(ModePaiement).map(mode => <SelectItem key={mode} value={mode}>{mode}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <DialogClose asChild><Button variant="ghost" disabled={isSaving}>Annuler</Button></DialogClose>
@@ -151,7 +198,7 @@ function CheckoutDialog({
 export default function POSPage() {
   const { produits, categories, clients, currentUser, createVente } = useApp();
   const { toast } = useToast();
-  const [cart, setCart] = useState<VenteLigne[]>([]);
+  const [cart, setCart] = useState<VenteLignePanier[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [barcode, setBarcode] = useState("");
   const [isScanning, setIsScanning] = useState(false);
@@ -221,7 +268,7 @@ export default function POSPage() {
           : item
       ));
     } else { 
-      const newItem: VenteLigne = {
+      const newItem: VenteLignePanier = {
         id: Date.now(),
         produit: produitInStock,
         quantite: newQuantity,
@@ -260,7 +307,7 @@ export default function POSPage() {
          return;
       }
 
-      const newLigne: VenteLigne = {
+      const newLigne: VenteLignePanier = {
           id: Date.now(),
           produit: produit,
           quantite: 1,
@@ -311,16 +358,25 @@ export default function POSPage() {
   }, [cart]);
 
 
-  const handleCompleteSale = async (details: { clientId: number }) => {
+  const handleCompleteSale = async (details: { clientId: number, typePaiement: TypePaiement, paiementInitial?: { montant: number, modePaiement: ModePaiement, reference?: string } }) => {
+    if (!currentUser || !currentUser.lieuId) {
+        toast({ variant: 'destructive', title: "Erreur", description: "Lieu de stock de l'utilisateur non défini." });
+        return;
+    }
+    
     setIsSaving(true);
     
-    const payload: VenteDirectePayload = {
+    const payload: VentePayload = {
+        caissier: currentUser.email,
+        lieuStockId: currentUser.lieuId,
         clientId: details.clientId,
+        typePaiement: details.typePaiement,
         lignes: cart.map(item => ({
             codeProduit: item.produit.codeBarre,
             qteVendueDansLigne: item.quantite,
             typeQuantite: item.type,
         })),
+        paiementInitial: details.paiementInitial
     };
 
     try {
@@ -452,7 +508,7 @@ export default function POSPage() {
                             <TableHeader><TableRow><TableHead>Produit</TableHead><TableHead className="w-24 text-center">Qté</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {cart.map(item => (
-                                    <TableRow key={`${item.produit.id}-${item.type}`}>
+                                    <TableRow key={item.id}>
                                         <TableCell className="font-medium py-2">
                                             <p className="truncate">{item.produit.nom}</p>
                                             <p className="text-xs text-muted-foreground flex items-center gap-1">

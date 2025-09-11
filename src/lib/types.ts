@@ -1,5 +1,4 @@
 
-
 export type Client = {
   id: number;
   nom: string;
@@ -232,6 +231,34 @@ export type CommandePayload = {
 };
 
 // ----- POS Sale Types -----
+export enum TypePaiement {
+    COMPTANT = 'COMPTANT',
+    CREDIT = 'CREDIT'
+}
+
+export enum EtatVente {
+    SOLDEE = 'SOLDEE',
+    EN_ATTENTE = 'EN_ATTENTE'
+}
+
+export enum ModePaiement {
+    ESPECES = 'ESPECES',
+    MOBILE_MONEY = 'MOBILE_MONEY',
+    CHEQUE = 'CHEQUE',
+    VIREMENT = 'VIREMENT'
+}
+
+export type Paiement = {
+    id: number;
+    venteId: number;
+    venteRef: string;
+    montant: number;
+    modePaiement: ModePaiement;
+    reference: string;
+    datePaiement: string;
+    caissier: string;
+};
+
 export type VenteLigne = {
     id: number;
     produitId: number;
@@ -243,6 +270,8 @@ export type VenteLigne = {
     qteVendueUnites: number;
     qteVendueTotaleUnites: number;
     total: number;
+    codeProduit: string;
+    lieuStockId: number;
 };
 
 export type Vente = {
@@ -253,17 +282,42 @@ export type Vente = {
     client: Client | null;
     lignes: VenteLigne[];
     total: number;
+    typePaiement: TypePaiement;
+    montantPaye: number;
+    soldeRestant: number;
+    etat: EtatVente;
+    lieuStockId: number;
+    lieuStockNom: string;
+    paiements: Paiement[];
     statut?: 'COMPLETEE' | 'ANNULEE';
 };
 
-export type VenteDirecteLignePayload = {
+export type PaiementInitialPayload = {
+    montant: number;
+    modePaiement: ModePaiement;
+    reference?: string;
+};
+
+export type VenteLignePayload = {
     codeProduit: string;
     qteVendueDansLigne: number;
     typeQuantite: 'UNITE' | 'CARTON';
 };
-export type VenteDirectePayload = {
+
+export type VentePayload = {
+    caissier: string;
+    lieuStockId: number;
     clientId: number;
-    lignes: VenteDirecteLignePayload[];
+    typePaiement: TypePaiement;
+    lignes: VenteLignePayload[];
+    paiementInitial?: PaiementInitialPayload;
+};
+
+export type PaiementPayload = {
+    venteId: number;
+    montant: number;
+    modePaiement: ModePaiement;
+    reference?: string;
 }
 
 

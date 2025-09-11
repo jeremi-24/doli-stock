@@ -1,6 +1,5 @@
 
-
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VenteDirectePayload, Notification, BarcodePrintRequest, FactureModele } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VentePayload, Notification, BarcodePrintRequest, FactureModele, PaiementPayload } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -285,11 +284,15 @@ export async function corrigerStock(produitId: number, lieuStockNom: string, nou
 export async function getVentes(): Promise<Vente[]> {
     return apiFetch('/ventes');
 }
-export async function createVenteDirecte(data: VenteDirectePayload): Promise<Vente> {
+export async function createVenteDirecte(data: VentePayload): Promise<Vente> {
     return apiFetch('/ventes/directe', { method: 'POST', body: JSON.stringify(data) });
 }
-export async function annulerVente(id: number): Promise<void> {
-    return apiFetch(`/ventes/annuler/${id}`, { method: 'PUT' });
+export async function annulerVente(id: number, motif?: string): Promise<void> {
+    const url = motif ? `/ventes/annuler/${id}?motif=${encodeURIComponent(motif)}` : `/ventes/annuler/${id}`;
+    return apiFetch(url, { method: 'DELETE' });
+}
+export async function addPaiementCredit(data: PaiementPayload): Promise<any> {
+    return apiFetch('/ventes/paiement-credit', { method: 'POST', body: JSON.stringify(data) });
 }
 
 
