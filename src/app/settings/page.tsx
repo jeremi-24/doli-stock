@@ -81,7 +81,7 @@ const ALL_PERMISSIONS: { action: string, description: string }[] = [
     { action: 'LIVRAISON_VALIDATE_ETAPE2', description: 'Valider BL (Étape 2 - Magasinier)' },
     { action: 'FACTURE_GENERATE', description: 'Générer des factures' },
     { action: 'FACTURE_DELETE', description: 'Supprimer des factures' },
-    { action: 'VENTE_READ', description: 'Consulter l\'historique des ventes' },
+    { action: 'VENTE_CREATE', description: 'Consulter l\'historique des ventes' },
     { action: 'INVENTAIRE_MANAGE', description: 'Gérer les inventaires' },
     { action: 'REAPPRO_MANAGE', description: 'Gérer les réapprovisionnements' },
     { action: 'USER_MANAGE', description: 'Gérer les utilisateurs et rôles' },

@@ -74,7 +74,7 @@ export default function SalesPage() {
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
   const fetchVentes = React.useCallback(async () => {
-    if (!hasPermission('VENTE_READ')) return setIsLoading(false);
+    if (!hasPermission('VENTE_CREATE')) return setIsLoading(false);
     try {
         setIsLoading(true);
         const data = await api.getVentes();
@@ -111,7 +111,7 @@ export default function SalesPage() {
     }
   }
 
-  if (!hasPermission('VENTE_READ')) {
+  if (!hasPermission('VENTE_CREATE')) {
     return (
         <div className="flex flex-1 items-center justify-center">
             <Card className="w-full max-w-md text-center">
