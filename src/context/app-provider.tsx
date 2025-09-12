@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VentePayload, Vente, CommandeStatus, Notification, FactureModele, Stock, PaiementPayload } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VentePayload, Vente, EtatVente, Notification, FactureModele, Stock, PaiementPayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -143,8 +143,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let fetchCommandesPromise;
     if (adminOrControlRoles.includes(currentUser.roleNom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
-    } else if (currentUser.roleNom === 'MAGASINIER' && currentUser.lieuNom) {
-        fetchCommandesPromise = api.getCommandesByLieuStockNom(currentUser.lieuNom).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes par lieu'));
+    } else if (currentUser.lieuNom) {
+        fetchCommandesPromise = api.getCommandesByLieuStockNomExact(currentUser.lieuNom).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes par lieu'));
     } else if (currentUser.clientId) {
         fetchCommandesPromise = api.getCommandesByClientId(currentUser.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes Client'));
     } else {

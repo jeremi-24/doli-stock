@@ -69,13 +69,13 @@ export default function OrdersPage() {
     const pageTitle = React.useMemo(() => {
         if (!currentUser) return "Commandes";
         const role = currentUser.roleNom;
-        if (role === 'MAGASINIER') {
+        if (role === 'BOUTIQUIER') {
             return `Commandes pour ${currentUser.lieuNom || 'votre lieu'}`;
         }
         if (['ADMIN', 'DG', 'SECRETARIAT', 'CONTROLLEUR'].includes(role)) {
             return "Toutes les commandes";
         }
-        return "Vos commandes";
+        return `Commandes pour ${currentUser.lieuNom || 'votre lieu'}`;
     }, [currentUser]);
 
     return (
