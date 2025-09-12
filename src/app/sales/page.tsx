@@ -255,7 +255,28 @@ export default function SalesPage() {
     } finally {
         setIsCancelling(null);
     }
-  }
+  };
+
+  const { pageTitle, pageDescription } = useMemo(() => {
+    if (showOnlyCredit) {
+        return {
+            pageTitle: "Crédits en Cours",
+            pageDescription: "Liste de toutes les ventes à crédit avec un solde restant."
+        };
+    }
+    if (dateRange?.from && dateRange?.to) {
+        const from = format(dateRange.from, 'd MMM', { locale: fr });
+        const to = format(dateRange.to, 'd MMM yyyy', { locale: fr });
+        return {
+            pageTitle: `Ventes du ${from} au ${to}`,
+            pageDescription: "Liste des transactions pour la période sélectionnée."
+        };
+    }
+    return {
+        pageTitle: "Historique des Ventes",
+        pageDescription: "Liste de toutes les transactions effectuées au point de vente."
+    };
+  }, [showOnlyCredit, dateRange]);
 
   if (!hasPermission('VENTE_CREATE')) {
     return (
@@ -275,7 +296,7 @@ export default function SalesPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex flex-col sm:flex-row items-center gap-4">
-        <h1 className="font-headline text-3xl font-semibold">Historique des Ventes</h1>
+        <h1 className="font-headline text-3xl font-semibold">{pageTitle}</h1>
         <div className="ml-auto flex flex-col sm:flex-row items-center gap-2">
            <div className="relative flex-1 md:grow-0">
              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Chercher par réf, client..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
@@ -297,8 +318,8 @@ export default function SalesPage() {
 
       <Card>
           <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><History />Toutes les ventes directes</CardTitle>
-              <CardDescription>Liste de toutes les transactions effectuées au point de vente.</CardDescription>
+              <CardTitle className="font-headline flex items-center gap-2"><History />{pageTitle}</CardTitle>
+              <CardDescription>{pageDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="border rounded-lg">
