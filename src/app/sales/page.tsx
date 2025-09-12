@@ -5,13 +5,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDesc, AlertDialogFooter as DialogFooterButtons, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import type { Vente, VenteLigne, Paiement } from '@/lib/types';
+import type { Vente } from '@/lib/types';
 import { ModePaiement, EtatVente } from '@/lib/types';
 import * as api from '@/lib/api';
-import { Eye, Search, History, Loader2, User, Tag, ShoppingCart, DollarSign, Trash2, PlusCircle, CreditCard } from 'lucide-react';
+import { Eye, Search, History, Loader2, User, Trash2, PlusCircle, CreditCard, Calendar as CalendarIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import type { DateRange } from "react-day-picker"
 
 function AddPaymentDialog({ venteId, onPaymentAdded, totalDue }: { venteId: number, onPaymentAdded: () => void, totalDue: number }) {
     const { addPaiementCredit } = useApp();
@@ -139,6 +142,54 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
     )
 }
 
+function DatePickerWithRange({
+  className,
+  date,
+  setDate,
+}: React.HTMLAttributes<HTMLDivElement> & { date: DateRange | undefined; setDate: (date: DateRange | undefined) => void; }) {
+  return (
+    <div className={cn("grid gap-2", className)}>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            id="date"
+            variant={"outline"}
+            className={cn(
+              "w-[300px] justify-start text-left font-normal",
+              !date && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {date?.from ? (
+              date.to ? (
+                <>
+                  {format(date.from, "LLL dd, y", { locale: fr })} -{" "}
+                  {format(date.to, "LLL dd, y", { locale: fr })}
+                </>
+              ) : (
+                format(date.from, "LLL dd, y", { locale: fr })
+              )
+            ) : (
+              <span>Choisir une période</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            initialFocus
+            mode="range"
+            defaultMonth={date?.from}
+            selected={date}
+            onSelect={setDate}
+            numberOfMonths={2}
+            locale={fr}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
 
 export default function SalesPage() {
   const { hasPermission, annulerVente } = useApp();
@@ -147,14 +198,26 @@ export default function SalesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
   const fetchVentes = React.useCallback(async () => {
-    if (!hasPermission('VENTE_CREATE')) return setIsLoading(false);
+    if (!hasPermission('VENTE_CREATE')) {
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
     try {
-        setIsLoading(true);
-        const data = await api.getVentes();
+        let data: Vente[] = [];
+        if (dateRange?.from && dateRange?.to) {
+            const dateDebut = format(dateRange.from, 'yyyy-MM-dd');
+            const dateFin = format(dateRange.to, 'yyyy-MM-dd');
+            data = await api.getVentesByPeriode(dateDebut, dateFin);
+        } else {
+            data = await api.getVentes();
+        }
         setVentes(data.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
@@ -162,7 +225,7 @@ export default function SalesPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast, hasPermission]);
+  }, [toast, hasPermission, dateRange]);
 
   useEffect(() => {
     fetchVentes();
@@ -205,18 +268,26 @@ export default function SalesPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-center gap-4">
         <h1 className="font-headline text-3xl font-semibold">Historique des Ventes</h1>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-col sm:flex-row items-center gap-2">
            <div className="relative flex-1 md:grow-0">
              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Chercher par réf, client..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
            </div>
+            <div className="flex items-center gap-2">
+              <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+              {dateRange && (
+                <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
         </div>
       </div>
 
       <Card>
           <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><ShoppingCart />Toutes les ventes directes</CardTitle>
+              <CardTitle className="font-headline flex items-center gap-2"><History />Toutes les ventes directes</CardTitle>
               <CardDescription>Liste de toutes les transactions effectuées au point de vente.</CardDescription>
           </CardHeader>
           <CardContent>

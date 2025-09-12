@@ -284,6 +284,9 @@ export async function corrigerStock(produitId: number, lieuStockNom: string, nou
 export async function getVentes(): Promise<Vente[]> {
     return apiFetch('/ventes');
 }
+export async function getVentesByPeriode(dateDebut: string, dateFin: string): Promise<Vente[]> {
+    return apiFetch(`/ventes/periode/${dateDebut}/${dateFin}`);
+}
 export async function createVenteDirecte(data: VentePayload): Promise<Vente> {
     return apiFetch('/ventes/directe', { method: 'POST', body: JSON.stringify(data) });
 }
