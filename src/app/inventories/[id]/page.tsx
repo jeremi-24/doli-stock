@@ -115,10 +115,7 @@ export default function InventoryDetailPage() {
       setIsConfirming(true);
       try {
           const result = await confirmInventaire(inventory.id, isPremier);
-          if(result) {
-            setInventory(result);
-            setEditableLines(JSON.parse(JSON.stringify(result.lignes)));
-          }
+          await fetchInventory();
       } finally {
           setIsConfirming(false);
       }
