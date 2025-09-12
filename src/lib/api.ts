@@ -1,4 +1,5 @@
 
+
 import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VentePayload, Notification, BarcodePrintRequest, FactureModele, PaiementPayload } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -175,6 +176,9 @@ export async function deleteLieuxStock(ids: number[]): Promise<null> {
 export async function getProducts(): Promise<Produit[]> {
     return apiFetch(`/produits`);
 }
+export async function getProduitsByLieuNom(lieuNom: string): Promise<Produit[]> {
+    return apiFetch(`/produits/lieu/nom/${encodeURIComponent(lieuNom)}`);
+}
 export async function searchProducts(query: string): Promise<Produit[]> {
     return apiFetch(`/produits/search?q=${encodeURIComponent(query)}`);
 }
@@ -286,6 +290,9 @@ export async function getVentes(): Promise<Vente[]> {
 }
 export async function getVentesByPeriode(dateDebut: string, dateFin: string): Promise<Vente[]> {
     return apiFetch(`/ventes/periode/${dateDebut}/${dateFin}`);
+}
+export async function getVentesCreditEnCours(): Promise<Vente[]> {
+    return apiFetch('/ventes/credit-en-cours');
 }
 export async function createVenteDirecte(data: VentePayload): Promise<Vente> {
     return apiFetch('/ventes/directe', { method: 'POST', body: JSON.stringify(data) });

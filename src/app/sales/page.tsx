@@ -22,7 +22,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import type { DateRange } from "react-day-picker"
+import type { DateRange } from "react-day-picker";
+import { Switch } from '@/components/ui/switch';
 
 function AddPaymentDialog({ venteId, onPaymentAdded, totalDue }: { venteId: number, onPaymentAdded: () => void, totalDue: number }) {
     const { addPaiementCredit } = useApp();
@@ -146,7 +147,8 @@ function DatePickerWithRange({
   className,
   date,
   setDate,
-}: React.HTMLAttributes<HTMLDivElement> & { date: DateRange | undefined; setDate: (date: DateRange | undefined) => void; }) {
+  disabled
+}: React.HTMLAttributes<HTMLDivElement> & { date: DateRange | undefined; setDate: (date: DateRange | undefined) => void; disabled?: boolean; }) {
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -158,6 +160,7 @@ function DatePickerWithRange({
               "w-[300px] justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
+            disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
             {date?.from ? (
@@ -199,6 +202,7 @@ export default function SalesPage() {
   const [isCancelling, setIsCancelling] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [showOnlyCredit, setShowOnlyCredit] = useState(false);
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
@@ -211,7 +215,9 @@ export default function SalesPage() {
     setIsLoading(true);
     try {
         let data: Vente[] = [];
-        if (dateRange?.from && dateRange?.to) {
+        if (showOnlyCredit) {
+            data = await api.getVentesCreditEnCours();
+        } else if (dateRange?.from && dateRange?.to) {
             const dateDebut = format(dateRange.from, 'yyyy-MM-dd');
             const dateFin = format(dateRange.to, 'yyyy-MM-dd');
             data = await api.getVentesByPeriode(dateDebut, dateFin);
@@ -225,7 +231,7 @@ export default function SalesPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast, hasPermission, dateRange]);
+  }, [toast, hasPermission, dateRange, showOnlyCredit]);
 
   useEffect(() => {
     fetchVentes();
@@ -275,12 +281,16 @@ export default function SalesPage() {
              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Chercher par réf, client..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
            </div>
             <div className="flex items-center gap-2">
-              <DatePickerWithRange date={dateRange} setDate={setDateRange} />
-              {dateRange && (
-                <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
+                <div className="flex items-center space-x-2">
+                  <Switch id="credit-filter" checked={showOnlyCredit} onCheckedChange={setShowOnlyCredit} />
+                  <Label htmlFor="credit-filter">Crédits en cours</Label>
+                </div>
+                <DatePickerWithRange date={dateRange} setDate={setDateRange} disabled={showOnlyCredit} />
+                {dateRange && !showOnlyCredit && (
+                    <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
+                    <X className="h-4 w-4" />
+                    </Button>
+                )}
             </div>
         </div>
       </div>
