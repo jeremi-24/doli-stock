@@ -1,4 +1,5 @@
 
+
 export type Client = {
   id: number;
   nom: string;
@@ -413,4 +414,13 @@ export type FactureModele = {
   header?: string;
   footer?: string;
   color?: string;
+};
+
+// ----- Logs -----
+export type Log = {
+  id: number;
+  userId: number;
+  email: string;
+  action: string;
+  date: string;
 };

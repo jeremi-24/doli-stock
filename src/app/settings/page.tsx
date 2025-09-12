@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -15,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode as BarcodeIcon, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer, Building2 as Warehouse, ShieldCheck, PlusCircle, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
+import { Settings, Barcode as BarcodeIcon, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer, Building2 as Warehouse, ShieldCheck, PlusCircle, Trash2, Pencil, CheckCircle, XCircle, History } from 'lucide-react';
 import type { ShopInfo, ThemeColors, Produit, Role, Utilisateur, LieuStock, Permission, RoleCreationPayload } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import * as api from '@/lib/api';
@@ -817,11 +818,13 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
 
 export default function SettingsPage() {
   const { addMultipleProduits, hasPermission, produits } = useApp();
+  const router = useRouter();
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [isMultiPrintDialogOpen, setIsMultiPrintDialogOpen] = React.useState(false);
 
 
   const canImport = React.useMemo(() => hasPermission('PRODUIT_IMPORT'), [hasPermission]);
+  const canViewLogs = React.useMemo(() => hasPermission('USER_MANAGE'), [hasPermission]);
 
 
   const handleImportSuccess = (importedData: any[]) => {
@@ -855,8 +858,8 @@ export default function SettingsPage() {
         <TabsContent value="import" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline">Import et Impression</CardTitle>
-                <CardDescription>Gérez l'importation de vos données et l'impression en masse.</CardDescription>
+                <CardTitle className="font-headline">Import, Export & Logs</CardTitle>
+                <CardDescription>Gérez les données en masse et consultez l'historique des actions.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6">
                 <div className="space-y-2">
@@ -879,6 +882,18 @@ export default function SettingsPage() {
                         Imprimer plusieurs codes-barres
                     </Button>
                 </div>
+                {canViewLogs && (
+                  <div className="space-y-2">
+                      <h3 className="font-medium">Journal des actions</h3>
+                      <p className="text-sm text-muted-foreground">
+                          Consultez l'historique de toutes les actions importantes effectuées dans le système.
+                      </p>
+                      <Button variant="outline" onClick={() => router.push('/logs')}>
+                          <History className="mr-2 h-4 w-4"/>
+                          Voir les actions
+                      </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
         </TabsContent>
@@ -901,5 +916,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

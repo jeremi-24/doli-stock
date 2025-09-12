@@ -260,6 +260,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
     },
     {
+      href: '/logs',
+      icon: <History />,
+      label: 'Logs',
+      active: pathname === '/logs',
+      permission: 'USER_MANAGE',
+    },
+    {
       href: '/settings',
       icon: <Settings />,
       label: 'Paramètres',

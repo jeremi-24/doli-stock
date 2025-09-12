@@ -1,3 +1,4 @@
+
 "use client";
 import * as React from "react";
 import {
@@ -93,7 +94,7 @@ function CorrectionDialog({
     );
 }
 
-export default function StockPage() {
+function StockPageContent() {
     const { currentUser, isMounted, lieuxStock, corrigerStock } = useApp();
     const [stocks, setStocks] = React.useState<Stock[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -226,7 +227,7 @@ export default function StockPage() {
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={isAdmin ? 8 : 7} className="h-24 text-center">
+                                        <TableCell colSpan={isAdmin ? 7 : 6} className="h-24 text-center">
                                             <Loader2 className="animate-spin mx-auto" />
                                         </TableCell>
                                     </TableRow>
@@ -251,7 +252,7 @@ export default function StockPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={isAdmin ? 8 : 7} className="h-24 text-center">
+                                        <TableCell colSpan={isAdmin ? 7 : 6} className="h-24 text-center">
                                             Aucun stock trouvé pour les critères sélectionnés.
                                         </TableCell>
                                     </TableRow>
@@ -268,5 +269,13 @@ export default function StockPage() {
                 onConfirm={handleCorrection}
             />
         </div>
+    );
+}
+
+export default function StockPage() {
+    return (
+        <React.Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin"/></div>}>
+            <StockPageContent />
+        </React.Suspense>
     );
 }

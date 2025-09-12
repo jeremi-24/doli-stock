@@ -1,6 +1,6 @@
 
 
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VentePayload, Notification, BarcodePrintRequest, FactureModele, PaiementPayload, EtatVente } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VentePayload, Notification, BarcodePrintRequest, FactureModele, PaiementPayload, EtatVente, Log } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -388,7 +388,7 @@ export async function getCommandesByClientId(clientId: number): Promise<Commande
     return apiFetch(`/commandes/client/${clientId}`);
 }
 export async function getCommandesByLieuStockNomExact(lieuNom: string): Promise<Commande[]> {
-  return apiFetch(`/commandes/lieuStock/search?nom=${encodeURIComponent(lieuNom)}`);
+  return apiFetch(`/commandes/lieuStock/nom/${encodeURIComponent(lieuNom)}`);
 }
 
 export async function createCommande(data: CommandePayload): Promise<Commande> {
@@ -436,6 +436,15 @@ export async function getNotificationsByUserId(userId: number): Promise<Notifica
 
 export async function markNotificationAsRead(id: number): Promise<void> {
     return apiFetch(`/notifications/${id}/lu`, { method: 'PUT' });
+}
+
+// ========== Logs API ==========
+export async function getLogs(params: { dateDebut?: string, dateFin?: string, searchTerm?: string }): Promise<Log[]> {
+    const query = new URLSearchParams();
+    if (params.dateDebut) query.append('dateDebut', params.dateDebut);
+    if (params.dateFin) query.append('dateFin', params.dateFin);
+    if (params.searchTerm) query.append('searchTerm', params.searchTerm);
+    return apiFetch(`/logs?${query.toString()}`);
 }
 
 // ========== Facture Modeles API ==========
