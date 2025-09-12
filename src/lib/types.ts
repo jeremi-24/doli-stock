@@ -238,7 +238,8 @@ export enum TypePaiement {
 
 export enum EtatVente {
     SOLDEE = 'SOLDEE',
-    EN_ATTENTE = 'EN_ATTENTE'
+    EN_ATTENTE = 'EN_ATTENTE',
+    ANNULEE = 'ANNULEE'
 }
 
 export enum ModePaiement {
@@ -289,7 +290,7 @@ export type Vente = {
     lieuStockId: number;
     lieuStockNom: string;
     paiements: Paiement[];
-    statut?: 'COMPLETEE' | 'ANNULEE';
+    statut: EtatVente;
 };
 
 export type PaiementInitialPayload = {

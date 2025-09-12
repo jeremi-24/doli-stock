@@ -347,7 +347,7 @@ export default function SalesPage() {
                     {isLoading ? (
                         <TableRow><TableCell colSpan={9} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                     ) : filteredSales.length > 0 ? filteredSales.map(vente => {
-                        const isAnnulee = vente.statut === 'ANNULEE';
+                        const isAnnulee = vente.statut === EtatVente.ANNULEE;
                         const isCredit = vente.etat === EtatVente.EN_ATTENTE;
                         return (
                         <TableRow key={vente.id} className={cn(isAnnulee && "bg-destructive/10 text-muted-foreground", isCredit && "bg-amber-50")}>
