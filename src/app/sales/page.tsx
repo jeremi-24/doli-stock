@@ -173,7 +173,7 @@ function DatePickerWithRange({
                 format(date.from, "LLL dd, y", { locale: fr })
               )
             ) : (
-              <span>Choisir une période</span>
+              <span>Voir sur une période</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -301,11 +301,22 @@ export default function SalesPage() {
            <div className="relative flex-1 md:grow-0">
              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Chercher par réf, client..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
            </div>
-            <div className="flex items-center gap-2">
-                <div className="flex items-center space-x-2">
+            
+        </div>
+      </div>
+
+      <Card>
+          <CardHeader className='flex w-full justify-between items-start gap-2' >
+              <div>
+              <CardDescription className='text-md' >{pageDescription}</CardDescription>
+              </div>  
+              <div className='flex flex-row justify-between gap-2' >
+              <div className="flex  items-center space-x-2">
                   <Switch id="credit-filter" checked={showOnlyCredit} onCheckedChange={setShowOnlyCredit} />
                   <Label htmlFor="credit-filter">Crédits en cours</Label>
-                </div>
+                </div>     
+                <div className="flex items-center gap-2">
+                
                 <DatePickerWithRange date={dateRange} setDate={setDateRange} disabled={showOnlyCredit} />
                 {dateRange && !showOnlyCredit && (
                     <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
@@ -313,15 +324,10 @@ export default function SalesPage() {
                     </Button>
                 )}
             </div>
-        </div>
-      </div>
-
-      <Card>
-          <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><History />{pageTitle}</CardTitle>
-              <CardDescription>{pageDescription}</CardDescription>
+            </div>    
           </CardHeader>
           <CardContent>
+          
             <div className="border rounded-lg">
                 <Table>
                     <TableHeader>
