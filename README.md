@@ -1,36 +1,38 @@
-d draft feature
-# STA - Stock Management
+
+# STA - Gestion de Stock Avancée
 
 ![Logo STA](public/logosta.jpg)
 
 **STA** est une application web complète et moderne conçue pour la gestion avancée des stocks, des ventes et des opérations commerciales. Elle offre une interface intuitive et des fonctionnalités puissantes pour optimiser les flux de travail, de la réception des produits à la facturation client.
 
-##  Fonctionnalités Principales
-
-- **Tableau de Bord Intuitif** : Visualisez en un coup d'œil les indicateurs clés de performance (KPIs) comme la valeur totale du stock, les alertes de stock faible et l'activité récente.
-- **Gestion de Produits & Catalogue** : Créez, modifiez et organisez facilement vos produits avec des détails riches (prix, références, seuils d'alerte, prix par carton, etc.).
-- **Gestion de Stock Multi-Entrepôts** : Suivez les niveaux de stock en temps réel pour chaque produit dans différents lieux de stockage (magasins, entrepôts).
-- **Point de Vente (POS)** : Une interface de caisse rapide et ergonomique pour enregistrer les ventes directes, avec un panier interactif et une gestion des clients.
-- **Système de Commandes Internes** : Gérez les demandes de produits entre différents services ou clients internes, avec un flux de validation complet.
-- **Facturation et Bons de Livraison Automatisés** : Générez automatiquement des factures et des bons de livraison professionnels à partir des commandes validées.
-- **Inventaires et Réapprovisionnements** : Réalisez des inventaires précis grâce à un scanner de codes-barres et enregistrez facilement les nouveaux arrivages de stock.
-- **Gestion des Rôles & Permissions** : Un système de contrôle d'accès basé sur les rôles (RBAC) flexible pour définir des permissions granulaires pour chaque utilisateur (ex: Admin, Secrétariat, Magasinier).
-- **Notifications en Temps Réel** : Restez informé des événements importants (nouvelles commandes, validations) grâce aux notifications push via WebSockets.
-- **Personnalisation** : Adaptez l'application à l'image de votre entreprise en modifiant les informations de l'organisation et les couleurs du thème.
+##  功能
+- **Tableau de Bord Intuitif**: Visualisez en un coup d'œil les indicateurs clés de performance (KPIs) comme la valeur totale du stock, les alertes de stock faible et l'activité récente. Le tableau de bord est personnalisé en fonction du rôle de l'utilisateur (Admin, Magasinier, etc.).
+- **Gestion de Produits & Catalogue**: Créez, modifiez et organisez facilement vos produits avec des détails riches (prix, références, seuils d'alerte, prix par carton, etc.).
+- **Point de Vente (POS)**: Une interface de caisse rapide et ergonomique pour enregistrer les ventes directes, avec un panier interactif, la gestion des clients et la possibilité de ventes à crédit.
+- **Gestion de Stock Multi-Entrepôts**: Suivez les niveaux de stock en temps réel pour chaque produit dans différents lieux de stockage (magasins, entrepôts).
+- **Système de Commandes Internes**: Gérez les demandes de produits entre différents services ou clients internes, avec un flux de validation complet.
+- **Facturation et Bons de Livraison Automatisés**: Générez automatiquement des factures et des bons de livraison professionnels à partir des commandes validées.
+- **Inventaires et Réapprovisionnements**: Réalisez des inventaires précis (par scan ou import) pour calculer les écarts, et enregistrez facilement les nouveaux arrivages de stock pour mettre à jour les quantités.
+- **Gestion des Rôles & Permissions**: Un système de contrôle d'accès basé sur les rôles (RBAC) flexible pour définir des permissions granulaires pour chaque utilisateur (ex: Admin, Secrétariat, Magasinier, Boutiquier).
+- **Gestion des Données**: Interfaces dédiées pour gérer les clients, les catégories de produits et les lieux de stock.
+- **Journal des Actions**: Suivez toutes les actions importantes effectuées dans le système grâce à un journal d'événements consultable et filtrable.
+- **Notifications en Temps Réel**: Restez informé des événements importants (nouvelles commandes, validations) grâce aux notifications push via WebSockets.
+- **Personnalisation**: Adaptez l'application à l'image de votre entreprise en modifiant les informations de l'organisation et les couleurs du thème.
+- **Import/Export**: Importez des listes de produits depuis un fichier Excel et imprimez des étiquettes de codes-barres en masse.
 
 ## 🚀 Technologies Utilisées
 
 Ce projet est construit avec une architecture moderne, performante et maintenable.
 
-- **Framework Frontend** : [Next.js](https://nextjs.org/) (avec App Router)
-- **Bibliothèque UI** : [React](https://react.dev/)
-- **Langage** : [TypeScript](https://www.typescriptlang.org/)
-- **Styling** : [Tailwind CSS](https://tailwindcss.com/)
-- **Composants UI** : [Shadcn/UI](https://ui.shadcn.com/)
-- **Gestion d'État** : React Context API & Hooks
-- **Communication Temps Réel** : WebSockets (avec STOMP.js et SockJS)
-- **Validation de Formulaires** : React Hook Form & Zod
-- **Backend (API)** : L'application communique avec une API RESTful externe (non incluse dans ce dépôt).
+- **Framework Frontend**: [Next.js](https://nextjs.org/) (avec App Router)
+- **Bibliothèque UI**: [React](https://react.dev/)
+- **Langage**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Composants UI**: [Shadcn/UI](https://ui.shadcn.com/)
+- **Gestion d'État**: React Context API & Hooks
+- **Communication Temps Réel**: WebSockets (avec STOMP.js et SockJS)
+- **Validation de Formulaires**: React Hook Form & Zod
+- **Backend (API)**: L'application communique avec une API RESTful externe (non incluse dans ce dépôt).
 
 ## ⚙️ Démarrage
 
@@ -75,11 +77,11 @@ L'application sera accessible à l'adresse [http://localhost:3000](http://localh
 
 ## 📄 Scripts Disponibles
 
-- `npm run dev`: Lance l'application en mode développement.
+- `npm run dev`: Lance l'application en mode développement avec Turbopack.
 - `npm run build`: Construit l'application pour la production.
 - `npm run start`: Démarre un serveur de production.
 - `npm run lint`: Exécute ESLint pour analyser le code.
 - `npm run typecheck`: Vérifie les types TypeScript sans émettre de fichiers.
 
 ---
-
+*Documentation générée en fonction de l'état actuel du code.*
