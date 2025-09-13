@@ -1,9 +1,10 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VentePayload, Vente, EtatVente, Notification, FactureModele, Stock, PaiementPayload } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VentePayload, Vente, CommandeStatus, Notification, FactureModele, Stock, PaiementPayload, EtatVente } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
