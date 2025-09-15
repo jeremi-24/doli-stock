@@ -443,11 +443,21 @@ export async function markNotificationAsRead(id: number): Promise<void> {
 // ========== Logs API ==========
 export async function getLogs(params: { dateDebut?: string, dateFin?: string, searchTerm?: string }): Promise<Log[]> {
     const query = new URLSearchParams();
-    if (params.dateDebut) query.append('dateDebut', params.dateDebut);
-    if (params.dateFin) query.append('dateFin', params.dateFin);
-    if (params.searchTerm) query.append('searchTerm', params.searchTerm);
-    return apiFetch(`/logs?${query.toString()}`);
+    let endpoint = '/logs';
+
+    if (params.dateDebut && params.dateFin) {
+        endpoint = '/logs/periode';
+        query.append('dateDebut', params.dateDebut);
+        query.append('dateFin', params.dateFin);
+    } else if (params.searchTerm) {
+        endpoint = '/logs/search';
+        query.append('searchTerm', params.searchTerm);
+    }
+    
+    const queryString = query.toString();
+    return apiFetch(queryString ? `${endpoint}?${queryString}` : endpoint);
 }
+
 
 // ========== Facture Modeles API ==========
 /*

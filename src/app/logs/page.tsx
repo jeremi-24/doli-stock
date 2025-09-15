@@ -85,10 +85,11 @@ export default function LogsPage() {
     
     setIsLoading(true);
     try {
-        const params: { dateDebut?: string, dateFin?: string, searchTerm?: string } = {};
-        if(dateRange?.from) params.dateDebut = format(dateRange.from, 'yyyy-MM-dd');
-        if(dateRange?.to) params.dateFin = format(dateRange.to, 'yyyy-MM-dd');
-        if(searchTerm) params.searchTerm = searchTerm;
+        const params = {
+          dateDebut: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+          dateFin: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+          searchTerm: searchTerm || undefined,
+        };
 
         const data = await api.getLogs(params);
         setLogs(data.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
