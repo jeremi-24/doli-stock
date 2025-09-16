@@ -176,6 +176,9 @@ export async function deleteLieuxStock(ids: number[]): Promise<null> {
 export async function getProducts(): Promise<Produit[]> {
     return apiFetch(`/produits`);
 }
+export async function getProductById(id: number): Promise<Produit> {
+    return apiFetch(`/produits/${id}`);
+}
 export async function getProduitsByLieuNom(lieuNom: string): Promise<Produit[]> {
     return apiFetch(`/produits/lieu/nom/${encodeURIComponent(lieuNom)}`);
 }

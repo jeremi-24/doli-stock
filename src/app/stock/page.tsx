@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import * as api from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
@@ -100,6 +100,7 @@ function StockPageContent() {
     const [isLoading, setIsLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState("");
     const searchParams = useSearchParams();
+    const router = useRouter();
     const lieuParam = searchParams.get('lieu');
     
     const [selectedLieu, setSelectedLieu] = React.useState<string>(lieuParam || "all");
@@ -234,7 +235,14 @@ function StockPageContent() {
                                 ) : filteredStocks.length > 0 ? (
                                     filteredStocks.map((stockItem) => (
                                         <TableRow key={stockItem.id}>
-                                            <TableCell className="font-medium">{stockItem.produitNom}</TableCell>
+                                            <TableCell className="font-medium">
+                                                <span 
+                                                    className="cursor-pointer hover:underline text-primary"
+                                                    onClick={() => router.push(`/products/${stockItem.produitId}`)}
+                                                >
+                                                    {stockItem.produitNom}
+                                                </span>
+                                            </TableCell>
                                             <TableCell>{stockItem.produitRef}</TableCell>
                                             <TableCell>{stockItem.lieuStockNom}</TableCell>
                                             <TableCell className="text-right font-bold">{stockItem.qteCartons}</TableCell>

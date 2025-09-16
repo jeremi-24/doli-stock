@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp } from '@/context/app-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -9,9 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Package, DollarSign, Tag, Barcode, AlertTriangle, Building2 as Warehouse, Boxes } from 'lucide-react';
-import type { Produit as ProduitType } from '@/lib/types';
+import type { Produit as ProduitType, Stock } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import * as api from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -23,26 +25,45 @@ export default function ProductDetailPage() {
     scannedProductDetails, 
     setScannedProductDetails 
   } = useApp();
+  const { toast } = useToast();
   
   const [produit, setProduit] = useState<ProduitType | null | undefined>(undefined);
 
-  useEffect(() => {
-    // Use fresh data from scan if available
-    if (scannedProductDetails && scannedProductDetails.id === Number(id)) {
-      setProduit(scannedProductDetails);
-      setScannedProductDetails(null); // Clear after use
-    } 
-    // Fallback for direct navigation/refresh
-    else if (isMounted && id) {
-      const foundProduit = produits.find(p => p.id === Number(id));
-      if (foundProduit) {
-        const productStocks = stocks.filter(s => s.produitId === foundProduit.id);
-        setProduit({ ...foundProduit, stocks: productStocks });
-      } else {
-        setProduit(null); // Explicitly set to null if not found
-      }
+  const fetchProduct = useCallback(async (productId: number) => {
+    try {
+        const data = await api.getProductById(productId);
+        const productStocks = await api.getStocks();
+        const relatedStocks = productStocks.filter((s: Stock) => s.produitId === data.id);
+        setProduit({ ...data, stocks: relatedStocks });
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Erreur de chargement",
+            description: "Le produit n'a pas pu être chargé depuis le serveur."
+        });
+        setProduit(null);
     }
-  }, [id, produits, stocks, isMounted, scannedProductDetails, setScannedProductDetails]);
+  }, [toast]);
+
+
+  useEffect(() => {
+    const productId = Number(id);
+    if (!isMounted || isNaN(productId)) return;
+
+    if (scannedProductDetails && scannedProductDetails.id === productId) {
+        setProduit(scannedProductDetails);
+        setScannedProductDetails(null);
+    } else {
+        const foundProduit = produits.find(p => p.id === productId);
+        if (foundProduit) {
+            const productStocks = stocks.filter(s => s.produitId === foundProduit.id);
+            setProduit({ ...foundProduit, stocks: productStocks });
+        } else {
+            // If not found in context, fetch from API
+            fetchProduct(productId);
+        }
+    }
+}, [id, produits, stocks, isMounted, scannedProductDetails, setScannedProductDetails, fetchProduct]);
 
 
   const formatCurrency = (amount: number) => {
