@@ -477,3 +477,5 @@ export async function deleteFactureModele(id: string): Promise<any> {
     return apiFetch(`/facture-modeles/${id}`, { method: 'DELETE' });
 }
 */
+
+    
