@@ -332,6 +332,26 @@ export async function getInventairesByLieu(lieuStockId: number): Promise<Inventa
   return Array.isArray(results) ? results.map(mapInventaireResponse).filter(Boolean) as Inventaire[] : [];
 }
 
+export async function searchInventaires(params: {
+    charge?: string;
+    lieuStockId?: number;
+    dateDebut?: string;
+    dateFin?: string;
+    status?: string;
+    avecEcarts?: boolean;
+}): Promise<Inventaire[]> {
+    const query = new URLSearchParams();
+    if (params.charge) query.append('charge', params.charge);
+    if (params.lieuStockId) query.append('lieuStockId', String(params.lieuStockId));
+    if (params.dateDebut) query.append('dateDebut', params.dateDebut);
+    if (params.dateFin) query.append('dateFin', params.dateFin);
+    if (params.status) query.append('status', params.status);
+    if (params.avecEcarts) query.append('avecEcarts', String(params.avecEcarts));
+    
+    const results = await apiFetch(`/inventaire/recherche?${query.toString()}`);
+    return Array.isArray(results) ? results.map(mapInventaireResponse).filter(Boolean) as Inventaire[] : [];
+}
+
 export async function getInventaire(id: number): Promise<Inventaire | null> {
   const result = await apiFetch(`/inventaire/${id}`);
   return mapInventaireResponse(result);
@@ -477,5 +497,3 @@ export async function deleteFactureModele(id: string): Promise<any> {
     return apiFetch(`/facture-modeles/${id}`, { method: 'DELETE' });
 }
 */
-
-    
