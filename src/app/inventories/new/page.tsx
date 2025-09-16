@@ -611,7 +611,7 @@ export default function NewInventoryPage() {
 
             <div className="flex items-center"><h1 className="font-headline text-3xl font-semibold">{lieuStockMap.has(Number(selectedLieuStockId)) ? <>Inventaire de <span className="font-bold">{lieuStockMap.get(Number(selectedLieuStockId))?.nom}</span></> : "Nouvel Inventaire"}</h1></div>
             
-            <div className="grid gap-8 md:grid-cols-3">
+            <div className="grid gap-8 md:grid-cols-2">
                 {inventoryMode === 'scan' && (
                     <div className="md:col-span-1">
                         <Card>
