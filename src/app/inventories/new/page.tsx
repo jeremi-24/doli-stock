@@ -177,7 +177,7 @@ export default function NewInventoryPage() {
         if (draftToRestore.listItems && listItems.length > 0) {
             setListItems(prevList => prevList.map(item => {
                 const saved = draftToRestore.listItems[item.produitId];
-                return saved ? { ...item, qteCartons: saved.cartons, qteUnites: saved.unites } : item;
+                return saved ? { ...item, qteCartons: saved.cartons, unites: saved.unites } : item;
             }));
         }
         setSelectedLieuStockId(draftToRestore.selectedLieuStockId);
@@ -274,8 +274,8 @@ export default function NewInventoryPage() {
         const lieu = selectedLieuStockId ? lieuStockMap.get(Number(selectedLieuStockId)) : null;
         document.title = lieu ? `Inventaire - ${lieu.nom} - STA` : `Nouvel Inventaire - STA`;
         if (lieu) {
-            setInventoryMode(lieu.type === 'Magasin' ? 'list' : 'scan');
-            if (lieu.type === 'Magasin' && editingInventoryId === null) {
+            setInventoryMode(lieu.type?.toUpperCase() === 'MAGASIN' ? 'list' : 'scan');
+            if (lieu.type?.toUpperCase() === 'MAGASIN' && editingInventoryId === null) {
                 fetchProductsForLieu(lieu.id);
             }
         } else {
@@ -552,5 +552,3 @@ export default function NewInventoryPage() {
         </div>
     );
 }
-
-    
