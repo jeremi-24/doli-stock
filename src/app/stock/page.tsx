@@ -183,8 +183,8 @@ function StockPageContent() {
                             placeholder="Rechercher un produit..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-8 w-[300px]"
-                        />
+                            className="pl-8 w-[300px] border border-black rounded-md focus:border focus:border-transparent"
+                            />
                     </div>
                 </div>
             </div>
@@ -237,7 +237,7 @@ function StockPageContent() {
                                         <TableRow key={stockItem.id}>
                                             <TableCell className="font-medium">
                                                 <span 
-                                                    className="cursor-pointer hover:underline text-primary"
+                                                    className="cursor-pointer underline "
                                                     onClick={() => router.push(`/products/${stockItem.produitId}`)}
                                                 >
                                                     {stockItem.produitNom}
