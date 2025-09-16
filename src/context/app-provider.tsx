@@ -177,11 +177,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetchClientsPromise,
       fetchCommandesPromise,
       fetchLivraisonsPromise,
-      fetchFactures(),
     ];
 
     await Promise.allSettled(dataFetchPromises);
-  }, [handleFetchError, fetchFactures, currentUser]);
+  }, [handleFetchError, currentUser]);
 
 
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
@@ -218,6 +217,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (currentUser) {
       refreshAllData();
+      fetchFactures();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
@@ -537,5 +537,3 @@ export function useApp() {
   }
   return context;
 }
-
-    

@@ -431,6 +431,13 @@ export async function annulerCommande(id: number): Promise<Commande> {
 export async function getFactures(): Promise<Facture[]> {
     return apiFetch('/factures');
 }
+export async function searchFactures(params: { dateDebut?: string, dateFin?: string, clientId?: number }): Promise<Facture[]> {
+    const query = new URLSearchParams();
+    if (params.dateDebut) query.append('dateDebut', params.dateDebut);
+    if (params.dateFin) query.append('dateFin', params.dateFin);
+    if (params.clientId) query.append('clientId', String(params.clientId));
+    return apiFetch(`/factures/recherche?${query.toString()}`);
+}
 export async function genererFacture(commandeId: number): Promise<Facture> {
     return apiFetch(`/factures?commandeId=${commandeId}`, { method: 'POST' });
 }
