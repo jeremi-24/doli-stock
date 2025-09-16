@@ -395,7 +395,7 @@ export default function ProductsPage() {
                             placeholder="Rechercher par nom/réf..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-8 sm:w-[250px]"
+                            className="pl-8 sm:w-[250px] border border-black focus:border focus:border-transparent"
                         />
                     </div>
                      {canCreate && (
