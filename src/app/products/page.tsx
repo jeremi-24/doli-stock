@@ -289,6 +289,7 @@ export default function ProductsPage() {
         const lowercasedFilter = searchTerm.toLowerCase();
         const filtered = produits.filter(item => {
             const matchesSearch =
+              (item.id.toString().includes(lowercasedFilter)) || 
               (item.nom?.toLowerCase() ?? '').includes(lowercasedFilter) ||
               (item.ref && typeof item.ref === 'string' && item.ref.toLowerCase().includes(lowercasedFilter));
             const matchesCategory = categoryFilter === 'all' || String(item.categorieId) === categoryFilter;
@@ -496,6 +497,7 @@ export default function ProductsPage() {
                                             aria-label="Select all"
                                         />
                                     </TableHead>
+                                    <TableHead>id</TableHead>
                                     <TableHead>Nom du Produit</TableHead>
                                     {columnVisibility['ref'] && <TableHead>Référence</TableHead>}
                                     {columnVisibility['prix'] && <TableHead className="text-right">Prix Unitaire</TableHead>}
@@ -523,6 +525,7 @@ export default function ProductsPage() {
                                                     aria-label={`Select product ${produit.nom}`}
                                                 />
                                             </TableCell>
+                                            <TableCell className=" cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.id}</TableCell>
                                             <TableCell className="font-medium cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.nom}</TableCell>
                                             {columnVisibility['ref'] && <TableCell className="cursor-pointer" onClick={() => setViewingProduct(produit)}>{produit.ref}</TableCell>}
                                             {columnVisibility['prix'] && <TableCell className="text-right cursor-pointer" onClick={() => setViewingProduct(produit)}>{(produit.prix || 0).toLocaleString()}</TableCell>}

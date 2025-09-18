@@ -171,7 +171,7 @@ export default function LogsPage() {
                         <TableRow key={log.id}>
                             <TableCell className="font-mono text-xs">{format(new Date(log.date), 'd MMM yyyy, HH:mm:ss', { locale: fr })}</TableCell>
                             <TableCell><Badge variant="outline">{log.email}</Badge></TableCell>
-                            <TableCell className="font-medium">{log.action}</TableCell>
+                            <TableCell className="font-regular">{log.action}</TableCell>
                         </TableRow>
                     )) : (
                         <TableRow>
