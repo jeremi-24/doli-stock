@@ -30,7 +30,7 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Logo } from './logo';
-import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, Building2, ClipboardList, PackagePlus, Users, FileStack, Truck, Bell, Package, FileText as InvoiceIcon, FileSignature } from 'lucide-react';
+import { LayoutDashboard, Warehouse, Settings, Sun, Moon, LogOut, ShoppingCart, Tag, PanelLeft, FilePlus, History, Building2, ClipboardList, PackagePlus, Users, FileStack, Truck, Bell, Package, FileText as InvoiceIcon, FileSignature, LifeBuoy } from 'lucide-react';
 import { useApp } from '@/context/app-provider'; 
 import { useNotifications } from '@/context/notification-provider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -359,6 +359,12 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center gap-2">
                 <NotificationBell />
+                <Link href="/mode-d-emploi">
+                  <Button variant="ghost" size="icon">
+                      <LifeBuoy />
+                      <span className="sr-only">Aide</span>
+                  </Button>
+                </Link>
                 <Button variant="ghost" size="icon" onClick={toggleTheme}>
                     <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                     <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
