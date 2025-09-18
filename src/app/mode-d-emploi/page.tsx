@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Search, ExternalLink } from 'lucide-react';
+import { Search, ExternalLink, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type Step = {
   title: string;
@@ -27,9 +28,13 @@ type Section = {
   id: string;
   title: string;
   goal: string;
-  actions: Action[];
   link: string;
   keywords: string[];
+  actions: Action[];
+  importantNote?: {
+      level: 'info' | 'danger';
+      text: string;
+  }
 };
 
 const helpContent: Section[] = [
@@ -401,6 +406,145 @@ const helpContent: Section[] = [
       },
     ],
   },
+  {
+    id: 'lieux-stock',
+    title: 'Gérer les Lieux de Stock',
+    goal: 'Définir les différents endroits (magasins, entrepôts, boutiques) où votre stock est entreposé.',
+    link: '/entrepots',
+    keywords: ['lieu', 'entrepôt', 'magasin', 'boutique', 'stockage'],
+    importantNote: {
+        level: 'danger',
+        text: 'Il est crucial de créer au moins un lieu de stock AVANT de réaliser toute autre opération (création de produit, inventaire, etc.).'
+    },
+    actions: [
+      {
+        id: 'create-lieu',
+        title: 'Comment créer un lieu de stock',
+        steps: [
+            {
+              title: 'Étape 1 : Accéder à la page',
+              imageSeed: 'lieu_step1',
+              description: "Cliquez sur 'Lieux de Stock' dans le menu de navigation.",
+            },
+            {
+              title: 'Étape 2 : Lancer la création',
+              imageSeed: 'lieu_step2',
+              description: "Cliquez sur le bouton 'Ajouter un lieu'.",
+            },
+            {
+              title: 'Étape 3 : Remplir les informations',
+              imageSeed: 'lieu_step3',
+              description: "Donnez un nom (ex: Magasin Principal), un type (ex: Magasin) et une localisation (ex: Lomé Centre).",
+            },
+            {
+              title: 'Étape 4 : Enregistrer',
+              imageSeed: 'lieu_step4',
+              description: "Cliquez sur 'Créer' pour sauvegarder votre nouveau lieu de stock.",
+            },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'clients',
+    title: 'Gérer les Clients',
+    goal: 'Créer et administrer la liste de vos clients, qu\'ils soient internes ou externes.',
+    link: '/clients',
+    keywords: ['client', 'utilisateur', 'interne', 'externe'],
+    importantNote: {
+        level: 'info',
+        text: 'Un utilisateur de l\'application (ex: un département) doit aussi être créé en tant que client pour pouvoir passer des commandes internes.'
+    },
+    actions: [
+      {
+        id: 'create-client',
+        title: 'Comment ajouter un client',
+        steps: [
+            {
+              title: 'Étape 1 : Accéder à la page',
+              imageSeed: 'client_step1',
+              description: "Cliquez sur 'Clients' dans le menu de navigation.",
+            },
+            {
+              title: 'Étape 2 : Lancer la création',
+              imageSeed: 'client_step2',
+              description: "Cliquez sur le bouton 'Ajouter un client'.",
+            },
+            {
+              title: 'Étape 3 : Remplir les informations',
+              imageSeed: 'client_step3',
+              description: "Entrez le nom du client et, si possible, son numéro de téléphone.",
+            },
+            {
+              title: 'Étape 4 : Enregistrer',
+              imageSeed: 'client_step4',
+              description: "Cliquez sur 'Créer' pour ajouter le client à votre liste.",
+            },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'settings',
+    title: 'Gérer les Utilisateurs & Rôles',
+    goal: 'Administrer les accès à l\'application, créer des comptes utilisateurs et définir leurs permissions.',
+    link: '/settings',
+    keywords: ['paramètres', 'utilisateur', 'rôle', 'permission', 'accès'],
+    actions: [
+      {
+        id: 'create-user',
+        title: 'Comment créer un utilisateur',
+        steps: [
+            {
+              title: 'Étape 1 : Aller dans les Paramètres',
+              imageSeed: 'user_step1',
+              description: "Cliquez sur 'Paramètres' dans le menu, puis assurez-vous d'être dans l'onglet 'Utilisateurs'.",
+            },
+            {
+              title: 'Étape 2 : Ouvrir le formulaire',
+              imageSeed: 'user_step2',
+              description: "Cliquez sur le bouton 'Ajouter un utilisateur'.",
+            },
+            {
+              title: 'Étape 3 : Remplir les informations',
+              imageSeed: 'user_step3',
+              description: "Saisissez l'adresse e-mail, un mot de passe, puis assignez un rôle et un lieu de stock à ce nouvel utilisateur.",
+            },
+            {
+              title: 'Étape 4 : Créer le compte',
+              imageSeed: 'user_step4',
+              description: "Cliquez sur 'Créer'. L'utilisateur pourra alors se connecter avec les identifiants que vous venez de définir.",
+            },
+        ],
+      },
+      {
+        id: 'manage-roles',
+        title: 'Comment gérer les permissions d\'un rôle',
+        steps: [
+            {
+              title: 'Étape 1 : Accéder aux Rôles',
+              imageSeed: 'role_step1',
+              description: "Cliquez sur 'Paramètres' dans le menu, puis allez dans l'onglet 'Rôles & Permissions'.",
+            },
+            {
+              title: 'Étape 2 : Créer ou modifier un rôle',
+              imageSeed: 'role_step2',
+              description: "Cliquez sur 'Nouveau Rôle' ou sur l'icône de crayon pour modifier un rôle existant.",
+            },
+            {
+              title: 'Étape 3 : Assigner les permissions',
+              imageSeed: 'role_step3',
+              description: "Une fenêtre s'ouvrira avec une liste de toutes les actions possibles. Cochez les cases correspondant aux permissions que vous souhaitez accorder à ce rôle.",
+            },
+            {
+              title: 'Étape 4 : Enregistrer',
+              imageSeed: 'role_step4',
+              description: "Cliquez sur 'Enregistrer'. Tous les utilisateurs ayant ce rôle auront leurs permissions mises à jour instantanément.",
+            },
+        ],
+      },
+    ],
+  },
 ];
 
 
@@ -446,6 +590,18 @@ const HelpItem = ({ section, isFaded }: { section: Section, isFaded: boolean }) 
         <h4 className="font-semibold mb-1 text-lg">Objectif</h4>
         <p className="text-muted-foreground text-base">{section.goal}</p>
       </div>
+
+       {section.importantNote && (
+            <Alert variant={section.importantNote.level === 'danger' ? 'destructive' : 'default'} className="bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-600">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className="font-bold">
+                    {section.importantNote.level === 'danger' ? 'Attention !' : 'Information importante'}
+                </AlertTitle>
+                <AlertDescription>
+                    {section.importantNote.text}
+                </AlertDescription>
+            </Alert>
+        )}
       
       <div className="space-y-4">
         {section.actions.map((action) => (
