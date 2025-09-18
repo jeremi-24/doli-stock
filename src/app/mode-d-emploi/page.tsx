@@ -67,7 +67,7 @@ const helpContent: Section[] = [
           {
             title: 'Étape 5 : Calculer et vérifier les écarts',
             imageSeed: 'inventory_step5',
-            description: "Une fois le comptage terminé, cliquez sur 'Calculer les écarts'. Une page de détails s'ouvrira, montrant les différences entre le stock théorique et votre comptage.",
+            description: "Une fois le comptage terminé, cliquez sur 'Calculer les écarts'. Une page de détails s'ouvrira, montrant les différences between le stock théorique et votre comptage.",
           },
           {
             title: 'Étape 6 : Confirmer et appliquer au stock',
@@ -135,6 +135,107 @@ const helpContent: Section[] = [
             imageSeed: 'order_validate4',
             description: "Après validation, vous serez redirigé vers une page où vous pourrez visualiser et imprimer la facture et le bon de livraison.",
           },
+        ],
+      },
+    ],
+  },
+    {
+    id: 'deliveries',
+    title: 'Suivre les Bons de Livraison',
+    goal: 'Suivre le processus de validation des bons de livraison, de la préparation à la réception par le client.',
+    link: '/deliveries',
+    keywords: ['livraison', 'validation', 'secrétariat', 'magasinier', 'réception'],
+    actions: [
+      {
+        id: 'validate-delivery',
+        title: 'Comment valider un bon de livraison',
+        steps: [
+            {
+              title: 'Étape 1 : Le Secrétariat valide le BL',
+              imageSeed: 'delivery_step1',
+              description: "Un utilisateur avec le rôle 'Secrétariat' ou 'Admin' doit se rendre sur la page 'Bons de Livraison', trouver le BL avec le statut 'EN ATTENTE' et cliquer sur 'Valider BL'. Le statut passe à 'À livrer'.",
+            },
+            {
+              title: 'Étape 2 : Le Magasinier confirme la réception',
+              imageSeed: 'delivery_step2',
+              description: "Une fois que le client a physiquement reçu la marchandise, un utilisateur avec le rôle 'Magasinier' ou 'Admin' doit trouver le BL avec le statut 'À livrer' et cliquer sur 'Confirmer Réception'. Le statut final devient 'Livré'.",
+            },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'invoicing',
+    title: 'Consulter les Factures',
+    goal: 'Retrouver, consulter et filtrer toutes les factures qui ont été générées à partir des commandes validées.',
+    link: '/invoicing',
+    keywords: ['facture', 'historique', 'recherche', 'filtre'],
+    actions: [
+      {
+        id: 'view-invoices',
+        title: 'Comment voir et filtrer les factures',
+        steps: [
+            {
+              title: 'Étape 1 : Accéder à la page des factures',
+              imageSeed: 'invoice_step1',
+              description: "Cliquez sur 'Factures' dans le menu de navigation pour afficher la liste de toutes les factures générées.",
+            },
+            {
+              title: 'Étape 2 : Utiliser les filtres',
+              imageSeed: 'invoice_step2',
+              description: "Utilisez la barre de recherche pour trouver une facture par son numéro, ou le nom du client. Vous pouvez également filtrer par client ou par période pour affiner les résultats.",
+            },
+            {
+              title: 'Étape 3 : Voir les détails',
+              imageSeed: 'invoice_step3',
+              description: "Cliquez sur l'icône en forme d'œil (👁️) pour être redirigé vers la page de la commande correspondante, où vous pourrez voir et imprimer la facture.",
+            },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sales-history',
+    title: 'Gérer l\'Historique des Ventes',
+    goal: 'Consulter les ventes rapides du point de vente (POS), gérer les crédits et enregistrer les paiements.',
+    link: '/sales',
+    keywords: ['ventes', 'historique', 'crédit', 'paiement', 'filtre'],
+    actions: [
+      {
+        id: 'view-sales',
+        title: 'Consulter et filtrer l\'historique',
+        steps: [
+            {
+              title: 'Étape 1 : Accéder à l\'historique',
+              imageSeed: 'sales_step1',
+              description: "Allez sur la page 'Historique des Ventes' pour voir toutes les transactions enregistrées.",
+            },
+            {
+              title: 'Étape 2 : Filtrer les ventes',
+              imageSeed: 'sales_step2',
+              description: "Utilisez l'interrupteur 'Crédits en cours' pour n'afficher que les ventes avec un solde à payer. Vous pouvez aussi filtrer par période pour voir les ventes d'une semaine ou d'un mois précis.",
+            },
+        ],
+      },
+       {
+        id: 'manage-credit',
+        title: 'Gérer un crédit',
+        steps: [
+            {
+              title: 'Étape 1 : Identifier la vente à crédit',
+              imageSeed: 'credit_step1',
+              description: "Dans l'historique, repérez la vente avec le statut 'EN_ATTENTE'. Le montant dû est affiché en rouge.",
+            },
+            {
+              title: 'Étape 2 : Ajouter un paiement',
+              imageSeed: 'credit_step2',
+              description: "Cliquez sur le bouton 'Ajouter Paiement'. Une fenêtre s'ouvrira pour vous permettre de saisir le montant et le mode de paiement.",
+            },
+             {
+              title: 'Étape 3 : Confirmer',
+              imageSeed: 'credit_step3',
+              description: "Validez le paiement. Le solde restant sera automatiquement mis à jour. Répétez l'opération jusqu'à ce que le solde soit à zéro.",
+            },
         ],
       },
     ],
@@ -214,7 +315,7 @@ const helpContent: Section[] = [
     title: 'Gérer les Produits',
     goal: 'Créer, consulter, modifier et supprimer les fiches des produits de votre catalogue.',
     link: '/products',
-    keywords: ['produit', 'article', 'catalogue', 'prix', 'référence'],
+    keywords: ['produit', 'article', 'catalogue', 'prix', 'référence', 'import'],
     actions: [
       {
         id: 'create-product',
@@ -239,6 +340,27 @@ const helpContent: Section[] = [
               title: 'Étape 4 : Sauvegarder',
               imageSeed: 'product_step4',
               description: "Cliquez sur 'Créer' pour ajouter le nouveau produit à votre catalogue. Il sera immédiatement disponible dans tout le système.",
+            },
+        ],
+      },
+      {
+        id: 'import-products',
+        title: 'Comment importer des produits depuis Excel',
+        steps: [
+            {
+              title: 'Étape 1 : Préparer le fichier Excel',
+              imageSeed: 'import_step1',
+              description: "Créez un fichier Excel (.xlsx ou .csv) avec les colonnes suivantes : nom, ref, codeBarre, categorieId, lieuStockId, prix, qte, qteMin. Assurez-vous que les IDs de catégorie et de lieu existent déjà dans le système.",
+            },
+            {
+              title: 'Étape 2 : Aller à la page d\'import',
+              imageSeed: 'import_step2',
+              description: "Cliquez sur 'Paramètres' dans le menu, puis sélectionnez l'onglet 'Import/Export'.",
+            },
+            {
+              title: 'Étape 3 : Importer le fichier',
+              imageSeed: 'import_step3',
+              description: "Cliquez sur 'Importer un fichier', sélectionnez votre fichier Excel, puis validez. Les nouveaux produits seront ajoutés et les produits existants mis à jour.",
             },
         ],
       },
