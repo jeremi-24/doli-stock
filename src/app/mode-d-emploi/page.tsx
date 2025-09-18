@@ -14,7 +14,8 @@ import { cn } from '@/lib/utils';
 type Section = {
   id: string;
   title: string;
-  description: string;
+  goal: string;
+  steps: string[];
   dos: string[];
   donts: string[];
   link: string;
@@ -23,92 +24,109 @@ type Section = {
 
 const helpContent: Section[] = [
   {
-    id: 'dashboard',
-    title: 'Tableau de Bord',
-    description: 'Le tableau de bord vous donne une vue d’ensemble rapide de l’état de votre activité : valeur du stock, produits populaires, alertes et activités récentes.',
-    dos: [
-      'Consultez-le chaque jour pour suivre les indicateurs clés.',
-      'Utilisez les statistiques pour identifier les produits qui nécessitent une attention particulière.',
-    ],
-    donts: [
-      'N’ignorez pas les alertes de stock faible.',
-    ],
-    link: '/',
-    keywords: ['dashboard', 'accueil', 'statistiques', 'vue d\'ensemble'],
-  },
-  {
     id: 'products',
-    title: 'Gestion des Produits',
-    description: 'Cette section vous permet de créer, consulter, modifier et supprimer les produits de votre inventaire. C’est le cœur de votre catalogue.',
+    title: 'Gérer les Produits',
+    goal: 'Ajouter, modifier ou supprimer les articles de votre catalogue.',
+    steps: [
+      "1. Allez à la page 'Produits' depuis le menu de navigation.",
+      "2. Pour ajouter un produit, cliquez sur 'Ajouter'. Remplissez les détails comme le nom, le prix, et le seuil d'alerte.",
+      "3. Pour modifier un produit, trouvez-le dans la liste et utilisez le menu d'actions (...) pour sélectionner 'Modifier'.",
+    ],
     dos: [
-      'Donnez des noms clairs et des références uniques à vos produits.',
-      'Renseignez le "Seuil d\'Alerte" pour être notifié quand le stock est bas.',
-      'Assignez une catégorie à chaque produit pour une meilleure organisation.',
+      'Toujours assigner une catégorie pour une meilleure organisation.',
+      'Renseignez le "Seuil d\'Alerte" pour savoir quand un produit est presque en rupture de stock.',
+      'Utilisez des références (réf) uniques pour chaque produit.',
     ],
     donts: [
-      'Ne supprimez pas un produit s’il est encore présent dans des commandes ou des stocks.',
+      'Ne supprimez pas un produit s\'il a déjà été utilisé dans des commandes. Cela pourrait causer des erreurs.',
     ],
     link: '/products',
-    keywords: ['produit', 'catalogue', 'article', 'modifier', 'ajouter', 'supprimer'],
-  },
-  {
-    id: 'stock',
-    title: 'État du Stock',
-    description: 'Consultez en temps réel la quantité exacte de chaque produit dans tous vos lieux de stockage (magasins, entrepôts).',
-    dos: [
-      'Filtrez par lieu de stock pour voir l\'inventaire d\'un endroit précis.',
-      'Utilisez la fonction "Corriger" pour ajuster manuellement une quantité en cas d\'erreur.',
-    ],
-    donts: [
-      'N’effectuez des corrections de stock que si vous êtes certain de la nouvelle quantité.',
-    ],
-    link: '/stock',
-    keywords: ['stock', 'quantité', 'inventaire', 'état', 'entrepôt'],
+    keywords: ['produit', 'catalogue', 'article', 'créer', 'modifier', 'supprimer'],
   },
   {
     id: 'orders',
-    title: 'Gestion des Commandes Internes',
-    description: 'Créez et suivez les demandes de produits entre vos différents services ou pour des clients internes. Une fois validée, une commande génère automatiquement une facture et un bon de livraison.',
+    title: 'Créer une Commande Interne',
+    goal: 'Générer une demande de sortie de stock pour un client interne ou un autre service.',
+    steps: [
+        "1. Allez à la page 'Commandes' et cliquez sur 'Nouvelle Commande'.",
+        "2. Sélectionnez le Client (demandeur) et le Lieu de Stock où les produits seront retirés.",
+        "3. Ajoutez les produits un par un à la commande en précisant la quantité.",
+        "4. Vérifiez le panier, puis cliquez sur 'Créer la Commande' et confirmez.",
+    ],
     dos: [
-      'Vérifiez bien le client et le lieu de stock avant de créer une commande.',
-      'Validez les commandes en attente pour déclencher la facturation et la préparation.',
+      'Une fois la commande validée, une facture et un bon de livraison sont automatiquement générés.',
+      'Assurez-vous que le stock est suffisant avant de valider une commande.',
     ],
     donts: [
-      'Ne validez pas une commande si vous n’êtes pas sûr que le stock est disponible.',
+      'N\'oubliez pas de valider la commande. Une commande 'en attente' ne déduit pas le stock.',
     ],
-    link: '/orders',
-    keywords: ['commande', 'interne', 'validation', 'facture', 'bon de livraison'],
+    link: '/orders/new',
+    keywords: ['commande', 'interne', 'sortie de stock', 'validation', 'facture', 'bon de livraison'],
   },
    {
     id: 'pos',
-    title: 'Point de Vente (POS)',
-    description: 'L\'interface de caisse pour enregistrer les ventes directes aux clients. Scannez, ajoutez au panier et finalisez la vente rapidement.',
+    title: 'Utiliser le Point de Vente (POS)',
+    goal: 'Enregistrer une vente rapide au comptant ou à crédit pour un client.',
+     steps: [
+        "1. Allez sur la page 'Point de Vente'.",
+        "2. Scannez le code-barres d'un produit ou cliquez sur un article dans la liste pour l'ajouter au panier.",
+        "3. Ajustez les quantités si nécessaire directement dans le panier.",
+        "4. Cliquez sur 'Finaliser la Vente'.",
+        "5. Choisissez le client, le type de paiement (Comptant ou Crédit) et validez pour terminer la vente.",
+    ],
     dos: [
-      'Utilisez un lecteur de code-barres pour ajouter rapidement des produits.',
-      'Associez chaque vente à un client (même "CLIENT GENERIQUE").',
-      'Choisissez le bon type de paiement (Comptant ou Crédit).',
+      'Utilisez un lecteur de code-barres pour aller plus vite.',
+      'Associez chaque vente à un client, même si c\'est le "CLIENT GENERIQUE".',
+      'Le stock est mis à jour automatiquement après la validation de la vente.',
     ],
     donts: [
-      'N\'oubliez pas de finaliser la vente pour que le stock soit mis à jour.',
+      'N\'oubliez pas de finaliser la vente, sinon elle ne sera pas enregistrée.',
     ],
     link: '/pos',
-    keywords: ['pos', 'caisse', 'vente', 'scanner', 'panier'],
+    keywords: ['pos', 'caisse', 'vente', 'scanner', 'panier', 'crédit'],
   },
   {
     id: 'inventories',
-    title: 'Inventaires Physiques',
-    description: 'Effectuez un comptage physique de votre stock (par scan ou manuellement) pour le comparer à votre stock théorique et corriger les écarts.',
+    title: 'Faire un Inventaire Physique',
+    goal: 'Comparer le stock réel (ce que vous comptez) avec le stock de l\'application pour corriger les différences (écarts).',
+    steps: [
+        "1. Allez sur 'Inventaires' et cliquez sur 'Nouvel Inventaire'.",
+        "2. Sélectionnez le lieu de stock à inventorier.",
+        "3. Comptez vos produits. Saisissez les quantités dans la liste ou utilisez le mode scan.",
+        "4. Une fois le comptage terminé, cliquez sur 'Calculer les écarts'.",
+        "5. Une page de détails s'affiche. Vérifiez bien les écarts calculés.",
+        "6. Si tout est correct, cliquez sur 'Appliquer les Écarts au Stock' pour mettre à jour définitivement vos quantités.",
+    ],
     dos: [
-      'Faites des inventaires réguliers pour garantir la fiabilité de vos données.',
-      'Cochez "Ceci est le premier inventaire" si vous initialisez votre stock pour la première fois.',
-      'Après le calcul, analysez bien les écarts avant de confirmer pour mettre à jour le stock.',
+      'Faites des inventaires réguliers (ex: chaque mois) pour un suivi précis.',
+      'Si c\'est votre tout premier inventaire, cochez la case "Ceci est le premier inventaire" pour initialiser votre stock.',
     ],
     donts: [
-      'Ne confirmez pas un inventaire à la légère, car cela modifie définitivement vos niveaux de stock.',
+      'Ne confirmez pas un inventaire à la légère. La mise à jour du stock est irréversible.',
     ],
-    link: '/inventories',
-    keywords: ['inventaire', 'comptage', 'scan', 'écart', 'physique'],
+    link: '/inventories/new',
+    keywords: ['inventaire', 'comptage', 'stock physique', 'écart', 'correction'],
   },
+    {
+    id: 'reappro',
+    title: 'Enregistrer un Arrivage (Réapprovisionnement)',
+    goal: 'Ajouter de nouvelles quantités de produits à votre stock suite à une livraison fournisseur.',
+    steps: [
+        "1. Allez sur 'Réapprovisionnement' et cliquez sur 'Nouveau Réapprovisionnement'.",
+        "2. Sélectionnez le lieu de stock où les produits sont arrivés.",
+        "3. Scannez chaque produit reçu et indiquez la quantité (en Unité ou en Carton).",
+        "4. Une fois tous les produits de l'arrivage scannés, cliquez sur 'Enregistrer l'arrivage'.",
+    ],
+    dos: [
+        'Utilisez le mode "Carton" pour ajouter rapidement de grandes quantités.',
+        'Vérifiez la liste des produits dans le panier avant de valider.',
+    ],
+    donts: [
+        'Ne mélangez pas les arrivages de différents lieux de stock dans la même session.',
+    ],
+    link: '/reapprovisionnements/new',
+    keywords: ['arrivage', 'réapprovisionnement', 'entrée de stock', 'fournisseur'],
+    },
 ];
 
 const HelpItem = ({ section, isFaded }: { section: Section, isFaded: boolean }) => (
@@ -116,23 +134,36 @@ const HelpItem = ({ section, isFaded }: { section: Section, isFaded: boolean }) 
     <AccordionTrigger className="text-xl font-headline hover:no-underline">
       {section.title}
     </AccordionTrigger>
-    <AccordionContent className="prose prose-sm max-w-none space-y-4 pt-2">
-      <p className="text-muted-foreground">{section.description}</p>
+    <AccordionContent className="prose prose-sm max-w-none space-y-6 pt-2">
       
-      <div className="grid md:grid-cols-2 gap-4">
+      <div>
+        <h4 className="font-semibold mb-2 text-base">Objectif</h4>
+        <p className="text-muted-foreground">{section.goal}</p>
+      </div>
+      
+      <div>
+        <h4 className="font-semibold mb-2 text-base">Comment faire (Étapes Clés)</h4>
+        <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+            {section.steps.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+        </ol>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
         <div>
-          <h4 className="font-semibold mb-2">À faire :</h4>
+          <h4 className="font-semibold mb-2 text-base">✅ À faire</h4>
           <ul className="list-none space-y-2 p-0">
             {section.dos.map((item, i) => (
-              <li key={i} className="flex items-start"><span className="mr-2">✅</span>{item}</li>
+              <li key={i} className="flex items-start"><span className="mr-3 mt-1 opacity-50">▪</span>{item}</li>
             ))}
           </ul>
         </div>
         <div>
-          <h4 className="font-semibold mb-2">À ne pas faire :</h4>
+          <h4 className="font-semibold mb-2 text-base">❌ À ne pas faire</h4>
           <ul className="list-none space-y-2 p-0">
             {section.donts.map((item, i) => (
-              <li key={i} className="flex items-start"><span className="mr-2">❌</span>{item}</li>
+              <li key={i} className="flex items-start"><span className="mr-3 mt-1 opacity-50">▪</span>{item}</li>
             ))}
           </ul>
         </div>
@@ -173,7 +204,7 @@ export default function HelpPage() {
     const lowerCaseSearch = searchTerm.toLowerCase();
     return helpContent.filter(section => 
         section.title.toLowerCase().includes(lowerCaseSearch) ||
-        section.description.toLowerCase().includes(lowerCaseSearch) ||
+        section.goal.toLowerCase().includes(lowerCaseSearch) ||
         section.keywords.some(kw => kw.toLowerCase().includes(lowerCaseSearch))
     );
   }, [searchTerm]);
@@ -201,7 +232,7 @@ export default function HelpPage() {
             />
           </div>
 
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion type="single" collapsible className="w-full" defaultValue={searchTerm ? filteredIds.values().next().value : undefined}>
             {helpContent.map((section) => (
               <HelpItem 
                 key={section.id} 
@@ -209,6 +240,11 @@ export default function HelpPage() {
                 isFaded={searchTerm.length > 0 && !filteredIds.has(section.id)}
               />
             ))}
+             {searchTerm.length > 0 && filteredContent.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                    <p>Aucune section d'aide ne correspond à votre recherche.</p>
+                </div>
+             )}
           </Accordion>
 
         </CardContent>
