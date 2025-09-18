@@ -228,9 +228,10 @@ export async function importProducts(file: File): Promise<Produit[]> {
     });
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`Échec de l'importation: ${errorBody}`);
+      const errorBody = await response.json();
+      throw new Error(errorBody.error || "Une erreur est survenue");
     }
+    
     
     return response.json();
   } catch (error) {
