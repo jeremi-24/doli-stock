@@ -39,6 +39,7 @@ import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { VoiceAssistant } from './voice-assistant';
 
 function NotificationBell() {
   const { notifications, markAsRead, unreadCount } = useNotifications();
@@ -380,6 +381,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         <main className={cn("flex-1 overflow-auto", isPosPage && "h-screen")}>
             {children}
         </main>
+        <VoiceAssistant />
       </SidebarInset>
     </>
   );
