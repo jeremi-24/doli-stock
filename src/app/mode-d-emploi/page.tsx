@@ -174,6 +174,111 @@ const helpContent: Section[] = [
       },
     ],
   },
+  {
+    id: 'reapprovisionnement',
+    title: 'Enregistrer un arrivage (Réapprovisionnement)',
+    goal: 'Mettre à jour le stock en enregistrant l\'entrée de nouvelles marchandises.',
+    link: '/reapprovisionnements',
+    keywords: ['arrivage', 'entrée de stock', 'fournisseur', 'réappro'],
+    actions: [
+      {
+        id: 'create-reappro',
+        title: 'Comment enregistrer un nouvel arrivage',
+        steps: [
+            {
+              title: 'Étape 1 : Aller sur la page Réapprovisionnements',
+              imageSeed: 'reappro_step1',
+              description: "Cliquez sur 'Réapprovisionnement' dans le menu, puis sur 'Nouveau Réapprovisionnement'.",
+            },
+            {
+              title: 'Étape 2 : Sélectionner le lieu de destination',
+              imageSeed: 'reappro_step2',
+              description: "Choisissez le magasin ou l'entrepôt où les nouveaux produits seront stockés.",
+            },
+            {
+              title: 'Étape 3 : Scanner les produits',
+              imageSeed: 'reappro_step3',
+              description: "Scannez le code-barres de chaque produit reçu. Indiquez la quantité et si vous ajoutez des unités ou des cartons. Les produits s'ajoutent à la liste de l'arrivage.",
+            },
+            {
+              title: 'Étape 4 : Enregistrer l\'arrivage',
+              imageSeed: 'reappro_step4',
+              description: "Une fois tous les produits scannés, cliquez sur 'Enregistrer l'arrivage'. Le système ajoutera les quantités au stock du lieu sélectionné.",
+            },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'products',
+    title: 'Gérer les Produits',
+    goal: 'Créer, consulter, modifier et supprimer les fiches des produits de votre catalogue.',
+    link: '/products',
+    keywords: ['produit', 'article', 'catalogue', 'prix', 'référence'],
+    actions: [
+      {
+        id: 'create-product',
+        title: 'Comment créer un nouveau produit',
+        steps: [
+            {
+              title: 'Étape 1 : Accéder à la page Produits',
+              imageSeed: 'product_step1',
+              description: "Cliquez sur 'Produits' dans le menu de navigation.",
+            },
+            {
+              title: 'Étape 2 : Ouvrir le formulaire de création',
+              imageSeed: 'product_step2',
+              description: "Cliquez sur le bouton 'Ajouter' en haut à droite.",
+            },
+            {
+              title: 'Étape 3 : Remplir les informations',
+              imageSeed: 'product_step3',
+              description: "Remplissez tous les champs requis comme le nom, la catégorie, le prix de vente unitaire et le prix par carton. La référence et le seuil d'alerte sont aussi importants.",
+            },
+            {
+              title: 'Étape 4 : Sauvegarder',
+              imageSeed: 'product_step4',
+              description: "Cliquez sur 'Créer' pour ajouter le nouveau produit à votre catalogue. Il sera immédiatement disponible dans tout le système.",
+            },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'categories',
+    title: 'Gérer les Catégories',
+    goal: 'Organiser vos produits en groupes logiques pour faciliter la recherche et la gestion.',
+    link: '/categories',
+    keywords: ['catégorie', 'groupe', 'famille', 'organisation'],
+    actions: [
+      {
+        id: 'create-category',
+        title: 'Comment créer une nouvelle catégorie',
+        steps: [
+            {
+              title: 'Étape 1 : Accéder à la page Catégories',
+              imageSeed: 'category_step1',
+              description: "Cliquez sur 'Catégories' dans le menu de navigation.",
+            },
+            {
+              title: 'Étape 2 : Ouvrir le formulaire',
+              imageSeed: 'category_step2',
+              description: "Cliquez sur le bouton 'Ajouter une catégorie'.",
+            },
+            {
+              title: 'Étape 3 : Donner un nom',
+              imageSeed: 'category_step3',
+              description: "Entrez un nom clair et concis pour votre catégorie (ex: 'Boissons', 'Huiles Moteur', 'Pièces détachées').",
+            },
+            {
+              title: 'Étape 4 : Créer la catégorie',
+              imageSeed: 'category_step4',
+              description: "Cliquez sur 'Créer'. Vous pourrez ensuite assigner des produits à cette nouvelle catégorie lors de leur création ou modification.",
+            },
+        ],
+      },
+    ],
+  },
 ];
 
 
