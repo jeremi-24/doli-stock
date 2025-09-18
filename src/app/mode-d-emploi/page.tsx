@@ -11,175 +11,218 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Search, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+type Step = {
+  title: string;
+  imageSeed: string;
+  description: string;
+};
+
+type Action = {
+  id: string;
+  title: string;
+  steps: Step[];
+};
+
 type Section = {
   id: string;
   title: string;
   goal: string;
-  steps: string[];
-  dos: string[];
-  donts: string[];
+  actions: Action[];
   link: string;
   keywords: string[];
 };
 
 const helpContent: Section[] = [
   {
-    id: 'products',
-    title: 'Gérer les Produits',
-    goal: 'Ajouter, modifier ou supprimer les articles de votre catalogue.',
-    steps: [
-      "1. Allez à la page 'Produits' depuis le menu de navigation.",
-      "2. Pour ajouter un produit, cliquez sur 'Ajouter'. Remplissez les détails comme le nom, le prix, et le seuil d'alerte.",
-      "3. Pour modifier un produit, trouvez-le dans la liste et utilisez le menu d'actions (...) pour sélectionner 'Modifier'.",
+    id: 'inventories',
+    title: 'Faire un Inventaire',
+    goal: 'Comparer le stock réel avec le stock de l\'application pour corriger les différences.',
+    link: '/inventories',
+    keywords: ['inventaire', 'comptage', 'stock physique', 'écart', 'correction'],
+    actions: [
+      {
+        id: 'create-inventory',
+        title: 'Comment lancer un nouvel inventaire',
+        steps: [
+          {
+            title: 'Étape 1 : Accéder à la page des inventaires',
+            imageSeed: 'inventory_step1',
+            description: "Depuis le menu de navigation, cliquez sur 'Inventaires' pour voir l'historique de vos inventaires.",
+          },
+          {
+            title: 'Étape 2 : Lancer un nouvel inventaire',
+            imageSeed: 'inventory_step2',
+            description: "Cliquez sur le bouton 'Nouvel Inventaire' en haut à droite de la page.",
+          },
+          {
+            title: 'Étape 3 : Sélectionner le lieu de stock',
+            imageSeed: 'inventory_step3',
+            description: "Choisissez dans la liste le magasin ou l'entrepôt que vous souhaitez inventorier. C'est une étape cruciale pour que le système sache quel stock comparer.",
+          },
+          {
+            title: 'Étape 4 : Saisir les quantités réelles',
+            imageSeed: 'inventory_step4',
+            description: "Comptez physiquement vos produits. Entrez ensuite les quantités dans la liste affichée (mode Saisie) ou scannez les codes-barres (mode Scan).",
+          },
+          {
+            title: 'Étape 5 : Calculer et vérifier les écarts',
+            imageSeed: 'inventory_step5',
+            description: "Une fois le comptage terminé, cliquez sur 'Calculer les écarts'. Une page de détails s'ouvrira, montrant les différences entre le stock théorique et votre comptage.",
+          },
+          {
+            title: 'Étape 6 : Confirmer et appliquer au stock',
+            imageSeed: 'inventory_step6',
+            description: "Si les écarts vous semblent corrects, cliquez sur 'Appliquer les Écarts au Stock'. Cette action mettra à jour définitivement votre stock. Attention, elle est irréversible.",
+          },
+        ],
+      },
     ],
-    dos: [
-      'Toujours assigner une catégorie pour une meilleure organisation.',
-      'Renseignez le "Seuil d\'Alerte" pour savoir quand un produit est presque en rupture de stock.',
-      'Utilisez des références (réf) uniques pour chaque produit.',
-    ],
-    donts: [
-      'Ne supprimez pas un produit s\'il a déjà été utilisé dans des commandes. Cela pourrait causer des erreurs.',
-    ],
-    link: '/products',
-    keywords: ['produit', 'catalogue', 'article', 'créer', 'modifier', 'supprimer'],
   },
   {
     id: 'orders',
-    title: 'Créer une Commande Interne',
+    title: 'Gérer les Commandes Internes',
     goal: 'Générer une demande de sortie de stock pour un client interne ou un autre service.',
-    steps: [
-        "1. Allez à la page 'Commandes' et cliquez sur 'Nouvelle Commande'.",
-        "2. Sélectionnez le Client (demandeur) et le Lieu de Stock où les produits seront retirés.",
-        "3. Ajoutez les produits un par un à la commande en précisant la quantité.",
-        "4. Vérifiez le panier, puis cliquez sur 'Créer la Commande' et confirmez.",
-    ],
-    dos: [
-      'Une fois la commande validée, une facture et un bon de livraison sont automatiquement générés.',
-      'Assurez-vous que le stock est suffisant avant de valider une commande.',
-    ],
-    donts: [
-      'N\'oubliez pas de valider la commande. Une commande 'en attente' ne déduit pas le stock.',
-    ],
-    link: '/orders/new',
+    link: '/orders',
     keywords: ['commande', 'interne', 'sortie de stock', 'validation', 'facture', 'bon de livraison'],
+    actions: [
+      {
+        id: 'create-order',
+        title: 'Comment créer une nouvelle commande',
+        steps: [
+           {
+            title: 'Étape 1 : Démarrer une nouvelle commande',
+            imageSeed: 'order_step1',
+            description: "Allez sur la page 'Commandes' et cliquez sur 'Nouvelle Commande'.",
+          },
+          {
+            title: 'Étape 2 : Renseigner les informations',
+            imageSeed: 'order_step2',
+            description: "Sélectionnez le client qui fait la demande et le lieu de stock où les produits seront prélevés.",
+          },
+          {
+            title: 'Étape 3 : Ajouter les produits au panier',
+            imageSeed: 'order_step3',
+            description: "Recherchez et ajoutez les produits un par un. Ajustez les quantités pour chaque produit directement dans le panier.",
+          },
+          {
+            title: 'Étape 4 : Soumettre la commande',
+            imageSeed: 'order_step4',
+            description: "Une fois le panier vérifié, cliquez sur 'Créer la Commande'. Une fenêtre de confirmation apparaîtra pour une dernière vérification avant de soumettre.",
+          },
+        ],
+      },
+      {
+        id: 'validate-order',
+        title: 'Comment valider une commande',
+        steps: [
+           {
+            title: 'Étape 1 : Trouver la commande en attente',
+            imageSeed: 'order_validate1',
+            description: "Sur la page 'Commandes', repérez la commande ayant le statut 'EN ATTENTE' que vous souhaitez traiter.",
+          },
+          {
+            title: 'Étape 2 : Ouvrir le menu d\'actions',
+            imageSeed: 'order_validate2',
+            description: "Cliquez sur le menu d'actions (les trois points) à droite de la ligne de la commande.",
+          },
+          {
+            title: 'Étape 3 : Valider la commande',
+            imageSeed: 'order_validate3',
+            description: "Cliquez sur 'Valider'. Le système déduira automatiquement les quantités du stock et générera la facture et le bon de livraison associés.",
+          },
+           {
+            title: 'Étape 4 : Consulter les documents',
+            imageSeed: 'order_validate4',
+            description: "Après validation, vous serez redirigé vers une page où vous pourrez visualiser et imprimer la facture et le bon de livraison.",
+          },
+        ],
+      },
+    ],
   },
-   {
+  {
     id: 'pos',
     title: 'Utiliser le Point de Vente (POS)',
     goal: 'Enregistrer une vente rapide au comptant ou à crédit pour un client.',
-     steps: [
-        "1. Allez sur la page 'Point de Vente'.",
-        "2. Scannez le code-barres d'un produit ou cliquez sur un article dans la liste pour l'ajouter au panier.",
-        "3. Ajustez les quantités si nécessaire directement dans le panier.",
-        "4. Cliquez sur 'Finaliser la Vente'.",
-        "5. Choisissez le client, le type de paiement (Comptant ou Crédit) et validez pour terminer la vente.",
-    ],
-    dos: [
-      'Utilisez un lecteur de code-barres pour aller plus vite.',
-      'Associez chaque vente à un client, même si c\'est le "CLIENT GENERIQUE".',
-      'Le stock est mis à jour automatiquement après la validation de la vente.',
-    ],
-    donts: [
-      'N\'oubliez pas de finaliser la vente, sinon elle ne sera pas enregistrée.',
-    ],
     link: '/pos',
     keywords: ['pos', 'caisse', 'vente', 'scanner', 'panier', 'crédit'],
+    actions: [
+      {
+        id: 'create-pos-sale',
+        title: 'Comment enregistrer une vente',
+        steps: [
+            {
+              title: 'Étape 1 : Ajouter des produits au panier',
+              imageSeed: 'pos_step1',
+              description: "Scannez le code-barres d'un produit ou cliquez sur un article dans la liste. Le produit sera automatiquement ajouté au panier.",
+            },
+            {
+              title: 'Étape 2 : Ajuster les quantités',
+              imageSeed: 'pos_step2',
+              description: "Dans le panier, vous pouvez facilement augmenter ou diminuer la quantité de chaque article avec les boutons (+) et (-).",
+            },
+            {
+              title: 'Étape 3 : Finaliser la vente',
+              imageSeed: 'pos_step3',
+              description: "Cliquez sur 'Finaliser la Vente'. Une boîte de dialogue s'ouvrira pour confirmer les détails du paiement.",
+            },
+            {
+              title: 'Étape 4 : Confirmer le paiement',
+              imageSeed: 'pos_step4',
+              description: "Choisissez le client, le type de paiement (Comptant ou Crédit) et validez. La vente est alors enregistrée et le stock mis à jour.",
+            },
+        ],
+      },
+    ],
   },
-  {
-    id: 'inventories',
-    title: 'Faire un Inventaire Physique',
-    goal: 'Comparer le stock réel (ce que vous comptez) avec le stock de l\'application pour corriger les différences (écarts).',
-    steps: [
-        "1. Allez sur 'Inventaires' et cliquez sur 'Nouvel Inventaire'.",
-        "2. Sélectionnez le lieu de stock à inventorier.",
-        "3. Comptez vos produits. Saisissez les quantités dans la liste ou utilisez le mode scan.",
-        "4. Une fois le comptage terminé, cliquez sur 'Calculer les écarts'.",
-        "5. Une page de détails s'affiche. Vérifiez bien les écarts calculés.",
-        "6. Si tout est correct, cliquez sur 'Appliquer les Écarts au Stock' pour mettre à jour définitivement vos quantités.",
-    ],
-    dos: [
-      'Faites des inventaires réguliers (ex: chaque mois) pour un suivi précis.',
-      'Si c\'est votre tout premier inventaire, cochez la case "Ceci est le premier inventaire" pour initialiser votre stock.',
-    ],
-    donts: [
-      'Ne confirmez pas un inventaire à la légère. La mise à jour du stock est irréversible.',
-    ],
-    link: '/inventories/new',
-    keywords: ['inventaire', 'comptage', 'stock physique', 'écart', 'correction'],
-  },
-    {
-    id: 'reappro',
-    title: 'Enregistrer un Arrivage (Réapprovisionnement)',
-    goal: 'Ajouter de nouvelles quantités de produits à votre stock suite à une livraison fournisseur.',
-    steps: [
-        "1. Allez sur 'Réapprovisionnement' et cliquez sur 'Nouveau Réapprovisionnement'.",
-        "2. Sélectionnez le lieu de stock où les produits sont arrivés.",
-        "3. Scannez chaque produit reçu et indiquez la quantité (en Unité ou en Carton).",
-        "4. Une fois tous les produits de l'arrivage scannés, cliquez sur 'Enregistrer l'arrivage'.",
-    ],
-    dos: [
-        'Utilisez le mode "Carton" pour ajouter rapidement de grandes quantités.',
-        'Vérifiez la liste des produits dans le panier avant de valider.',
-    ],
-    donts: [
-        'Ne mélangez pas les arrivages de différents lieux de stock dans la même session.',
-    ],
-    link: '/reapprovisionnements/new',
-    keywords: ['arrivage', 'réapprovisionnement', 'entrée de stock', 'fournisseur'],
-    },
 ];
+
+
+const StepCard = ({ step }: { step: Step }) => (
+  <div className="flex flex-col sm:flex-row gap-4 items-start py-4">
+    <Image
+      src={`https://picsum.photos/seed/${step.imageSeed}/400/250`}
+      alt={`Illustration pour ${step.title}`}
+      width={400}
+      height={250}
+      className="rounded-lg object-cover sm:w-1/3 aspect-video"
+      data-ai-hint={`screenshot step ${step.title}`}
+    />
+    <div className="flex-1">
+      <h5 className="font-bold text-base mb-2">{step.title}</h5>
+      <p className="text-muted-foreground">{step.description}</p>
+    </div>
+  </div>
+);
+
+const ActionAccordion = ({ action }: { action: Action }) => (
+  <Accordion type="single" collapsible className="w-full">
+    <AccordionItem value={action.id}>
+      <AccordionTrigger className="text-lg font-semibold hover:no-underline">{action.title}</AccordionTrigger>
+      <AccordionContent className="divide-y">
+        {action.steps.map((step, index) => (
+          <StepCard key={index} step={step} />
+        ))}
+      </AccordionContent>
+    </AccordionItem>
+  </Accordion>
+);
+
 
 const HelpItem = ({ section, isFaded }: { section: Section, isFaded: boolean }) => (
   <AccordionItem value={section.id} className={cn("transition-opacity", isFaded && "opacity-30")}>
-    <AccordionTrigger className="text-xl font-headline hover:no-underline">
+    <AccordionTrigger className="text-2xl font-headline hover:no-underline">
       {section.title}
     </AccordionTrigger>
-    <AccordionContent className="prose prose-sm max-w-none space-y-6 pt-2">
+    <AccordionContent className="prose prose-sm max-w-none space-y-6 pt-4">
       
-      <div>
-        <h4 className="font-semibold mb-2 text-base">Objectif</h4>
-        <p className="text-muted-foreground">{section.goal}</p>
+      <div className="bg-muted/50 p-4 rounded-lg">
+        <h4 className="font-semibold mb-1 text-lg">Objectif</h4>
+        <p className="text-muted-foreground text-base">{section.goal}</p>
       </div>
       
-      <div>
-        <h4 className="font-semibold mb-2 text-base">Comment faire (Étapes Clés)</h4>
-        <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-            {section.steps.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-        </ol>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <h4 className="font-semibold mb-2 text-base">✅ À faire</h4>
-          <ul className="list-none space-y-2 p-0">
-            {section.dos.map((item, i) => (
-              <li key={i} className="flex items-start"><span className="mr-3 mt-1 opacity-50">▪</span>{item}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-semibold mb-2 text-base">❌ À ne pas faire</h4>
-          <ul className="list-none space-y-2 p-0">
-            {section.donts.map((item, i) => (
-              <li key={i} className="flex items-start"><span className="mr-3 mt-1 opacity-50">▪</span>{item}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-        {Array.from({ length: 2 }).map((_, i) => (
-            <Image
-                key={i}
-                src={`https://picsum.photos/seed/${section.id}${i}/600/400`}
-                alt={`Illustration pour ${section.title} ${i + 1}`}
-                width={600}
-                height={400}
-                className="rounded-lg object-cover aspect-video"
-                data-ai-hint={`screenshot ${section.keywords[0]}`}
-            />
+      <div className="space-y-4">
+        {section.actions.map((action) => (
+          <ActionAccordion key={action.id} action={action} />
         ))}
       </div>
 
@@ -190,6 +233,7 @@ const HelpItem = ({ section, isFaded }: { section: Section, isFaded: boolean }) 
           </Button>
         </Link>
       </div>
+
     </AccordionContent>
   </AccordionItem>
 );
