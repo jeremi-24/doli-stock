@@ -161,7 +161,7 @@ export default function NewInventoryPage() {
             if (savedDraft) {
                 const draft: Draft = JSON.parse(savedDraft);
                 const now = Date.now();
-                if (now - draft.timestamp < 24 * 60 * 60 * 1000) return draft;
+                if (now - draft.timestamp < 7 * 24 * 60 * 60 * 1000) return draft;
                 localStorage.removeItem(draftKey);
             }
         } catch (error) {
