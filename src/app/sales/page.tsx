@@ -239,7 +239,7 @@ function SalesPageContent() {
         }
         setVentes(data.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
         toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
     } finally {
         setIsLoading(false);
@@ -360,8 +360,21 @@ function SalesPageContent() {
                     {isLoading ? (
                         <TableRow><TableCell colSpan={9} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                     ) : filteredSales.length > 0 ? filteredSales.map(vente => {
-                        const isAnnulee = vente.statut === EtatVente.ANNULEE;
+                        const isAnnulee = vente.etat === EtatVente.ANNULEE;
                         const isCredit = vente.etat === EtatVente.EN_ATTENTE;
+                        
+                        const getBadgeVariant = () => {
+                            if (isAnnulee) return "destructive";
+                            if (isCredit) return "secondary";
+                            return "default";
+                        };
+                        
+                        const getBadgeClassName = () => {
+                            if (isAnnulee) return ""; // Destructive variant handles its own color
+                            if (isCredit) return "bg-amber-100 text-amber-800";
+                            return "bg-green-100 text-green-800";
+                        }
+
                         return (
                         <TableRow key={vente.id} className={cn(isAnnulee && "bg-destructive/10 text-muted-foreground", isCredit && "bg-amber-50")}>
                             <TableCell className="font-mono text-xs">{vente.ref}</TableCell>
@@ -372,7 +385,7 @@ function SalesPageContent() {
                             <TableCell className="text-right font-medium text-green-600">{formatCurrency(vente.montantPaye)}</TableCell>
                             <TableCell className="text-right font-bold text-red-600">{formatCurrency(vente.soldeRestant)}</TableCell>
                             <TableCell>
-                               <Badge variant={isCredit ? "destructive" : "default"} className={cn(!isCredit && "bg-green-600")}>{vente.etat}</Badge>
+                               <Badge variant={getBadgeVariant()} className={getBadgeClassName()}>{vente.etat}</Badge>
                             </TableCell>
                             <TableCell className="text-center">
                                {isAnnulee ? (
@@ -421,5 +434,3 @@ export default function SalesPage() {
         </Suspense>
     )
 }
-
-    
