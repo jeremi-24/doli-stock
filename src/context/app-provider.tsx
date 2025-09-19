@@ -93,7 +93,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const router = useRouter();
-  const pathname = usePathname();
 
   const logout = useCallback(() => {
     setToken(null);
@@ -125,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         handleGenericError(error, `Erreur: ${resourceName}`);
       }
-  }, [toast, logout, handleGenericError]);
+  }, [handleGenericError, logout, toast]);
   
   const fetchFactures = useCallback(async () => {
     try {
@@ -221,6 +220,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (token) {
+        interval = setInterval(() => {
+            refreshAllData();
+        }, 60000); // 1 minute
+    }
+    return () => {
+        if (interval) {
+            clearInterval(interval);
+        }
+    };
+  }, [token, refreshAllData]);
   
   useEffect(() => {
     if (isMounted) {
@@ -518,7 +531,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createInventaire, updateInventaire, confirmInventaire, corrigerStock, addReapprovisionnement,
     createCommande, createVente, annulerVente, addPaiementCredit, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
-    shopInfo, setShopInfo, themeColors, setThemeColors,
+    shopInfo, setShopInfo, themeColors,
     isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout,
     addFactureModele, updateFactureModele, deleteFactureModele,
   ]);
