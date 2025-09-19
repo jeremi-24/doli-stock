@@ -7,10 +7,10 @@ import { voiceCommandExamples } from './voice-commands-data';
 
 // Schéma de sortie attendu
 const InterpretCommandOutputSchema = z.object({
-  intention: z.string(),
-  page: z.string().optional(),
-  params: z.any().optional(),
-  spokenResponse: z.string(),
+  intention: z.string().describe("L'intention principale de l'utilisateur."),
+  page: z.string().optional().describe("La page vers laquelle naviguer, si l'intention est 'navigate'."),
+  params: z.any().optional().describe("Un objet contenant les paramètres extraits de la commande, comme le nom d'un produit, un ID, une date, etc."),
+  spokenResponse: z.string().describe("Une réponse textuelle à lire à l'utilisateur pour confirmer l'action ou donner une information."),
 });
 
 export type InterpretCommandOutput = z.infer<typeof InterpretCommandOutputSchema>;
@@ -92,6 +92,7 @@ const interpretCommandPrompt = ai.definePrompt({
     output: { schema: InterpretCommandOutputSchema },
     prompt: `
         Tu es l'assistant vocal de l'application STA. Ton rôle est d'interpréter les commandes vocales des utilisateurs et de les convertir en JSON.
+        La date actuelle pour référence est le ${new Date().toLocaleDateString('fr-FR')}. Si l'utilisateur mentionne "aujourd'hui", "hier", "cette semaine" ou une date spécifique, utilise cette information pour déduire les dates exactes au format AAAA-MM-JJ dans le champ 'params'.
 
         Commande utilisateur : "{{commandText}}"
 
@@ -105,6 +106,10 @@ const interpretCommandPrompt = ai.definePrompt({
 
         Exemples de commandes et résultats :
         ${voiceCommandExamples}
+
+        Si l'intention est "navigate", le champ "page" doit contenir le chemin de la page.
+        Si une commande contient des informations spécifiques (nom, date, lieu...), extrais-les et place-les dans le champ "params". Par exemple pour "montre les ventes entre le 1er janvier 2024 et le 15 janvier 2024", les params devraient être { "dateDebut": "2024-01-01", "dateFin": "2024-01-15" }.
+        Si l'intention n'est pas claire, utilise 'unknown' et demande à l'utilisateur de reformuler.
 
         Réponds uniquement avec un JSON valide correspondant au schéma de sortie.
     `,

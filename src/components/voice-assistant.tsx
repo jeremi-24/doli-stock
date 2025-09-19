@@ -9,6 +9,10 @@ import { Mic, X, Loader, CornerDownLeft, Sparkles, Wand } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { interpretCommand, type InterpretCommandOutput } from '@/ai/flows/interpret-command-flow';
+import * as api from '@/lib/api';
+import { useApp } from '@/context/app-provider';
+import type { Vente } from '@/lib/types';
+import { format, parseISO } from 'date-fns';
 
 export function VoiceAssistant() {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,7 +23,59 @@ export function VoiceAssistant() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const { addClient, deleteClient, clients } = useApp();
 
+  const handleGetSalesHistory = async (params: any) => {
+    try {
+        if (params?.dateDebut && params?.dateFin) {
+            const sales: Vente[] = await api.getVentesByPeriode(params.dateDebut, params.dateFin);
+            const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+            const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+
+            toast({
+                title: `Résultat de la recherche`,
+                description: `J'ai trouvé ${sales.length} ventes pour un total de ${formatCurrency(totalSales)} entre le ${format(parseISO(params.dateDebut), 'd MMM')} et le ${format(parseISO(params.dateFin), 'd MMM')}.`,
+            });
+            
+            router.push(`/sales?from=${params.dateDebut}&to=${params.dateFin}`);
+            handleTogglePanel();
+        } else {
+             router.push('/sales');
+             handleTogglePanel();
+        }
+    } catch (error) {
+        console.error("Erreur lors de la récupération de l'historique des ventes", error);
+        toast({
+            variant: "destructive",
+            title: "Erreur API",
+            description: "Impossible de récupérer l'historique des ventes.",
+        });
+    }
+  };
+
+   const handleGetVentesCredit = async () => {
+    try {
+      const sales: Vente[] = await api.getVentesCreditEnCours();
+      const totalCredit = sales.reduce((sum, sale) => sum + sale.soldeRestant, 0);
+      const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+
+      toast({
+        title: "Crédits en cours",
+        description: `Il y a ${sales.length} crédit(s) en cours pour un total de ${formatCurrency(totalCredit)}.`,
+      });
+
+      router.push('/sales?credits=true');
+      handleTogglePanel();
+    } catch (error) {
+      console.error("Erreur lors de la récupération des crédits", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur API",
+        description: "Impossible de récupérer les crédits en cours.",
+      });
+    }
+  };
+  
   const processCommand = async (commandText: string) => {
     if (!commandText) return;
     setIsProcessing(true);
@@ -33,9 +89,21 @@ export function VoiceAssistant() {
           description: result.spokenResponse,
       });
 
-      if (result.intention === 'navigate' && result.page) {
-          router.push(result.page);
-          handleTogglePanel(); // Ferme le panneau après la navigation
+      switch (result.intention) {
+        case 'navigate':
+          if (result.page) {
+              router.push(result.page);
+              handleTogglePanel();
+          }
+          break;
+        case 'get_sales_history':
+            handleGetSalesHistory(result.params);
+            break;
+        case 'get_pending_sales':
+            handleGetVentesCredit();
+            break;
+        default:
+            console.log("Intention non gérée :", result.intention, result.params);
       }
       
     } catch (error) {
@@ -187,3 +255,5 @@ export function VoiceAssistant() {
     </div>
   );
 }
+
+    

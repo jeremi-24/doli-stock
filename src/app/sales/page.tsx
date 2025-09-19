@@ -1,7 +1,8 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,7 @@ import type { Vente } from '@/lib/types';
 import { ModePaiement, EtatVente } from '@/lib/types';
 import * as api from '@/lib/api';
 import { Eye, Search, History, Loader2, User, Trash2, PlusCircle, CreditCard, Calendar as CalendarIcon, X } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/context/app-provider';
@@ -166,11 +167,11 @@ function DatePickerWithRange({
             {date?.from ? (
               date.to ? (
                 <>
-                  {format(date.from, "LLL dd, y", { locale: fr })} -{" "}
-                  {format(date.to, "LLL dd, y", { locale: fr })}
+                  {format(date.from, "d MMM yy", { locale: fr })} -{" "}
+                  {format(date.to, "d MMM yy", { locale: fr })}
                 </>
               ) : (
-                format(date.from, "LLL dd, y", { locale: fr })
+                format(date.from, "d MMM yy", { locale: fr })
               )
             ) : (
               <span>Voir sur une période</span>
@@ -193,20 +194,32 @@ function DatePickerWithRange({
   )
 }
 
-
-export default function SalesPage() {
+function SalesPageContent() {
   const { hasPermission, annulerVente } = useApp();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+
   const [ventes, setVentes] = useState<Vente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [showOnlyCredit, setShowOnlyCredit] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const from = searchParams.get('from');
+    const to = searchParams.get('to');
+    if (from && to) {
+        try {
+            return { from: parseISO(from), to: parseISO(to) };
+        } catch (e) {
+            return undefined;
+        }
+    }
+    return undefined;
+  });
+  const [showOnlyCredit, setShowOnlyCredit] = useState(() => searchParams.get('credits') === 'true');
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
-  const fetchVentes = React.useCallback(async () => {
+  const fetchVentes = useCallback(async () => {
     if (!hasPermission('VENTE_CREATE')) {
       setIsLoading(false);
       return;
@@ -400,3 +413,13 @@ export default function SalesPage() {
     </div>
   );
 }
+
+export default function SalesPage() {
+    return (
+        <Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <SalesPageContent />
+        </Suspense>
+    )
+}
+
+    
