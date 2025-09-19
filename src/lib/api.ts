@@ -254,6 +254,13 @@ export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promis
     });
 }
 
+export async function downloadCatalogue(): Promise<Blob> {
+  return apiFetch('/produits/catalogue', {
+      method: 'GET',
+      headers: { 'Accept': 'application/pdf' },
+  });
+}
+
 
 // ========== Stock API ==========
 export async function getStocks(): Promise<Stock[]> {

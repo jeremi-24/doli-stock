@@ -819,8 +819,10 @@ function ImportDialog({ open, onOpenChange, onImportSuccess }: { open: boolean, 
 export default function SettingsPage() {
   const { addMultipleProduits, hasPermission, produits } = useApp();
   const router = useRouter();
+  const { toast } = useToast();
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
   const [isMultiPrintDialogOpen, setIsMultiPrintDialogOpen] = React.useState(false);
+  const [isDownloadingCatalogue, setIsDownloadingCatalogue] = React.useState(false);
 
 
   const canImport = React.useMemo(() => hasPermission('PRODUIT_IMPORT'), [hasPermission]);
@@ -829,6 +831,33 @@ export default function SettingsPage() {
 
   const handleImportSuccess = (importedData: any[]) => {
     addMultipleProduits(importedData);
+  };
+
+  const handleDownloadCatalogue = async () => {
+    setIsDownloadingCatalogue(true);
+    try {
+      const blob = await api.downloadCatalogue();
+      
+      // Créer une URL pour le Blob et déclencher le téléchargement
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'catalogue-produits.pdf'; // Nom du fichier suggéré
+      document.body.appendChild(a);
+      a.click();
+      
+      // Nettoyage
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({ title: "Téléchargement lancé", description: "Le catalogue des produits est en cours de téléchargement." });
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors du téléchargement.";
+      toast({ variant: "destructive", title: "Échec du téléchargement", description: errorMessage });
+    } finally {
+      setIsDownloadingCatalogue(false);
+    }
   };
   
   return (
@@ -870,6 +899,21 @@ export default function SettingsPage() {
                     <Button onClick={() => setIsImportDialogOpen(true)}>
                         <FileUp className="mr-2 h-4 w-4"/>
                         Importer un fichier
+                    </Button>
+                </div>
+                {/* AJOUT : Nouvelle section pour le téléchargement du catalogue */}
+                <div className="space-y-2">
+                    <h3 className="font-medium">Exporter le catalogue produits</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Téléchargez le catalogue complet de tous les produits au format PDF.
+                    </p>
+                    <Button onClick={handleDownloadCatalogue} disabled={isDownloadingCatalogue}>
+                        {isDownloadingCatalogue ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                        ) : (
+                            <FileText className="mr-2 h-4 w-4"/>
+                        )}
+                        {isDownloadingCatalogue ? "Téléchargement..." : "Télécharger le catalogue"}
                     </Button>
                 </div>
                  <div className="space-y-2">
