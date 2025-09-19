@@ -388,34 +388,36 @@ function SalesPageContent() {
                                <Badge variant={getBadgeVariant()} className={getBadgeClassName()}>{vente.etat}</Badge>
                             </TableCell>
                             <TableCell className="text-center">
-                               {isAnnulee ? (
-                                    <Badge variant="destructive">Annulée</Badge>
-                                ) : (
-                                    <div className="flex items-center justify-center gap-1">
-                                        <SaleDetailsDialog vente={vente} />
-                                        {isCredit && <AddPaymentDialog venteId={vente.id} totalDue={vente.soldeRestant} onPaymentAdded={fetchVentes} />}
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" disabled={isCancelling === vente.id}>
-                                                    {isCancelling === vente.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive"/>}
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Annuler la vente #{vente.ref}?</AlertDialogTitle>
-                                                    <AlertDialogDesc>
-                                                        Cette action est irréversible. Elle annulera la vente et restaurera le stock des produits concernés.
-                                                    </AlertDialogDesc>
-                                                </AlertDialogHeader>
-                                                <DialogFooterButtons>
-                                                    <AlertDialogCancel>Retour</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleCancelSale(vente.id)}>Confirmer l'annulation</AlertDialogAction>
-                                                </DialogFooterButtons>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
-                                )}
-                            </TableCell>
+  {isAnnulee ? (
+      <Badge variant="destructive">Annulée</Badge>
+  ) : (
+      <div className="flex items-center justify-center gap-1">
+          <SaleDetailsDialog vente={vente} />
+          {isCredit && <AddPaymentDialog venteId={vente.id} totalDue={vente.soldeRestant} onPaymentAdded={fetchVentes} />}
+          {/* Le bouton poubelle ne s'affiche plus si la vente est annulée */}
+          <AlertDialog>
+              <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" disabled={isCancelling === vente.id}>
+                      {isCancelling === vente.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive"/>}
+                  </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                  <AlertDialogHeader>
+                      <AlertDialogTitle>Annuler la vente #{vente.ref}?</AlertDialogTitle>
+                      <AlertDialogDesc>
+                          Cette action est irréversible. Elle annulera la vente et restaurera le stock des produits concernés.
+                      </AlertDialogDesc>
+                  </AlertDialogHeader>
+                  <DialogFooterButtons>
+                      <AlertDialogCancel>Retour</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleCancelSale(vente.id)}>Confirmer l'annulation</AlertDialogAction>
+                  </DialogFooterButtons>
+              </AlertDialogContent>
+          </AlertDialog>
+      </div>
+  )}
+</TableCell>
+
                         </TableRow>
                     )}) : (<TableRow><TableCell colSpan={9} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
                     </TableBody>
