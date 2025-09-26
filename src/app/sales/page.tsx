@@ -127,7 +127,7 @@ function SaleDetailsDialog({ vente }: { vente: Vente }) {
                                 <TableBody>
                                 {vente.paiements.length > 0 ? vente.paiements.map(p => (
                                     <TableRow key={p.id}>
-                                        <TableCell>{format(new Date(p.datePaiement), 'd MMM yyyy', { locale: fr })}</TableCell>
+                                        <TableCell>{format(new Date(p.datePaiement), 'd MMM yyyy ', { locale: fr })}</TableCell>
                                         <TableCell>{formatCurrency(p.montant)}</TableCell>
                                         <TableCell><Badge variant="secondary">{p.modePaiement}</Badge></TableCell>
                                     </TableRow>

@@ -87,7 +87,7 @@ export default function DeliveriesPage() {
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
                                                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                        {bl.dateLivraison ? format(new Date(bl.dateLivraison), 'd MMM yyyy', { locale: fr }) : 'N/A'}
+                                                        {bl.dateLivraison ? format(new Date(bl.dateLivraison), 'd MMM yyyy HH:mm', { locale: fr }) : 'N/A'}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>

@@ -225,7 +225,7 @@ export default function InvoicesPage() {
                         return (
                         <TableRow key={facture.idFacture}>
                             <TableCell className="font-mono text-xs">FACT-{String(facture.idFacture).padStart(5, '0')}</TableCell>
-                            <TableCell>{facture.dateFacture ? format(new Date(facture.dateFacture), 'd MMM yyyy', { locale: fr }) : "N/A"}</TableCell>
+                            <TableCell>{facture.dateFacture ? format(new Date(facture.dateFacture), 'd MMM yyyy HH:mm', { locale: fr }) : "N/A"}</TableCell>
                             <TableCell className="font-medium">{facture.clientNom || 'N/A'}</TableCell>
                             <TableCell className="font-mono text-xs">CMD-{String(facture.commandeId).padStart(5, '0')}</TableCell>
                             <TableCell className="text-right font-semibold">{formatCurrency(facture.montantTotal)}</TableCell>

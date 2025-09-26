@@ -124,7 +124,7 @@ function OrdersPageContent() {
                                             isCancelled && '  pointer-events-none', 
                                           )} >
                                             <TableCell className="font-mono text-xs">CMD-{String(cmd.id).padStart(5, '0')}</TableCell>
-                                            <TableCell>{format(new Date(cmd.date), 'd MMM yyyy', { locale: fr })}</TableCell>
+                                            <TableCell>{format(new Date(cmd.date), 'd MMM yyyy HH:mm', { locale: fr })}</TableCell>
                                             <TableCell>
                                                 {currentUser?.clientId === cmd.client?.id ? <Badge variant="outline">Vous</Badge> : (cmd.client?.nom || 'N/A')}
                                             </TableCell>
