@@ -25,7 +25,7 @@ import { OrderPreviewDialog } from '@/components/order-preview-dialog';
 import { cn } from '@/lib/utils';
 
 function OrdersPageContent() {
-    const { commandes, isMounted, currentUser, hasPermission, validerCommande, annulerCommande } = useApp();
+    const { commandes, bonLivraisons, isMounted, currentUser, hasPermission, validerCommande, annulerCommande } = useApp();
     const router = useRouter();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
     const [previewingOrder, setPreviewingOrder] = useState<Commande | null>(null);
@@ -53,9 +53,15 @@ function OrdersPageContent() {
 
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
-    const sortedCommandes = React.useMemo(() => 
-        [...commandes].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
-    [commandes]);
+    const sortedCommandes = React.useMemo(() => {
+        return [...commandes]
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .map(cmd => {
+            const bl = bonLivraisons.find(b => b.commandeId === cmd.id);
+            return { ...cmd, bonLivraison: bl || null };
+          });
+      }, [commandes, bonLivraisons]);
+      
     
     const canValidateOrder = React.useMemo(() => hasPermission('COMMANDE_VALIDATE'), [hasPermission]);
     const canCancelOrder = React.useMemo(() => hasPermission('COMMANDE_CANCEL'), [hasPermission]);
@@ -99,7 +105,7 @@ function OrdersPageContent() {
                                     <TableHead>Client</TableHead>
                                     <TableHead>Lieu Livraison</TableHead>
                                     <TableHead>Total</TableHead>
-                                    <TableHead>Statut CDE</TableHead>
+                                    <TableHead>Statut CMD</TableHead>
                                     <TableHead>Statut BL</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -111,9 +117,12 @@ function OrdersPageContent() {
                                     const isLoading = loadingStates[cmd.id];
                                     const isPendingAction = cmd.statut === 'EN_ATTENTE';
                                     const isValidated = cmd.statut === 'VALIDEE' || cmd.statut === 'LIVREE';
+                                    const isCancelled = cmd.statut === 'ANNULEE'; 
 
                                     return (
-                                        <TableRow key={cmd.id}>
+                                        <TableRow key={cmd.id} className={cn(
+                                            isCancelled && '  pointer-events-none', 
+                                          )} >
                                             <TableCell className="font-mono text-xs">CMD-{String(cmd.id).padStart(5, '0')}</TableCell>
                                             <TableCell>{format(new Date(cmd.date), 'd MMM yyyy', { locale: fr })}</TableCell>
                                             <TableCell>{cmd.client?.nom || 'N/A'}</TableCell>
@@ -126,7 +135,21 @@ function OrdersPageContent() {
                                                 </Badge>
                                             </TableCell>
                                              <TableCell>
-                                                <Badge variant="outline">{cmd.statutBonLivraison?.replace('_', ' ') || 'N/A'}</Badge>
+                                             {cmd.bonLivraison ? (
+    <Badge
+      variant="outline"
+      className={cn(
+        'text-xs',
+        cmd.bonLivraison.status === 'LIVRE' && 'bg-green-100 text-green-700',
+        cmd.bonLivraison.status === 'EN_ATTENTE' && 'bg-blue-100 text-blue-600',
+        cmd.bonLivraison.status === 'A_LIVRER' && 'bg-orange-100 text-orange-800 '
+      )}
+    >
+      {cmd.bonLivraison.status.replace('_', ' ')}
+    </Badge>
+  ) : (
+    <Badge variant="secondary">ANNULEE</Badge>
+  )}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                  <DropdownMenu>
