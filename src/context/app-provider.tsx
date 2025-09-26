@@ -93,6 +93,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const router = useRouter();
+  const pathname = usePathname();
 
   const logout = useCallback(() => {
     setToken(null);
@@ -124,7 +125,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         handleGenericError(error, `Erreur: ${resourceName}`);
       }
-  }, [handleGenericError, logout, toast]);
+  }, [toast, logout, handleGenericError]);
   
   const fetchFactures = useCallback(async () => {
     try {
@@ -144,7 +145,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (adminOrControlRoles.includes(currentUser.roleNom)) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
     } else if (currentUser.lieuNom) {
-        fetchCommandesPromise = api.getCommandesByLieuStockNomExact(currentUser.lieuNom).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes par lieu'));
+        fetchCommandesPromise = api.getCommandesByLieuStockNom(currentUser.lieuNom).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes par lieu'));
     } else if (currentUser.clientId) {
         fetchCommandesPromise = api.getCommandesByClientId(currentUser.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes Client'));
     } else {
@@ -176,10 +177,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetchClientsPromise,
       fetchCommandesPromise,
       fetchLivraisonsPromise,
+      fetchFactures(),
     ];
 
     await Promise.allSettled(dataFetchPromises);
-  }, [handleFetchError, currentUser]);
+  }, [handleFetchError, fetchFactures, currentUser]);
 
 
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
@@ -216,24 +218,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (currentUser) {
       refreshAllData();
-      fetchFactures();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (token) {
-        interval = setInterval(() => {
-            refreshAllData();
-        }, 60000); // 1 minute
-    }
-    return () => {
-        if (interval) {
-            clearInterval(interval);
-        }
-    };
-  }, [token, refreshAllData]);
   
   useEffect(() => {
     if (isMounted) {
@@ -448,7 +435,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       await api.annulerCommande(commandeId);
       await refreshAllData();
-      toast({ title: "Commande annulée" });
+      toast({ title: "Commande annulée avec succès. Le stock a été restauré." });
     } catch (error) {
         handleGenericError(error, "Erreur d'annulation");
     }
@@ -531,7 +518,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createInventaire, updateInventaire, confirmInventaire, corrigerStock, addReapprovisionnement,
     createCommande, createVente, annulerVente, addPaiementCredit, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
-    shopInfo, setShopInfo, themeColors,
+    shopInfo, setShopInfo, themeColors, setThemeColors,
     isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout,
     addFactureModele, updateFactureModele, deleteFactureModele,
   ]);

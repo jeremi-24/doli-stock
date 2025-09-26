@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/context/app-provider';
 import type { Commande } from '@/lib/types';
-import { PlusCircle, Loader2, Check, FileSignature, Truck, XCircle, Eye, FileSearch } from 'lucide-react';
+import { PlusCircle, Loader2, Check, XCircle, Eye, FileSearch } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -25,9 +24,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { OrderPreviewDialog } from '@/components/order-preview-dialog';
 import { cn } from '@/lib/utils';
 
-
-export default function OrdersPage() {
-    const { commandes, isMounted, currentUser, hasPermission, validerCommande, annulerCommande, genererFacture, genererBonLivraison } = useApp();
+function OrdersPageContent() {
+    const { commandes, isMounted, currentUser, hasPermission, validerCommande, annulerCommande } = useApp();
     const router = useRouter();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
     const [previewingOrder, setPreviewingOrder] = useState<Commande | null>(null);
@@ -46,7 +44,6 @@ export default function OrdersPage() {
         try {
             const result = await validerCommande(commandeId);
             if (result) {
-                // Redirect to the new document view page after validation
                 router.push(`/orders/${commandeId}`);
             }
         } finally {
@@ -62,8 +59,6 @@ export default function OrdersPage() {
     
     const canValidateOrder = React.useMemo(() => hasPermission('COMMANDE_VALIDATE'), [hasPermission]);
     const canCancelOrder = React.useMemo(() => hasPermission('COMMANDE_CANCEL'), [hasPermission]);
-    const canGenerateInvoice = React.useMemo(() => hasPermission('FACTURE_GENERATE'), [hasPermission]);
-    const canGenerateBL = React.useMemo(() => hasPermission('LIVRAISON_GENERATE'), [hasPermission]);
     const canCreateOrder = React.useMemo(() => hasPermission('COMMANDE_CREATE'), [hasPermission]);
 
     const pageTitle = React.useMemo(() => {
@@ -92,7 +87,6 @@ export default function OrdersPage() {
             </div>
             <Card>
                 <CardHeader>
-                  
                     <CardDescription>Liste de toutes les commandes internes.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -160,7 +154,7 @@ export default function OrdersPage() {
                                                             </DropdownMenuItem>
                                                         )}
                                                         
-                                                        {isPendingAction && (canValidateOrder || canCancelOrder) && <DropdownMenuSeparator />}
+                                                        {(isPendingAction || isValidated) && <DropdownMenuSeparator />}
                                                         
                                                         {isPendingAction && canValidateOrder && (
                                                             <DropdownMenuItem onClick={() => handleValidation(cmd.id)}>
@@ -168,17 +162,43 @@ export default function OrdersPage() {
                                                                 Valider
                                                             </DropdownMenuItem>
                                                         )}
-                                                        {isPendingAction && canCancelOrder && (
+
+                                                        { (isValidated && canCancelOrder) && (
                                                             <AlertDialog>
                                                                 <AlertDialogTrigger asChild>
                                                                      <Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
-                                                                        <XCircle className="mr-2 h-4 w-4" /> Rejeter
+                                                                        <XCircle className="mr-2 h-4 w-4" /> 
+                                                                        Annuler (Forcé)
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Annuler la commande ?</AlertDialogTitle>
+                                                                        <AlertDialogDescription>
+                                                                            Cette action est irréversible. La facture et le bon de livraison associés seront supprimés, et les stocks seront restaurés.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel>Retour</AlertDialogCancel>
+                                                                        <AlertDialogAction onClick={() => handleAction(annulerCommande, cmd.id)}>Confirmer l'annulation</AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        )}
+                                                         { (isPendingAction && canCancelOrder) && (
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                     <Button variant="ghost" className="w-full justify-start text-sm font-normal text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
+                                                                        <XCircle className="mr-2 h-4 w-4" /> 
+                                                                        Rejeter
                                                                     </Button>
                                                                 </AlertDialogTrigger>
                                                                 <AlertDialogContent>
                                                                     <AlertDialogHeader>
                                                                         <AlertDialogTitle>Rejeter la commande ?</AlertDialogTitle>
-                                                                        <AlertDialogDescription>Cette action est irréversible et annulera la commande.</AlertDialogDescription>
+                                                                        <AlertDialogDescription>
+                                                                            Cette action est irréversible et annulera la commande.
+                                                                        </AlertDialogDescription>
                                                                     </AlertDialogHeader>
                                                                     <AlertDialogFooter>
                                                                         <AlertDialogCancel>Retour</AlertDialogCancel>
@@ -209,4 +229,12 @@ export default function OrdersPage() {
             />
         </div>
     )
+}
+
+export default function OrdersPage() {
+    return (
+        <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <OrdersPageContent />
+        </Suspense>
+    );
 }

@@ -430,8 +430,8 @@ export async function createCommande(data: CommandePayload): Promise<Commande> {
 export async function validerCommande(id: number): Promise<Commande> {
     return apiFetch(`/commandes/${id}/valider`, { method: 'POST' });
 }
-export async function annulerCommande(id: number): Promise<Commande> {
-    return apiFetch(`/commandes/${id}/annuler`, { method: 'PUT' });
+export async function annulerCommande(id: number): Promise<void> {
+    return apiFetch(`/commandes/${id}/annuler`, { method: 'DELETE' });
 }
 
 
