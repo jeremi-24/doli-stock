@@ -25,7 +25,7 @@ import { OrderPreviewDialog } from '@/components/order-preview-dialog';
 import { cn } from '@/lib/utils';
 
 function OrdersPageContent() {
-    const { commandes, bonLivraisons, isMounted, currentUser, hasPermission, validerCommande, annulerCommande } = useApp();
+    const { commandes, bonLivraisons, isMounted, currentUser, hasPermission, validerCommande, annulerCommande } from 'useApp';
     const router = useRouter();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
     const [previewingOrder, setPreviewingOrder] = useState<Commande | null>(null);
@@ -125,7 +125,9 @@ function OrdersPageContent() {
                                           )} >
                                             <TableCell className="font-mono text-xs">CMD-{String(cmd.id).padStart(5, '0')}</TableCell>
                                             <TableCell>{format(new Date(cmd.date), 'd MMM yyyy', { locale: fr })}</TableCell>
-                                            <TableCell>{cmd.client?.nom || 'N/A'}</TableCell>
+                                            <TableCell>
+                                                {currentUser?.clientId === cmd.client?.id ? <Badge variant="outline">Vous</Badge> : (cmd.client?.nom || 'N/A')}
+                                            </TableCell>
                                             <TableCell>{cmd.lieuLivraison?.nom || 'N/A'}</TableCell>
                                             <TableCell className="font-medium">{formatCurrency(cmd.totalCommande)}</TableCell>
                                             <TableCell>
