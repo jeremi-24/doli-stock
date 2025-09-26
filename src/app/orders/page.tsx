@@ -25,7 +25,7 @@ import { OrderPreviewDialog } from '@/components/order-preview-dialog';
 import { cn } from '@/lib/utils';
 
 function OrdersPageContent() {
-    const { commandes, bonLivraisons, isMounted, currentUser, hasPermission, validerCommande, annulerCommande } from 'useApp';
+    const { commandes, bonLivraisons, isMounted, currentUser, hasPermission, validerCommande, annulerCommande } =useApp();
     const router = useRouter();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
     const [previewingOrder, setPreviewingOrder] = useState<Commande | null>(null);
@@ -132,7 +132,7 @@ function OrdersPageContent() {
                                             <TableCell className="font-medium">{formatCurrency(cmd.totalCommande)}</TableCell>
                                             <TableCell>
                                                 <Badge variant={cmd.statut === 'VALIDEE' ? 'default' : (cmd.statut === 'ANNULEE' ? 'destructive' : 'secondary')}
-                                                       className={cn(cmd.statut === 'EN_ATTENTE' && 'bg-orange-500/80 text-white', cmd.statut === 'LIVREE' && 'bg-green-600 text-white')}>
+                                                       className={cn(cmd.statut === 'EN_ATTENTE' && 'bg-orange-500/80 text-white text-xs', cmd.statut === 'LIVREE' && 'bg-green-600 text-white')}>
                                                     {cmd.statut.replace('_', ' ')}
                                                 </Badge>
                                             </TableCell>
