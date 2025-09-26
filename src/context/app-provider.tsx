@@ -138,50 +138,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshAllData = useCallback(async () => {
     if (!currentUser) return;
-    
+
     const adminOrControlRoles = ['ADMIN', 'SECRETARIAT', 'DG', 'CONTROLLEUR'];
+    const isAdmin = adminOrControlRoles.includes(currentUser.roleNom);
 
-    let fetchCommandesPromise;
-    if (adminOrControlRoles.includes(currentUser.roleNom)) {
-        fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
-    } else if (currentUser.lieuNom) {
-        fetchCommandesPromise = api.getCommandesByLieuStockNom(currentUser.lieuNom).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes par lieu'));
-    } else if (currentUser.clientId) {
-        fetchCommandesPromise = api.getCommandesByClientId(currentUser.clientId).then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Commandes Client'));
-    } else {
-        fetchCommandesPromise = Promise.resolve(setCommandes([]));
-    }
-
-    let fetchLivraisonsPromise;
-    if (adminOrControlRoles.includes(currentUser.roleNom)) {
-        fetchLivraisonsPromise = api.getAllBonsLivraison().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Tous les Bons de Livraison'));
-    } else {
-        fetchLivraisonsPromise = api.getBonsLivraisonParLieu().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Bons de Livraison par Lieu'));
-    }
-
-    let fetchClientsPromise;
-    if (adminOrControlRoles.includes(currentUser.roleNom)) {
-        fetchClientsPromise = api.getAllClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Tous les clients'));
-    } else {
-        fetchClientsPromise = api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients'));
-    }
-    
     const dataFetchPromises = [
-      api.getOrganisations().then(orgs => {
-          if (orgs && orgs.length > 0) setShopInfoState(orgs[0]);
-      }).catch(err => handleFetchError(err, 'Organisation')),
-      api.getProducts().then(data => setProduits(data || [])).catch(err => handleFetchError(err, 'Produits')),
-      api.getCategories().then(data => setCategories(data || [])).catch(err => handleFetchError(err, 'Catégories')),
-      api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
-      api.getStocks().then(data => setStocks(data || [])).catch(err => handleFetchError(err, 'Stocks')),
-      fetchClientsPromise,
-      fetchCommandesPromise,
-      fetchLivraisonsPromise,
-      fetchFactures(),
+        api.getOrganisations().then(orgs => { if (orgs && orgs.length > 0) setShopInfoState(orgs[0]); }).catch(err => handleFetchError(err, 'Organisation')),
+        api.getProducts().then(data => setProduits(data || [])).catch(err => handleFetchError(err, 'Produits')),
+        api.getCategories().then(data => setCategories(data || [])).catch(err => handleFetchError(err, 'Catégories')),
+        api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
+        api.getStocks().then(data => setStocks(data || [])).catch(err => handleFetchError(err, 'Stocks')),
+        (isAdmin ? api.getAllClients() : api.getClients()).then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients')),
+        (isAdmin ? api.getAllBonsLivraison() : api.getBonsLivraisonParLieu()).then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Bons de Livraison')),
+        fetchFactures(),
     ];
 
+    const fetchCommandes = async () => {
+        if (isAdmin) {
+            const data = await api.getCommandes();
+            setCommandes(data || []);
+        } else {
+            const promises = [];
+            if (currentUser.clientId) {
+                promises.push(api.getCommandesByClientId(currentUser.clientId));
+            }
+            if (currentUser.lieuNom) {
+                promises.push(api.getCommandesByLieuStockNom(currentUser.lieuNom));
+            }
+            
+            const results = await Promise.allSettled(promises);
+            const combinedCommandes = new Map<number, Commande>();
+
+            results.forEach(result => {
+                if (result.status === 'fulfilled' && result.value) {
+                    result.value.forEach(commande => {
+                        combinedCommandes.set(commande.id, commande);
+                    });
+                }
+            });
+
+            setCommandes(Array.from(combinedCommandes.values()));
+        }
+    };
+
+    dataFetchPromises.push(fetchCommandes().catch(err => handleFetchError(err, 'Commandes')));
+
     await Promise.allSettled(dataFetchPromises);
-  }, [handleFetchError, fetchFactures, currentUser]);
+}, [currentUser, handleFetchError, fetchFactures]);
 
 
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
@@ -216,11 +219,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && isMounted) {
       refreshAllData();
+      
+      const intervalId = setInterval(refreshAllData, 60000); // 60000 ms = 1 minute
+      
+      return () => clearInterval(intervalId);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
+  }, [currentUser, isMounted]);
   
   useEffect(() => {
     if (isMounted) {
@@ -537,3 +544,4 @@ export function useApp() {
   }
   return context;
 }
+
