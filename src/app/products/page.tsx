@@ -285,16 +285,29 @@ export default function ProductsPage() {
         defaultValues: { nom: "", ref: "", prix: 0, qteMin: 0, qteParCarton: 0, prixCarton: 0 },
     });
     
+    const normalizeString = (str: string | number | undefined | null): string => {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .toLowerCase()
+            .normalize("NFD") 
+            .replace(/[\u0300-\u036f]/g, "") 
+            .replace(/[^a-z0-9]/g, ''); 
+    };
+
     const filteredProduits = React.useMemo(() => {
-        const lowercasedFilter = searchTerm.toLowerCase();
+        const normalizedSearch = normalizeString(searchTerm);
+
         const filtered = produits.filter(item => {
-            const matchesSearch =
-              (item.id.toString().includes(lowercasedFilter)) || 
-              (item.nom?.toLowerCase() ?? '').includes(lowercasedFilter) ||
-              (item.ref && typeof item.ref === 'string' && item.ref.toLowerCase().includes(lowercasedFilter));
+            const searchableString = normalizeString(
+                `${item.id} ${item.nom} ${item.ref}`
+            );
+            
+            const matchesSearch = normalizedSearch === '' || searchableString.includes(normalizedSearch);
             const matchesCategory = categoryFilter === 'all' || String(item.categorieId) === categoryFilter;
+
             return matchesSearch && matchesCategory;
         });
+
         return filtered.sort((a, b) => (a.nom ?? '').localeCompare(b.nom ?? ''));
     }, [searchTerm, categoryFilter, produits]);
 
