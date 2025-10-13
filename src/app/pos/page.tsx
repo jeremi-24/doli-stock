@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, normalizeString } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -230,9 +230,15 @@ export default function POSPage() {
   
   const filteredProducts = useMemo(() => {
     const categoryId = categoryNameToId.get(activeTab);
+    const normalizedSearch = normalizeString(searchTerm);
+
     return produits
       .filter(p => activeTab === 'Tout' || p.categorieId === categoryId)
-      .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
+      .filter(p => {
+        if (normalizedSearch === '') return true;
+        const searchableString = normalizeString(`${p.nom} ${p.ref}`);
+        return searchableString.includes(normalizedSearch);
+      });
   }, [produits, activeTab, searchTerm, categoryNameToId]);
   
   const handleQuantityChange = (produitId: number, type: 'UNITE' | 'CARTON', newQuantity: number) => {

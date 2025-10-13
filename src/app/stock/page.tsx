@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useSearchParams, useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { normalizeString } from "@/lib/utils";
 
 function CorrectionDialog({ 
     stockItem, 
@@ -147,14 +148,17 @@ function StockPageContent() {
     };
 
     const filteredStocks = React.useMemo(() => {
-        const lowercasedFilter = searchTerm.toLowerCase();
-        
+        const normalizedSearch = normalizeString(searchTerm);
+
         return stocks.filter(item => {
             const matchesLieu = selectedLieu === 'all' || item.lieuStockNom === selectedLieu;
             
-            const matchesSearch = item.produitNom.toLowerCase().includes(lowercasedFilter) ||
-                                (item.produitRef && item.produitRef.toLowerCase().includes(lowercasedFilter)) ||
-                                (item.lieuStockNom && item.lieuStockNom.toLowerCase().includes(lowercasedFilter));
+            const searchableString = normalizeString(
+                `${item.produitNom} ${item.produitRef} ${item.lieuStockNom}`
+            );
+            
+            const matchesSearch = normalizedSearch === '' || searchableString.includes(normalizedSearch);
+            
             return matchesLieu && matchesSearch;
         });
     }, [searchTerm, stocks, selectedLieu]);
