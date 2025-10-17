@@ -551,7 +551,7 @@ const helpContent: Section[] = [
 const StepCard = ({ step }: { step: Step }) => (
   <div className="flex flex-col sm:flex-row gap-4 items-start py-4">
     <Image
-      src={`https://picsum.photos/seed/${step.imageSeed}/400/250`}
+      src={`/${step.imageSeed}.png`}
       alt={`Illustration pour ${step.title}`}
       width={400}
       height={250}

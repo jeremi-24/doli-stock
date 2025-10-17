@@ -138,80 +138,64 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshAllData = useCallback(async () => {
     if (!currentUser) return;
-
-    const adminOrControlRoles = ['ADMIN', 'SECRETARIAT', 'DG', 'CONTROLLEUR'];
-    const isAdmin = adminOrControlRoles.includes(currentUser.roleNom);
-
-    let commandesPromise;
-    if (isAdmin) {
-      commandesPromise = api.getCommandes().catch(err => {
-        handleFetchError(err, 'Commandes');
-        return [];
-      });
-    } else {
-      const promises = [];
-      if (currentUser.clientId) {
-        promises.push(api.getCommandesByClientId(currentUser.clientId));
-      }
-      if (currentUser.lieuNom) {
-        promises.push(api.getCommandesByLieuStockNom(currentUser.lieuNom));
-      }
-
-      commandesPromise = Promise.allSettled(promises).then(results => {
-        const combinedCommandes = new Map<number, Commande>();
-        results.forEach(result => {
-          if (result.status === 'fulfilled' && result.value) {
-            result.value.forEach(commande => {
-              combinedCommandes.set(commande.id, commande);
-            });
-          }
-        });
-        return Array.from(combinedCommandes.values());
-      }).catch(err => {
-        handleFetchError(err, 'Commandes');
-        return [];
-      });
-    }
-
-    const dataFetchPromises = [
-        commandesPromise,
-        api.getOrganisations().catch(err => { handleFetchError(err, 'Organisation'); return []; }),
-        api.getProducts().catch(err => { handleFetchError(err, 'Produits'); return []; }),
-        api.getCategories().catch(err => { handleFetchError(err, 'Catégories'); return []; }),
-        api.getLieuxStock().catch(err => { handleFetchError(err, 'Lieux de Stock'); return []; }),
-        api.getStocks().catch(err => { handleFetchError(err, 'Stocks'); return []; }),
-        (isAdmin ? api.getAllClients() : api.getClients()).catch(err => { handleFetchError(err, 'Clients'); return []; }),
-        (isAdmin ? api.getAllBonsLivraison() : api.getBonsLivraisonParLieu()).catch(err => { handleFetchError(err, 'Bons de Livraison'); return []; }),
-        api.getFactures().catch(err => { handleFetchError(err, 'Factures'); return []; }),
-    ];
     
-    try {
-        const [
-            commandesData, 
-            orgsData, 
-            produitsData, 
-            categoriesData, 
-            lieuxStockData, 
-            stocksData, 
-            clientsData, 
-            bonLivraisonsData, 
-            facturesData
-        ] = await Promise.all(dataFetchPromises);
+    const adminOrControlRoles = ['ADMIN', 'SECRETARIAT', 'DG', 'CONTROLLEUR'];
+
+    let fetchCommandesPromise;
+    if (adminOrControlRoles.includes(currentUser.roleNom)) {
+        fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
+    } else {
+        const promises: Promise<Commande[]>[] = [];
+        if (currentUser.clientId) {
+            promises.push(api.getCommandesByClientId(currentUser.clientId));
+        }
+        if (currentUser.lieuNom) {
+            promises.push(api.getCommandesByLieuStockNom(currentUser.lieuNom));
+        }
         
-        setCommandes(commandesData || []);
-        if (Array.isArray(orgsData) && orgsData.length > 0) setShopInfoState(orgsData[0]);
-        setProduits(produitsData || []);
-        setCategories(categoriesData || []);
-        setLieuxStock(lieuxStockData || []);
-        setStocks(stocksData || []);
-        setClients(clientsData || []);
-        setBonLivraisons(bonLivraisonsData || []);
-        setFactures(facturesData || []);
-    } catch (error) {
-        // Errors are handled individually in the catch blocks of each promise
-        console.error("An unexpected error occurred during refreshAllData:", error);
+        fetchCommandesPromise = Promise.allSettled(promises).then(results => {
+            const combinedCommandes = new Map<number, Commande>();
+            results.forEach(result => {
+                if (result.status === 'fulfilled' && result.value) {
+                    result.value.forEach(commande => {
+                        combinedCommandes.set(commande.id, commande);
+                    });
+                }
+            });
+            setCommandes(Array.from(combinedCommandes.values()));
+        }).catch(err => handleFetchError(err, 'Commandes utilisateur'));
     }
-  }, [currentUser, handleFetchError]);
+
+    let fetchLivraisonsPromise;
+    if (adminOrControlRoles.includes(currentUser.roleNom)) {
+        fetchLivraisonsPromise = api.getAllBonsLivraison().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Tous les Bons de Livraison'));
+    } else {
+        fetchLivraisonsPromise = api.getBonsLivraisonParLieu().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Bons de Livraison par Lieu'));
+    }
+
+    let fetchClientsPromise;
+    if (adminOrControlRoles.includes(currentUser.roleNom)) {
+        fetchClientsPromise = api.getAllClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Tous les clients'));
+    } else {
+        fetchClientsPromise = api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients'));
+    }
+    
+    const dataFetchPromises = [
+      api.getOrganisations().then(orgs => {
+          if (orgs && orgs.length > 0) setShopInfoState(orgs[0]);
+      }).catch(err => handleFetchError(err, 'Organisation')),
+      api.getProducts().then(data => setProduits(data || [])).catch(err => handleFetchError(err, 'Produits')),
+      api.getCategories().then(data => setCategories(data || [])).catch(err => handleFetchError(err, 'Catégories')),
+      api.getLieuxStock().then(data => setLieuxStock(data || [])).catch(err => handleFetchError(err, 'Lieux de Stock')),
+      api.getStocks().then(data => setStocks(data || [])).catch(err => handleFetchError(err, 'Stocks')),
+      fetchClientsPromise,
+      fetchCommandesPromise,
+      fetchLivraisonsPromise,
+      fetchFactures(),
+    ];
+
+    await Promise.allSettled(dataFetchPromises);
+  }, [handleFetchError, fetchFactures, currentUser]);
 
 
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
@@ -246,14 +230,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (currentUser && isMounted) {
+    if (currentUser) {
       refreshAllData();
-      
-      const intervalId = setInterval(refreshAllData, 60000); // 60000 ms = 1 minute
-      
-      return () => clearInterval(intervalId);
     }
-  }, [currentUser, isMounted, refreshAllData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
   
   useEffect(() => {
     if (isMounted) {
@@ -468,7 +449,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       await api.annulerCommande(commandeId);
       await refreshAllData();
-      toast({ title: "Commande annulée avec succès. Le stock a été restauré." });
+      toast({ title: "Commande annulée" });
     } catch (error) {
         handleGenericError(error, "Erreur d'annulation");
     }
@@ -570,6 +551,3 @@ export function useApp() {
   }
   return context;
 }
-
-
-
