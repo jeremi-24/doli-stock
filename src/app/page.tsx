@@ -12,9 +12,8 @@ export default function DashboardRootPage() {
 
   const showAdminView = useMemo(() => {
       if (!currentUser) return false;
-      const adminRoles = ['ADMIN', 'SECRETARIAT', 'CONTROLLEUR', 'DG'];
-      return adminRoles.includes(currentUser.roleNom);
-  }, [currentUser]);
+      return hasPermission('REPORT_VIEW');
+  }, [currentUser, hasPermission]);
 
   if (!isMounted || !currentUser) {
     return (

@@ -96,7 +96,7 @@ function CorrectionDialog({
 }
 
 function StockPageContent() {
-    const { currentUser, isMounted, lieuxStock, corrigerStock } = useApp();
+    const { currentUser, isMounted, lieuxStock, corrigerStock, hasPermission } = useApp();
     const [stocks, setStocks] = React.useState<Stock[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = React.useState("");
@@ -114,9 +114,9 @@ function StockPageContent() {
         setIsLoading(true);
         try {
             let data: Stock[] = [];
-            const isAdminUser = currentUser.roleNom === 'ADMIN';
+            const canViewAll = hasPermission('ALL_STOCK_READ');
 
-            if (!isAdminUser) {
+            if (!canViewAll) {
                 if (currentUser.lieuNom) {
                     data = await api.getStocksByLieuNom(currentUser.lieuNom);
                 } else {
@@ -133,7 +133,7 @@ function StockPageContent() {
         } finally {
             setIsLoading(false);
         }
-    }, [currentUser, toast]);
+    }, [currentUser, toast, hasPermission]);
 
     React.useEffect(() => {
         if (isMounted && currentUser) {
@@ -157,7 +157,7 @@ function StockPageContent() {
                 `${item.produitNom} ${item.produitRef} ${item.lieuStockNom}`
             );
             
-            const matchesSearch = normalizedSearch === '' || searchableString.includes(normalizedSearch);
+            const matchesSearch = normalizedSearch === '' || searchableString.includes(searchableString);
             
             return matchesLieu && matchesSearch;
         });
@@ -170,10 +170,8 @@ function StockPageContent() {
         return `État du Stock - ${selectedLieu}`;
     }, [selectedLieu]);
     
-    const isAdmin = React.useMemo(() => {
-        if (!currentUser) return false;
-        return currentUser.roleNom === 'ADMIN';
-    }, [currentUser]);
+    const canViewAllLieux = React.useMemo(() => hasPermission('ALL_STOCK_READ'), [hasPermission]);
+    const canCorrectStock = React.useMemo(() => hasPermission('INVENTAIRE_MANAGE'), [hasPermission]);
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -198,7 +196,7 @@ function StockPageContent() {
                         <CardTitle className="font-headline flex items-center gap-2">
                             <Warehouse /> Vue d'ensemble des stocks ({filteredStocks.length})
                         </CardTitle>
-                        {isMounted && isAdmin && (
+                        {isMounted && canViewAllLieux && (
                             <Select value={selectedLieu} onValueChange={setSelectedLieu}>
                                 <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Filtrer par lieu" />
@@ -226,13 +224,13 @@ function StockPageContent() {
                                     <TableHead className="text-right">Nombre de Cartons</TableHead>
                                     <TableHead className="text-right">Unités hors Cartons</TableHead>
                                     <TableHead className="text-right">Quantité totale (U)</TableHead>
-                                    {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                                    {canCorrectStock && <TableHead className="text-right">Actions</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={isAdmin ? 7 : 6} className="h-24 text-center">
+                                        <TableCell colSpan={canCorrectStock ? 7 : 6} className="h-24 text-center">
                                             <Loader2 className="animate-spin mx-auto" />
                                         </TableCell>
                                     </TableRow>
@@ -252,7 +250,7 @@ function StockPageContent() {
                                             <TableCell className="text-right font-bold">{stockItem.qteCartons}</TableCell>
                                             <TableCell className="text-right font-bold">{stockItem.qteUnitesRestantes}</TableCell>
                                             <TableCell className="text-right font-extrabold">{stockItem.quantiteTotale}</TableCell>
-                                            {isAdmin && (
+                                            {canCorrectStock && (
                                                 <TableCell className="text-right">
                                                     <Button variant="outline" size="sm" onClick={() => setCorrectingStock(stockItem)}>
                                                         <Pencil className="h-3 w-3 mr-2"/>
@@ -264,7 +262,7 @@ function StockPageContent() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={isAdmin ? 7 : 6} className="h-24 text-center">
+                                        <TableCell colSpan={canCorrectStock ? 7 : 6} className="h-24 text-center">
                                             Aucun stock trouvé pour les critères sélectionnés.
                                         </TableCell>
                                     </TableRow>

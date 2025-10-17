@@ -18,11 +18,11 @@ import { useApp } from '@/context/app-provider';
 export default function ReapprovisionnementsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, isMounted } = useApp();
+  const { currentUser, isMounted, hasPermission } = useApp();
   const [reapprovisionnements, setReapprovisionnements] = useState<Reapprovisionnement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const isAdmin = useMemo(() => currentUser?.roleNom === 'ADMIN', [currentUser]);
+  const canReadAll = useMemo(() => hasPermission('ALL_STOCK_READ'), [hasPermission]);
 
   useEffect(() => {
     async function fetchReapprovisionnements() {
@@ -30,7 +30,7 @@ export default function ReapprovisionnementsPage() {
       setIsLoading(true);
       try {
         let data: Reapprovisionnement[] = [];
-        if (isAdmin) {
+        if (canReadAll) {
           data = await api.getReapprovisionnements();
         } else if (currentUser.lieuStockId) {
           data = await api.getReapprovisionnementsByLieu(currentUser.lieuStockId);
@@ -44,7 +44,7 @@ export default function ReapprovisionnementsPage() {
       }
     }
     fetchReapprovisionnements();
-  }, [toast, isMounted, currentUser, isAdmin]);
+  }, [toast, isMounted, currentUser, canReadAll]);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">

@@ -74,7 +74,7 @@ function DatePickerWithRange({
 export default function InventoriesPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, isMounted, lieuxStock } = useApp();
+  const { currentUser, isMounted, lieuxStock, hasPermission } = useApp();
   const [inventaires, setInventaires] = useState<Inventaire[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [exportingId, setExportingId] = useState<number | null>(null);
@@ -128,7 +128,7 @@ export default function InventoriesPage() {
     }
   }
 
-  const isAdmin = useMemo(() => currentUser?.roleNom === 'ADMIN', [currentUser]);
+  const canFilterByLieu = useMemo(() => hasPermission('ALL_STOCK_READ'), [hasPermission]);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -156,7 +156,7 @@ export default function InventoriesPage() {
                     className="w-full rounded-lg bg-background pl-8"
                   />
             </div>
-            {isAdmin && (
+            {canFilterByLieu && (
                 <Select value={lieuFilter} onValueChange={(value) => setLieuFilter(value === "all" ? undefined : value)}>
                     <SelectTrigger className="w-full md:w-[180px]">
                         <SelectValue placeholder="Filtrer par lieu" />

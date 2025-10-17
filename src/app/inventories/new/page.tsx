@@ -68,7 +68,7 @@ function JSONImportDialog({ onImport, onOpenChange }: { onImport: (jsonString: s
 }
 
 export default function NewInventoryPage() {
-    const { createInventaire, updateInventaire, currentUser, produits, lieuxStock } = useApp();
+    const { createInventaire, updateInventaire, currentUser, produits, lieuxStock, hasPermission } = useApp();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
@@ -103,7 +103,7 @@ export default function NewInventoryPage() {
 
     const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
     const lieuStockMap = useMemo(() => new Map(lieuxStock.map(l => [l.id, l])), [lieuxStock]);
-    const isAdmin = useMemo(() => pageIsLoading ? false : currentUser?.roleNom === 'ADMIN', [currentUser, pageIsLoading]);
+    const canSelectLieu = useMemo(() => hasPermission('ALL_STOCK_READ'), [hasPermission]);
     
     const getDraftKey = useCallback(() => {
         if (!currentUser?.id) return null;
@@ -309,7 +309,7 @@ export default function NewInventoryPage() {
     useEffect(() => {
         if (pageIsLoading) return;
         
-        if (!isAdmin && currentUser?.lieuStockId) {
+        if (!canSelectLieu && currentUser?.lieuStockId) {
             setSelectedLieuStockId(String(currentUser.lieuStockId));
         }
 
@@ -318,7 +318,7 @@ export default function NewInventoryPage() {
              toast({ variant: 'destructive', title: 'Non supporté', description: "La modification d'inventaire n'est pas encore implémentée pour ce mode." });
              router.push('/inventories');
         }
-    }, [searchParams, currentUser, router, toast, isAdmin, pageIsLoading]);
+    }, [searchParams, currentUser, router, toast, canSelectLieu, pageIsLoading]);
     
     const handleBarcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => setBarcode(e.target.value);
 
@@ -617,7 +617,7 @@ export default function NewInventoryPage() {
                         <Card>
                             <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Building2/>Lieu de Stock</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
-                                {isAdmin ? (
+                                {canSelectLieu ? (
                                     <div className="space-y-2">
                                         <Label htmlFor="lieu-stock">Sélectionnez le lieu de l'inventaire</Label>
                                         <Select value={selectedLieuStockId} onValueChange={setSelectedLieuStockId} disabled={scannedItems.length > 0 || listItems.some(item => item.qteCartons > 0 || item.qteUnites > 0)}>
