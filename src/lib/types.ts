@@ -223,6 +223,7 @@ localisation?: string;
 export type LigneCommandePayload = {
   produitId: number;
   qteVoulu: number;
+  prixPersonnalise?: number;
 };
 
 export type CommandePayload = {

@@ -26,6 +26,7 @@ type LignePanier = {
     produitRef: string;
     qteVoulu: number;
     prix: number;
+    prixPersonnalise?: number;
     stockDisponible: number;
 };
 
@@ -73,7 +74,7 @@ function ConfirmationDialog({
                                 <TableRow key={ligne.produitId}>
                                     <TableCell>{ligne.produitNom}</TableCell>
                                     <TableCell className="text-center">{ligne.qteVoulu}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(ligne.prix * ligne.qteVoulu)}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency((ligne.prixPersonnalise ?? ligne.prix) * ligne.qteVoulu)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -98,7 +99,7 @@ function ConfirmationDialog({
 }
 
 export default function NewOrderPage() {
-  const { clients, createCommande, currentUser, lieuxStock, produits, isMounted } = useApp();
+  const { clients, createCommande, currentUser, lieuxStock, produits, isMounted, hasPermission } = useApp();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -130,6 +131,8 @@ export default function NewOrderPage() {
     const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG','COMMERCIAL','CAISSIER(ÈRE)','FISCALISTE','COMPTABLE'];
     return adminRoles.includes(currentUser.roleNom);
   }, [isMounted, currentUser]);
+
+  const canChangePrice = useMemo(() => hasPermission('AJOUT_PRIX_PERSONNALISE'), [hasPermission]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -166,7 +169,11 @@ export default function NewOrderPage() {
     setLignes(lignes.map(item => item.produitId === produitId ? { ...item, qteVoulu: quantity } : item));
   };
 
-  const total = useMemo(() => lignes.reduce((acc, item) => acc + (item.prix * item.qteVoulu), 0), [lignes]);
+  const handlePriceChange = (produitId: number, newPrice: number) => {
+    setLignes(lignes.map(item => item.produitId === produitId ? { ...item, prixPersonnalise: newPrice } : item));
+  };
+
+  const total = useMemo(() => lignes.reduce((acc, item) => acc + ((item.prixPersonnalise ?? item.prix) * item.qteVoulu), 0), [lignes]);
 
   const availableProducts = useMemo(() => {
     return produits
@@ -183,6 +190,7 @@ export default function NewOrderPage() {
     const payloadLignes: LigneCommandePayload[] = lignes.map(item => ({
         produitId: item.produitId,
         qteVoulu: item.qteVoulu,
+        prixPersonnalise: item.prixPersonnalise,
     }));
     
     const payload: CommandePayload = {
@@ -358,6 +366,16 @@ export default function NewOrderPage() {
                                             <TableCell className="font-medium py-2">
                                                 <p className="truncate">{item.produitNom}</p>
                                                 <p className="text-xs text-muted-foreground">{item.produitRef}</p>
+                                                {canChangePrice ? (
+                                                  <Input type="number" 
+                                                    value={item.prixPersonnalise ?? item.prix}
+                                                    onChange={(e) => handlePriceChange(item.produitId, Number(e.target.value))}
+                                                    className="h-7 mt-1 text-xs"
+                                                    placeholder="Prix personnalisé"
+                                                  />
+                                                ) : (
+                                                  <p className="text-xs text-muted-foreground">{formatCurrency(item.prix)}</p>
+                                                )}
                                                 <p className="text-xs text-muted-foreground">Stock: {item.stockDisponible}</p>
                                             </TableCell>
                                             <TableCell className="py-2">
@@ -367,7 +385,7 @@ export default function NewOrderPage() {
                                                     <Button variant="outline" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleQuantityChange(item.produitId, item.qteVoulu + 1)} disabled={isSaving}><Plus className="h-3 w-3"/></Button>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-right py-2">{formatCurrency(item.prix * item.qteVoulu)}</TableCell>
+                                            <TableCell className="text-right py-2">{formatCurrency((item.prixPersonnalise ?? item.prix) * item.qteVoulu)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

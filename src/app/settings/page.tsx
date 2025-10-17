@@ -72,6 +72,7 @@ const ALL_PERMISSIONS: { action: string, description: string }[] = [
     { action: 'PRODUIT_UPDATE', description: 'Modifier des produits' },
     { action: 'PRODUIT_DELETE', description: 'Supprimer des produits' },
     { action: 'PRODUIT_IMPORT', description: 'Importer des produits' },
+    { action: 'AJOUT_PRIX_PERSONNALISE', description: "Modifier le prix lors d'une commande" },
     { action: 'COMMANDE_CREATE', description: 'Créer des commandes' },
     { action: 'COMMANDE_READ', description: 'Consulter des commandes' },
     { action: 'COMMANDE_VALIDATE', description: 'Valider des commandes' },
@@ -88,6 +89,7 @@ const ALL_PERMISSIONS: { action: string, description: string }[] = [
     { action: 'USER_MANAGE', description: 'Gérer les utilisateurs et rôles' },
     { action: 'REPORT_VIEW', description: 'Voir les rapports' },
     { action: 'VENTE_CREATE', description: 'Créer des ventes (POS)'},
+    { action: 'VENTE_CANCEL', description: 'Annuler des ventes' },
     { action: 'ALL_STOCK_READ', description: 'Voir le stock de tous les lieux' },
 ];
 
