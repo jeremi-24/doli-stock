@@ -551,7 +551,7 @@ const helpContent: Section[] = [
 const StepCard = ({ step }: { step: Step }) => (
   <div className="flex flex-col sm:flex-row gap-4 items-start py-4">
     <Image
-      src={`/${step.imageSeed}.png`}
+      src={`/${step.imageSeed}.svg`}
       alt={`Illustration pour ${step.title}`}
       width={400}
       height={250}
