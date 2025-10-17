@@ -18,6 +18,7 @@ interface AppContextType {
   factures: Facture[];
   commandes: Commande[];
   bonLivraisons: BonLivraison[];
+  ventes: Vente[];
   fetchFactures: () => Promise<void>;
   addProduit: (produit: Omit<Produit, 'id'>) => Promise<void>;
   updateProduit: (produit: Produit) => Promise<void>;
@@ -84,6 +85,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [factures, setFactures] = useState<Facture[]>([]);
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [bonLivraisons, setBonLivraisons] = useState<BonLivraison[]>([]);
+  const [ventes, setVentes] = useState<Vente[]>([]);
   const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [shopInfo, setShopInfoState] = useState<ShopInfo>(initialShopInfo);
   const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
@@ -180,12 +182,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     let fetchClientsPromise;
+    // We keep this logic for clients as requested
     if (adminOrControlRoles.includes(currentUser.roleNom)) {
         fetchClientsPromise = api.getAllClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Tous les clients'));
     } else {
         fetchClientsPromise = api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients'));
     }
     
+    let fetchVentesPromise;
+    if (hasPermission('VENTE_READ')) {
+        fetchVentesPromise = api.getVentes().then(data => setVentes(data || [])).catch(err => handleFetchError(err, 'Toutes les ventes'));
+    } else {
+        fetchVentesPromise = Promise.resolve(setVentes([]));
+    }
+
     const dataFetchPromises = [
       api.getOrganisations().then(orgs => {
           if (orgs && orgs.length > 0) setShopInfoState(orgs[0]);
@@ -197,6 +207,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetchClientsPromise,
       fetchCommandesPromise,
       fetchLivraisonsPromise,
+      fetchVentesPromise,
       fetchFactures(),
     ];
 
@@ -510,7 +521,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   const value = useMemo(() => ({
-    produits, categories, lieuxStock, stocks, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures,
+    produits, categories, lieuxStock, stocks, clients, factures, commandes, bonLivraisons, ventes, factureModeles, fetchFactures,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
@@ -524,7 +535,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     scannedProductDetails, setScannedProductDetails,
     addFactureModele, updateFactureModele, deleteFactureModele,
   }), [
-    produits, categories, lieuxStock, stocks, clients, factures, commandes, bonLivraisons, factureModeles, fetchFactures,
+    produits, categories, lieuxStock, stocks, clients, factures, commandes, bonLivraisons, ventes, factureModeles, fetchFactures,
     addProduit, updateProduit, deleteProduits, addMultipleProduits, assignProduits,
     addCategorie, updateCategorie, deleteCategories,
     addLieuStock, updateLieuStock, deleteLieuxStock,
@@ -551,3 +562,4 @@ export function useApp() {
   }
   return context;
 }
+

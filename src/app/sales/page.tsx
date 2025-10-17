@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
@@ -12,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import type { Vente } from '@/lib/types';
 import { ModePaiement, EtatVente } from '@/lib/types';
 import * as api from '@/lib/api';
-import { Eye, Search, History, Loader2, User, Trash2, PlusCircle, CreditCard, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Eye, Search, History, Loader2, User, Trash2, PlusCircle, CreditCard, Calendar as CalendarIcon, X, FileWarning } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -195,12 +196,9 @@ function DatePickerWithRange({
 }
 
 function SalesPageContent() {
-  const { hasPermission, annulerVente } = useApp();
-  const { toast } = useToast();
+  const { hasPermission, annulerVente, ventes, isMounted, refreshAllData } = useApp();
   const searchParams = useSearchParams();
-
-  const [ventes, setVentes] = useState<Vente[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isCancelling, setIsCancelling] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -219,52 +217,45 @@ function SalesPageContent() {
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
 
-  const fetchVentes = useCallback(async () => {
-    if (!hasPermission('VENTE_CREATE')) {
-      setIsLoading(false);
-      return;
-    }
-    
+  const handleFetchData = useCallback(async () => {
     setIsLoading(true);
-    try {
-        let data: Vente[] = [];
-        if (showOnlyCredit) {
-            data = await api.getVentesCreditEnCours();
-        } else if (dateRange?.from && dateRange?.to) {
-            const dateDebut = format(dateRange.from, 'yyyy-MM-dd');
-            const dateFin = format(dateRange.to, 'yyyy-MM-dd');
-            data = await api.getVentesByPeriode(dateDebut, dateFin);
-        } else {
-            data = await api.getVentes();
-        }
-        setVentes(data.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue.";
-        toast({ variant: 'destructive', title: 'Erreur de chargement', description: errorMessage });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [toast, hasPermission, dateRange, showOnlyCredit]);
-
-  useEffect(() => {
-    fetchVentes();
-  }, [fetchVentes]);
-
+    await refreshAllData();
+    setIsLoading(false);
+  }, [refreshAllData]);
 
   const filteredSales = useMemo(() => {
-    if (isLoading) return [];
-    return ventes.filter(vente => 
+    if (!isMounted) return [];
+
+    let salesToFilter = ventes;
+
+    if (showOnlyCredit) {
+        salesToFilter = ventes.filter(v => v.etat === EtatVente.EN_ATTENTE);
+    } else if (dateRange?.from) {
+        salesToFilter = ventes.filter(v => {
+            const saleDate = new Date(v.date);
+            const from = new Date(dateRange.from!);
+            const to = dateRange.to ? new Date(dateRange.to) : from;
+            // Set time to start and end of day for accurate comparison
+            from.setHours(0, 0, 0, 0);
+            to.setHours(23, 59, 59, 999);
+            return saleDate >= from && saleDate <= to;
+        });
+    }
+
+    if (!searchTerm) return salesToFilter;
+
+    return salesToFilter.filter(vente => 
           (vente.client?.nom || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
           (vente.ref || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (vente.caissier || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
-  }, [ventes, searchTerm, isLoading]);
+  }, [ventes, searchTerm, isMounted, showOnlyCredit, dateRange]);
   
   const handleCancelSale = async (id: number) => {
     setIsCancelling(id);
     try {
         await annulerVente(id);
-        await fetchVentes();
+        await handleFetchData(); // Re-fetch data after cancellation
     } finally {
         setIsCancelling(null);
     }
@@ -277,9 +268,9 @@ function SalesPageContent() {
             pageDescription: "Liste de toutes les ventes à crédit avec un solde restant."
         };
     }
-    if (dateRange?.from && dateRange?.to) {
+    if (dateRange?.from) {
         const from = format(dateRange.from, 'd MMM', { locale: fr });
-        const to = format(dateRange.to, 'd MMM yyyy', { locale: fr });
+        const to = dateRange.to ? format(dateRange.to, 'd MMM yyyy', { locale: fr }) : from;
         return {
             pageTitle: `Ventes du ${from} au ${to}`,
             pageDescription: "Liste des transactions pour la période sélectionnée."
@@ -291,11 +282,14 @@ function SalesPageContent() {
     };
   }, [showOnlyCredit, dateRange]);
 
-  if (!hasPermission('VENTE_CREATE')) {
+  const canCancelSale = useMemo(() => hasPermission('VENTE_CANCEL'), [hasPermission]);
+
+  if (!hasPermission('VENTE_READ')) {
     return (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-1 items-center justify-center p-4">
             <Card className="w-full max-w-md text-center">
-                <CardHeader>
+                 <CardHeader className="items-center">
+                    <FileWarning className="w-12 h-12 text-destructive" />
                     <CardTitle>Accès non autorisé</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -357,7 +351,7 @@ function SalesPageContent() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {isLoading ? (
+                    {!isMounted ? (
                         <TableRow><TableCell colSpan={9} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                     ) : filteredSales.length > 0 ? filteredSales.map(vente => {
                         const isAnnulee = vente.etat === EtatVente.ANNULEE;
@@ -388,42 +382,43 @@ function SalesPageContent() {
                                <Badge variant={getBadgeVariant()} className={getBadgeClassName()}>{vente.etat}</Badge>
                             </TableCell>
                             <TableCell className="text-center">
-  {isAnnulee ? (
-      <Badge variant="destructive">Annulée</Badge>
-  ) : (
-      <div className="flex items-center justify-center gap-1">
-          <SaleDetailsDialog vente={vente} />
-          {isCredit && <AddPaymentDialog venteId={vente.id} totalDue={vente.soldeRestant} onPaymentAdded={fetchVentes} />}
-          {/* Le bouton poubelle ne s'affiche plus si la vente est annulée */}
-          <AlertDialog>
-              <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" disabled={isCancelling === vente.id}>
-                      {isCancelling === vente.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive"/>}
-                  </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                  <AlertDialogHeader>
-                      <AlertDialogTitle>Annuler la vente #{vente.ref}?</AlertDialogTitle>
-                      <AlertDialogDesc>
-                          Cette action est irréversible. Elle annulera la vente et restaurera le stock des produits concernés.
-                      </AlertDialogDesc>
-                  </AlertDialogHeader>
-                  <DialogFooterButtons>
-                      <AlertDialogCancel>Retour</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleCancelSale(vente.id)}>Confirmer l'annulation</AlertDialogAction>
-                  </DialogFooterButtons>
-              </AlertDialogContent>
-          </AlertDialog>
-      </div>
-  )}
-</TableCell>
-
+                                {isAnnulee ? (
+                                    <Badge variant="destructive">Annulée</Badge>
+                                ) : (
+                                    <div className="flex items-center justify-center gap-1">
+                                        <SaleDetailsDialog vente={vente} />
+                                        {isCredit && <AddPaymentDialog venteId={vente.id} totalDue={vente.soldeRestant} onPaymentAdded={handleFetchData} />}
+                                        
+                                        {canCancelSale && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" disabled={isCancelling === vente.id}>
+                                                        {isCancelling === vente.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive"/>}
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Annuler la vente #{vente.ref}?</AlertDialogTitle>
+                                                        <AlertDialogDesc>
+                                                            Cette action est irréversible. Elle annulera la vente et restaurera le stock des produits concernés.
+                                                        </AlertDialogDesc>
+                                                    </AlertDialogHeader>
+                                                    <DialogFooterButtons>
+                                                        <AlertDialogCancel>Retour</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleCancelSale(vente.id)}>Confirmer l'annulation</AlertDialogAction>
+                                                    </DialogFooterButtons>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                    </div>
+                                )}
+                            </TableCell>
                         </TableRow>
                     )}) : (<TableRow><TableCell colSpan={9} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
                     </TableBody>
                 </Table>
             </div>
-        </CardContent>
+          </CardContent>
       </Card>
     </div>
   );
