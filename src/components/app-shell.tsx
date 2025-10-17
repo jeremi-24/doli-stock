@@ -217,7 +217,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       icon: <History />,
       label: 'Historique des Ventes',
       active: pathname === '/sales',
-      permission: 'VENTE_CREATE',
+      
     },
     {
       href: '/categories',
