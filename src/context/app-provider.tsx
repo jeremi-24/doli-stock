@@ -127,6 +127,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
   }, [toast, logout, handleGenericError]);
   
+  const hasPermission = useCallback((action: string) => {
+    if (!currentUser || !isMounted) return false;
+    if (currentUser.roleNom === 'ADMIN') return true;
+    return permissions.has(action);
+  }, [permissions, currentUser, isMounted]);
+
   const fetchFactures = useCallback(async () => {
     try {
         const data = await api.getFactures();
@@ -142,7 +148,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const adminOrControlRoles = ['ADMIN', 'SECRETARIAT', 'DG', 'CONTROLLEUR'];
 
     let fetchCommandesPromise;
-    if (adminOrControlRoles.includes(currentUser.roleNom)) {
+    if (hasPermission('COMMANDE_READ')) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
     } else {
         const promises: Promise<Commande[]>[] = [];
@@ -167,7 +173,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     let fetchLivraisonsPromise;
-    if (adminOrControlRoles.includes(currentUser.roleNom)) {
+    if (hasPermission('LIVRAISON_READ')) {
         fetchLivraisonsPromise = api.getAllBonsLivraison().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Tous les Bons de Livraison'));
     } else {
         fetchLivraisonsPromise = api.getBonsLivraisonParLieu().then(data => setBonLivraisons(data || [])).catch(err => handleFetchError(err, 'Bons de Livraison par Lieu'));
@@ -195,7 +201,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ];
 
     await Promise.allSettled(dataFetchPromises);
-  }, [handleFetchError, fetchFactures, currentUser]);
+  }, [handleFetchError, fetchFactures, currentUser, hasPermission]);
 
 
   const loadUserAndData = useCallback(async (token: string): Promise<boolean> => {
@@ -253,12 +259,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await loadUserAndData(newToken);
     setIsMounted(true);
   };
-  
-  const hasPermission = useCallback((action: string) => {
-    if (!currentUser || !isMounted) return false;
-    if (currentUser.roleNom === 'ADMIN') return true;
-    return permissions.has(action);
-  }, [permissions, currentUser, isMounted]);
   
   const setShopInfo = useCallback(async (orgData: ShopInfo) => {
     try {
