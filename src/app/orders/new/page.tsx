@@ -118,7 +118,7 @@ export default function NewOrderPage() {
 
   useEffect(() => {
     if (isMounted && currentUser) {
-      const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
+      const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG','COMMERCIAL','CAISSIER(ÈRE)','FISCALISTE','COMPTABLE'];
       if (!adminRoles.includes(currentUser.roleNom) && currentUser.clientId) {
         setClientId(String(currentUser.clientId));
       }
@@ -127,7 +127,7 @@ export default function NewOrderPage() {
   
   const canSelectClient = useMemo(() => {
     if (!isMounted || !currentUser) return false;
-    const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG'];
+    const adminRoles = ['ADMIN', 'SECRETARIAT', 'DG','COMMERCIAL','CAISSIER(ÈRE)','FISCALISTE','COMPTABLE'];
     return adminRoles.includes(currentUser.roleNom);
   }, [isMounted, currentUser]);
 
