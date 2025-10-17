@@ -88,6 +88,7 @@ const ALL_PERMISSIONS: { action: string, description: string }[] = [
     { action: 'USER_MANAGE', description: 'Gérer les utilisateurs et rôles' },
     { action: 'REPORT_VIEW', description: 'Voir les rapports' },
     { action: 'VENTE_CREATE', description: 'Créer des ventes (POS)'},
+    { action: 'ALL_STOCK_READ', description: 'Voir le stock de tous les lieux' },
 ];
 
 
