@@ -272,7 +272,7 @@ export default function NewOrderPage() {
                                     className={cn("cursor-pointer hover:bg-muted/50 transition-colors", lignes.some(l => l.produitId === p.id) && "border-primary ring-1 ring-primary")}
                                 >
                                     <CardContent className="p-3">
-                                        <p className="font-semibold truncate">{p.nom}</p>
+                                        <p className="font-semibold truncate  ">{p.nom}</p>
                                         <p className="text-xs text-muted-foreground">{p.ref}</p>
                                         <p className="text-sm font-bold mt-1">{formatCurrency(p.prix)}</p>
                                     </CardContent>
@@ -284,7 +284,10 @@ export default function NewOrderPage() {
             </Card>
         </div>
 
-        <aside className="w-[480px] border-l bg-muted/20 flex flex-col h-full">
+        <aside 
+    className="w-[480px] min-w-[380px] max-w-2xl border-l bg-muted/20 flex flex-col h-full"
+    style={{ resize: 'horizontal', overflow: 'auto' }}
+>
             <CardHeader className="shrink-0">
                 <CardTitle className="font-headline flex items-center gap-2"><ShoppingCart className="w-6 h-6" /> Panier ({lignes.length})</CardTitle>
                 <CardDescription>Produits de la commande en cours.</CardDescription>
@@ -305,7 +308,7 @@ export default function NewOrderPage() {
                                     {lignes.map(item => (
                                         <TableRow key={item.produitId}>
                                             <TableCell className="font-medium py-2 align-top">
-                                                <p className="truncate w-full" title={item.produitNom}>{item.produitNom}</p>
+                                                <p className="break-words" title={item.produitNom}>{item.produitNom}</p>
                                                 <p className="text-xs text-muted-foreground">{item.produitRef}</p>
                                                 {canChangePrice ? (
                                                   <Input type="number" 
