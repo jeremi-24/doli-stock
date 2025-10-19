@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const clientSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères."),
   tel: z.string().optional(),
+  adresse: z.string().optional(),
 });
 
 export default function ClientsPage() {
@@ -33,14 +34,14 @@ export default function ClientsPage() {
 
     const form = useForm<z.infer<typeof clientSchema>>({
         resolver: zodResolver(clientSchema),
-        defaultValues: { nom: "", tel: "" },
+        defaultValues: { nom: "", tel: "", adresse: "" },
     });
 
     useEffect(() => {
         if (editingClient) {
-            form.reset({ nom: editingClient.nom, tel: editingClient.tel || "" });
+            form.reset({ nom: editingClient.nom, tel: editingClient.tel || "", adresse: editingClient.adresse || "" });
         } else {
-            form.reset({ nom: "", tel: "" });
+            form.reset({ nom: "", tel: "", adresse: "" });
         }
     }, [editingClient, form]);
 
@@ -108,6 +109,7 @@ export default function ClientsPage() {
                                 <TableRow>
                                     <TableHead>Nom du Client</TableHead>
                                     <TableHead>Téléphone</TableHead>
+                                    <TableHead>Adresse</TableHead>
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -117,6 +119,7 @@ export default function ClientsPage() {
                                         <TableRow key={i}>
                                             <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
                                             <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                                         </TableRow>
                                     ))
@@ -125,6 +128,7 @@ export default function ClientsPage() {
                                         <TableRow key={client.id}>
                                             <TableCell className="font-medium">{client.nom}</TableCell>
                                             <TableCell>{client.tel}</TableCell>
+                                            <TableCell>{client.adresse}</TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -165,7 +169,7 @@ export default function ClientsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={3} className="h-24 text-center">
+                                        <TableCell colSpan={4} className="h-24 text-center">
                                             Aucun client trouvé. Commencez par en ajouter un.
                                         </TableCell>
                                     </TableRow>
@@ -204,6 +208,19 @@ export default function ClientsPage() {
                                         <FormLabel>Téléphone</FormLabel>
                                         <FormControl>
                                             <Input placeholder="ex: +228 90000000" {...field} disabled={isLoading} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="adresse"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Adresse</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="ex: 25 Rue de la Paix, Lomé" {...field} disabled={isLoading} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

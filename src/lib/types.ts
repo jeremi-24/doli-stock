@@ -4,6 +4,7 @@ export type Client = {
   id: number;
   nom: string;
   tel: string;
+  adresse: string;
 };
 
 export type Categorie = {
@@ -181,6 +182,7 @@ export type Facture = {
     dateFacture: string;
     commandeId: number;
     clientNom: string;
+    clientAdresse: string;
     montantTotal: number;
     lignes: LigneFacture[];
 };
@@ -309,6 +311,12 @@ export type VentePayload = {
     typePaiement: TypePaiement;
     lignes: VenteLignePayload[];
     paiementInitial?: PaiementInitialPayload;
+};
+
+export type VenteLignePayload = {
+    codeProduit: string;
+    qteVendueDansLigne: number;
+    typeQuantite: 'UNITE' | 'CARTON';
 };
 
 export type PaiementPayload = {

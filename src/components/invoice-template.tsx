@@ -46,6 +46,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
       <section className="mt-8">
         <h3 className="text-sm font-semibold text-gray-500 uppercase">Facturé à</h3>
         <p className="mt-2 font-bold text-lg text-gray-800">{facture.clientNom}</p>
+        {facture.clientAdresse && <p className="text-gray-600">{facture.clientAdresse}</p>}
       </section>
 
       {/* Table */}

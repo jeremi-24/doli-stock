@@ -36,7 +36,8 @@ export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivrai
                 <span className="font-bold">N° {String(bonLivraison.id).padStart(5, '0')}</span>
             </div>
             <div className="mb-2">
-                <span>Nom du client: {facture.clientNom}</span>
+                <p>Nom du client: {facture.clientNom}</p>
+                {facture.clientAdresse && <p>Adresse: {facture.clientAdresse}</p>}
             </div>
 
             <table className="w-full border-collapse border border-black text-[10px]">
