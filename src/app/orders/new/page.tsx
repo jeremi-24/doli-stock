@@ -305,7 +305,7 @@ export default function NewOrderPage() {
                                     {lignes.map(item => (
                                         <TableRow key={item.produitId}>
                                             <TableCell className="font-medium py-2 align-top">
-                                                <p className="truncate">{item.produitNom}</p>
+                                                <p className="truncate w-full" title={item.produitNom}>{item.produitNom}</p>
                                                 <p className="text-xs text-muted-foreground">{item.produitRef}</p>
                                                 {canChangePrice ? (
                                                   <Input type="number" 
@@ -368,5 +368,3 @@ export default function NewOrderPage() {
     </div>
   );
 }
-
-    
