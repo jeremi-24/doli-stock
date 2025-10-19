@@ -1,6 +1,6 @@
 
 
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VentePayload, Notification, BarcodePrintRequest, FactureModele, PaiementPayload, EtatVente, Log } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VentePayload, Notification, BarcodePrintRequest, FactureModele, PaiementPayload, EtatVente, Log, TypePaiement, PaiementInitialPayload } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -462,8 +462,14 @@ export async function getBonsLivraisonParLieu(): Promise<BonLivraison[]> {
 export async function genererBonLivraison(commandeId: number): Promise<BonLivraison> {
     return apiFetch(`/livraisons?commandeId=${commandeId}`, { method: 'POST' });
 }
-export async function validerLivraisonEtape1(id: number): Promise<BonLivraison> {
-    return apiFetch(`/livraisons/${id}/valider1`, { method: 'PUT' });
+export async function validerLivraisonEtape1(id: number, typePaiement: TypePaiement, paiement?: PaiementInitialPayload): Promise<BonLivraison> {
+    const options: RequestInit = {
+        method: 'PUT',
+    };
+    if (paiement) {
+        options.body = JSON.stringify(paiement);
+    }
+    return apiFetch(`/livraisons/${id}/valider1?typePaiement=${typePaiement}`, options);
 }
 export async function validerLivraisonEtape2(id: number): Promise<BonLivraison> {
     return apiFetch(`/livraisons/${id}/valider2`, { method: 'PUT' });

@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VentePayload, Vente, CommandeStatus, Notification, FactureModele, Stock, PaiementPayload, EtatVente } from '@/lib/types';
+import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VentePayload, Vente, CommandeStatus, Notification, FactureModele, Stock, PaiementPayload, EtatVente, TypePaiement, PaiementInitialPayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { jwtDecode } from 'jwt-decode';
@@ -48,7 +48,7 @@ interface AppContextType {
   annulerCommande: (commandeId: number) => Promise<void>;
   genererFacture: (commandeId: number) => Promise<void>;
   genererBonLivraison: (commandeId: number) => Promise<void>;
-  validerLivraisonEtape1: (livraisonId: number) => Promise<void>;
+  validerLivraisonEtape1: (livraisonId: number, typePaiement: TypePaiement, paiement?: PaiementInitialPayload) => Promise<void>;
   validerLivraisonEtape2: (livraisonId: number) => Promise<void>;
   refreshAllData: () => Promise<void>;
   shopInfo: ShopInfo;
@@ -486,9 +486,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshAllData, toast, handleGenericError]);
 
- const validerLivraisonEtape1 = useCallback(async (livraisonId: number) => {
+ const validerLivraisonEtape1 = useCallback(async (livraisonId: number, typePaiement: TypePaiement, paiement?: PaiementInitialPayload) => {
     try {
-      await api.validerLivraisonEtape1(livraisonId);
+      await api.validerLivraisonEtape1(livraisonId, typePaiement, paiement);
       await refreshAllData();
       toast({ title: "Bon de livraison validé" });
     } catch (error) {
@@ -562,4 +562,3 @@ export function useApp() {
   }
   return context;
 }
-

@@ -149,6 +149,7 @@ export type LigneCommande = {
   produitNom: string;
   produitRef: string;
   qteVoulu: number;
+  prixPersonnalise?: number;
   produitPrix: number;
   totalLigne: number;
 };
@@ -299,12 +300,6 @@ export type PaiementInitialPayload = {
     montant: number;
     modePaiement: ModePaiement;
     reference?: string;
-};
-
-export type VenteLignePayload = {
-    codeProduit: string;
-    qteVendueDansLigne: number;
-    typeQuantite: 'UNITE' | 'CARTON';
 };
 
 export type VentePayload = {
