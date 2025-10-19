@@ -16,6 +16,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useApp } from '@/context/app-provider';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 function DocumentViewer() {
     const { id } = useParams();
@@ -32,8 +33,6 @@ function DocumentViewer() {
     const invoiceRef = useRef<HTMLDivElement>(null);
     const deliverySlipRef = useRef<HTMLDivElement>(null);
 
-
-
     const formatDateForFileName = (isoDate: string) => {
         const date = new Date(isoDate);
         const year = date.getFullYear();
@@ -44,7 +43,7 @@ function DocumentViewer() {
         const seconds = String(date.getSeconds()).padStart(2, '0');
       
         return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
-      };
+    };
       
     const loadDocuments = useCallback(() => {
         if (isMounted) {
@@ -78,14 +77,14 @@ function DocumentViewer() {
         }
 
         setIsPrinting(true);
+        toast({ title: 'Génération du PDF...', description: 'Veuillez patienter.' });
         try {
             const canvas = await html2canvas(elementRef.current, {
-                scale: 2, // Améliore la qualité de l'image
+                scale: 2, 
                 useCORS: true,
             });
             const imgData = canvas.toDataURL('image/png');
             
-            // Dimensions A4 en mm: 210 x 297
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
@@ -120,10 +119,9 @@ function DocumentViewer() {
     };
     
     const handlePrintAll = async () => {
-        if (invoiceRef.current && facture) await handlePrint(invoiceRef, `Facture-${facture.idFacture}-${facture.clientNom}-${facture.dateFacture}`);
-        if (deliverySlipRef.current && bonLivraison) await handlePrint(deliverySlipRef, `BL-${bonLivraison.id}-${bonLivraison.dateLivraison}`);
+        if (invoiceRef.current && facture) await handlePrint(invoiceRef, `Facture-${facture.idFacture}-${facture.clientNom}-${formatDateForFileName(facture.dateFacture)}`);
+        if (deliverySlipRef.current && bonLivraison) await handlePrint(deliverySlipRef, `BL-${bonLivraison.id}-${formatDateForFileName(bonLivraison.dateLivraison)}`);
     }
-
 
     if (isLoading || !isMounted) {
         return (
@@ -132,10 +130,7 @@ function DocumentViewer() {
                     <Skeleton className="h-10 w-48" />
                     <Skeleton className="h-10 w-40" />
                 </div>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <Card><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><Skeleton className="h-[70vh] w-full" /></CardContent></Card>
-                    <Card><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><Skeleton className="h-[70vh] w-full" /></CardContent></Card>
-                </div>
+                <Card><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><Skeleton className="h-[70vh] w-full" /></CardContent></Card>
             </div>
         );
     }
@@ -174,45 +169,55 @@ function DocumentViewer() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => handlePrint(invoiceRef, `Facture-${facture.idFacture}-${facture.clientNom}-${formatDateForFileName(facture.dateFacture)}`)} disabled={isPrinting}>
-                        {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer Facture
-                    </Button>
-                    <Button variant="outline" onClick={() => handlePrint(deliverySlipRef, `BL-${bonLivraison.id}-${formatDateForFileName(bonLivraison.dateLivraison)}`)} disabled={isPrinting}>
-                        {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer BL
-                    </Button>
                     <Button onClick={handlePrintAll} disabled={isPrinting}>
-                        {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer Tout
+                        {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />}
+                        Imprimer Tout
                     </Button>
                 </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6 items-start">
-                 {/* Invoice Column */}
-                <Card className="h-full flex flex-col">
-                    <CardHeader>
-                        <CardTitle>Facture N°{facture.idFacture}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <ScrollArea className="h-[70vh] bg-muted/50 rounded-md border p-4">
-                             <InvoiceTemplate ref={invoiceRef} facture={facture} shopInfo={shopInfo} />
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
+            <Tabs defaultValue="invoice" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="invoice">Facture</TabsTrigger>
+                    <TabsTrigger value="delivery-slip">Bon de Livraison</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="invoice">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Facture N°{facture.idFacture}</CardTitle>
+                             <Button variant="outline" onClick={() => handlePrint(invoiceRef, `Facture-${facture.idFacture}-${facture.clientNom}-${formatDateForFileName(facture.dateFacture)}`)} disabled={isPrinting}>
+                                {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer la Facture
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-[70vh] bg-muted/50 rounded-md border p-4">
+                                <InvoiceTemplate ref={invoiceRef} facture={facture} shopInfo={shopInfo} />
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-                {/* Delivery Slip Column */}
-                 <Card className="h-full flex flex-col">
-                    <CardHeader>
-                        <CardTitle>Bon de Livraison N°{bonLivraison.id}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <ScrollArea className="h-[70vh] bg-muted/50 rounded-md border p-4">
-                            <DeliverySlipTemplate ref={deliverySlipRef} bonLivraison={bonLivraison} facture={facture} shopInfo={shopInfo} />
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-            </div>
+                <TabsContent value="delivery-slip">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                           <CardTitle>Bon de Livraison N°{bonLivraison.id}</CardTitle>
+                           <Button variant="outline" onClick={() => handlePrint(deliverySlipRef, `BL-${bonLivraison.id}-${formatDateForFileName(bonLivraison.dateLivraison)}`)} disabled={isPrinting}>
+                                {isPrinting ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Printer className="h-4 w-4 mr-2" />} Imprimer le Bon
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-[70vh] bg-muted/50 rounded-md border p-4">
+                                <DeliverySlipTemplate ref={deliverySlipRef} bonLivraison={bonLivraison} facture={facture} shopInfo={shopInfo} />
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
 
 export default DocumentViewer;
+
+    
