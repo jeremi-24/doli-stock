@@ -228,7 +228,7 @@ export default function NewOrderPage() {
     <div className="flex flex-1 h-screen overflow-hidden">
         <div className="flex-1 p-4 md:p-6 flex flex-col">
             <h1 className="font-headline text-3xl font-semibold">Créer une Commande</h1>
-            <Card className="mt-4 flex-1 flex flex-col">
+            <Card className="mt-4 flex-1 flex flex-col overflow-hidden">
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2"><FileText /> Informations Générales</CardTitle>
                 </CardHeader>
