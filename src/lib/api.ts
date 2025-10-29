@@ -239,6 +239,24 @@ export async function importProducts(file: File): Promise<Produit[]> {
     throw error;
   }
 };
+
+export async function exportProduits(): Promise<void> {
+  const blob = await apiFetch(`/produits/export/simple`, {
+    method: 'GET',
+    headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  }) as Blob;
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `export_produits.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+  return Promise.resolve();
+}
+
 export async function printBarcodes(data: BarcodePrintRequest): Promise<Blob> {
     return apiFetch('/barcode/print', {
         method: 'POST',
@@ -521,3 +539,5 @@ export async function deleteFactureModele(id: string): Promise<any> {
     return apiFetch(`/facture-modeles/${id}`, { method: 'DELETE' });
 }
 */
+
+    

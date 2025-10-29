@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -35,7 +36,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/app-provider";
-import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal, Hand, Tag, Building2, DollarSign, Boxes, AlertTriangle, Hash, Printer } from "lucide-react";
+import { Package, Search, Loader2, PlusCircle, MoreHorizontal, Pencil, Trash2, SlidersHorizontal, Hand, Tag, Building2, DollarSign, Boxes, AlertTriangle, Hash, Printer, Download } from "lucide-react";
 import type { Produit, Categorie, LieuStock, AssignationPayload } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -268,6 +269,7 @@ export default function ProductsPage() {
     const [printingProduct, setPrintingProduct] = React.useState<Produit | null>(null);
     
     const [isLoading, setIsLoading] = React.useState(false);
+    const [isExporting, setIsExporting] = React.useState(false);
     
     const [selectedProduits, setSelectedProduits] = React.useState<number[]>([]);
     
@@ -392,6 +394,19 @@ export default function ProductsPage() {
             setIsLoading(false);
         }
     };
+
+    const handleExport = async () => {
+        setIsExporting(true);
+        toast({ title: "Export en cours", description: "Génération du fichier Excel..." });
+        try {
+            await api.exportProduits();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+            toast({ variant: 'destructive', title: "Erreur d'export", description: errorMessage });
+        } finally {
+            setIsExporting(false);
+        }
+    };
     
     const canCreate = React.useMemo(() => hasPermission('PRODUIT_CREATE'), [hasPermission]);
     const canUpdate = React.useMemo(() => hasPermission('PRODUIT_UPDATE'), [hasPermission]);
@@ -466,6 +481,10 @@ export default function ProductsPage() {
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+                            {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}
+                            Exporter les produits
+                        </Button>
                         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                             <SelectTrigger className="w-full md:w-[180px]">
                                 <SelectValue placeholder="Filtrer par catégorie" />
@@ -658,5 +677,7 @@ export default function ProductsPage() {
         </div>
     );
 }
+
+    
 
     
