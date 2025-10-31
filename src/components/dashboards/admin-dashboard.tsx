@@ -108,7 +108,7 @@ function StockLocationStats() {
         const locationStocks = stocks.filter(stock => stock.lieuStockNom === lieu.nom);
         
         const stockValue = locationStocks.reduce((sum, stock) => {
-            const product = produits.find(p => p.id === stock.produitId);
+            const product = productMap.get(stock.produitId);
             if (!product || !product.prix) {
                 return sum;
             }
@@ -116,7 +116,7 @@ function StockLocationStats() {
         }, 0);
         
         const lowStockCount = locationStocks.filter(stock => {
-            const product = produits.find(p => p.id === stock.produitId);
+            const product = productMap.get(stock.produitId);
             if (!product) return false;
             
             return stock.quantiteTotale > 0 && stock.quantiteTotale <= (product.qteMin || 0);
