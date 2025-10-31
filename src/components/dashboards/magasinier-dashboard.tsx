@@ -99,7 +99,7 @@ export function MagasinierDashboard() {
     }
     
     const localStocks = stocks.filter(s => s.lieuStockNom === currentUser.lieuNom);
-    const productMap = new Map<string, Produit>(produits.map(p => [p.ref, p]));
+    const productMap = new Map<number, Produit>(produits.map(p => [p.id, p]));
 
     let stockValue = 0;
     let lowStockCount = 0;
@@ -107,9 +107,9 @@ export function MagasinierDashboard() {
     const lowStockProducts: { nom: string, stock: number, seuil: number }[] = [];
 
     localStocks.forEach(stock => {
-        const product = productMap.get(stock.produitRef);
+        const product = productMap.get(stock.produitId);
         if (product) {
-            const totalUnits = (stock.qteCartons || 0) * (product.qteParCarton || 1) + (stock.qteUnitesRestantes || 0);
+            const totalUnits = stock.quantiteTotale || 0;
             
             stockValue += (product.prix || 0) * totalUnits;
             
