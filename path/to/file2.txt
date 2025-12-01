@@ -1,0 +1,1 @@
+This is the content of file2.txt after the change.  It can contain special characters like <, >, and &.
