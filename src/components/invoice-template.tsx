@@ -4,92 +4,163 @@
 import type { ShopInfo, Facture } from '@/lib/types';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useReactToPrint } from 'react-to-print';
 import React from 'react';
+import { useApp } from '@/context/app-provider';
+
+function numberToWords(num: number) {
+    const a = [
+        '', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize'
+    ];
+    const b = [
+        '', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante', 'quatre-vingt', 'quatre-vingt'
+    ];
+    const s = [
+        '', 'mille', 'million', 'milliard', 'billion'
+    ];
+
+    if (num === 0) return 'zéro';
+    
+    let str = "";
+    let i = 0;
+
+    while (num > 0) {
+        let h = Math.floor(num % 1000);
+        num = Math.floor(num / 1000);
+
+        if (h > 0) {
+            let temp = "";
+            let c = Math.floor(h / 100);
+            let tu = h % 100;
+
+            if (c > 0) {
+                temp += (c > 1 ? a[c] + ' ' : '') + 'cent';
+                if (tu === 0 && h > 100) temp += 's';
+            }
+
+            if (tu > 0) {
+                if (c > 0) temp += ' ';
+                if (tu < 17) {
+                    temp += a[tu];
+                } else {
+                    let t = Math.floor(tu / 10);
+                    let u = tu % 10;
+                    if (b[t].endsWith('vingt') && u === 1) { // vingt-et-un
+                        temp += b[t] + (u > 0 ? '-et-' + a[u] : '');
+                    } else {
+                        temp += b[t] + (u > 0 ? '-' + a[u] : '');
+                    }
+                }
+            }
+            if (num > 0 && i > 0 && h === 1 && (s[i] === 'mille')) {
+               temp = s[i]
+            } else {
+               temp += (i > 0 ? ' ' + s[i] + (h > 1 && s[i] !== 'mille' ? 's' : '') : '');
+            }
+
+            str = temp + (str ? ' ' + str : '');
+        }
+        i++;
+    }
+
+    return str.trim();
+}
+
 
 export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Facture, shopInfo: ShopInfo }>(({ shopInfo, facture }, ref) => {
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+  const {bonLivraisons} = useApp();
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-FR').format(amount);
+  const bonLivraisonAssocie = bonLivraisons.find(bl => bl.commandeId === facture.commandeId);
+
+  const tvaRate = 0.18;
+  const montantHorsTaxe = facture.montantTotal / (1 + tvaRate);
+  const montantTVA = facture.montantTotal - montantHorsTaxe;
 
   return (
-    <div ref={ref} className="bg-white text-black p-8 font-sans text-sm w-[210mm] min-h-[297mm]">
-      {/* Header */}
-      <header className="flex justify-between items-start pb-8 border-b-2 border-gray-200">
-        <div className="w-2/3">
-          {shopInfo.logoUrl ? (
-            <img 
-              src={shopInfo.logoUrl} 
-              alt={`${shopInfo.nom} Logo`} 
-              className="h-16 w-auto max-w-full object-contain"
-              crossOrigin="anonymous"
-              onError={(e) => { e.currentTarget.style.display = 'none'; const fallback = document.getElementById('logo-fallback'); if(fallback) fallback.style.display = 'block'; }}
-            />
-          ) : null}
-           <h1 id="logo-fallback" className="text-3xl font-bold text-gray-800" style={{ display: shopInfo.logoUrl ? 'none' : 'block' }}>{shopInfo.nom}</h1>
-          <p className="mt-4 text-gray-600">{shopInfo.adresse}</p>
-          <p className="text-gray-600">{shopInfo.ville}</p>
-          <p className="text-gray-600">{shopInfo.telephone}</p>
-          <p className="text-gray-600">{shopInfo.email}</p>
-        </div>
-        <div className="w-1/3 text-right">
-          <h2 className="text-4xl font-bold uppercase text-gray-700">Facture</h2>
-          <p className="mt-2 text-gray-600">
-            <span className="font-semibold">N° : </span>FACT-{String(facture.idFacture).padStart(5, '0')}
-          </p>
-          <p className="text-gray-600">
-            <span className="font-semibold">Date : </span>{facture.dateFacture ? format(new Date(facture.dateFacture), 'd MMMM yyyy', { locale: fr }) : 'N/A'}
-          </p>
-           {shopInfo.numero && <p className="mt-2 text-gray-600"><span className="font-semibold">ID Fiscal : </span>{shopInfo.numero}</p>}
-        </div>
+    <div ref={ref} className="bg-white text-black p-6 font-mono text-[10px] w-[210mm] min-h-[297mm] border border-gray-300">
+      
+      <header className="text-center mb-4">
+          <h1 className="text-2xl font-bold">SOCIETE TOGOLAISE D'AUTOMOBILE</h1>
+          <p className="text-[9px]">CONCESSIONNAIRE AUTOMOBILE, COMMERCE GENERAL, IMPORT-EXPORT.</p>
+          <p className="text-[9px]">VENTE ET DISTRIBUTION DE VÉHICULE, PIÈCES DÉTACHÉES, PNEUS ET LUBRIFIANTS MOTEUR</p>
+          <p className="text-[9px] font-semibold">NIF: 1001767190 RCCM: TG-LFW-01-2023-M-0034</p>
       </header>
-
-      {/* Client Info */}
-      <section className="mt-8">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase">Facturé à</h3>
-        <p className="mt-2 font-bold text-lg text-gray-800">{facture.clientNom}</p>
-        {facture.clientAdresse && <p className="text-gray-600">{facture.clientAdresse}</p>}
-      </section>
-
-      {/* Table */}
-      <section className="mt-8">
-        <table className="w-full text-left">
-          <thead className="bg-gray-100 text-gray-600">
-            <tr>
-              <th className="p-3 font-semibold">Produit</th>
-              <th className="p-3 font-semibold text-center w-24">Quantité</th>
-              <th className="p-3 font-semibold text-right w-32">Prix Unitaire</th>
-              <th className="p-3 font-semibold text-right w-32">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {facture.lignes.map((ligne) => (
-              <tr key={ligne.id} className="border-b border-gray-100">
-                <td className="p-3">{ligne.produitNom}</td>
-                <td className="p-3 text-center">{ligne.qteVoulu}</td>
-                <td className="p-3 text-right">{formatCurrency(ligne.produitPrix)}</td>
-                <td className="p-3 text-right font-semibold">{formatCurrency(ligne.totalLigne)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      {/* Total */}
-      <section className="mt-8 flex justify-end">
-        <div className="w-full max-w-xs">
-          <div className="flex justify-between items-center bg-gray-100 p-4 rounded-lg">
-            <span className="text-xl font-bold text-gray-800">TOTAL</span>
-            <span className="text-xl font-bold text-gray-800">{formatCurrency(facture.montantTotal)}</span>
-          </div>
+      
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <p><span className="font-bold">Facture :</span> n°{String(facture.idFacture).padStart(4, '0')}V/{new Date(facture.dateFacture).getFullYear()}/STA</p>
+          <p><span className="font-bold">Date :</span> {facture.dateFacture ? format(new Date(facture.dateFacture), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</p>
         </div>
-      </section>
+        <div className="text-right">
+          <p className="font-bold">Doit : {facture.clientNom}</p>
+          {facture.clientAdresse && <p>{facture.clientAdresse}</p>}
+          {bonLivraisonAssocie?.client?.tel && <p>Tel: {bonLivraisonAssocie.client.tel}</p>}
+        </div>
+      </div>
+      
+      <div className="mb-4">
+        <span className="font-bold">Objet :</span> Vente de produits
+      </div>
 
-      {/* Footer */}
-      <footer className="mt-16 text-center text-xs text-gray-500">
-        <p>Merci de votre confiance.</p>
-        <p>Généré par StockHero</p>
-      </footer>
+      <table className="w-full border-collapse border border-black text-[10px]">
+        <thead>
+          <tr className="border-b border-black bg-gray-100">
+            <th className="border-r border-black p-1 w-24">Réf</th>
+            <th className="border-r border-black p-1">Désignation</th>
+            <th className="border-r border-black p-1 w-12">Qté</th>
+            <th className="border-r border-black p-1 w-20">P. U.</th>
+            <th className="p-1 w-24">Montant</th>
+          </tr>
+        </thead>
+        <tbody>
+          {facture.lignes.map((ligne) => (
+            <tr key={ligne.id} className="border-b border-black">
+              <td className="border-r border-black p-1">{ligne.produitRef}</td>
+              <td className="border-r border-black p-1">{ligne.produitNom}</td>
+              <td className="border-r border-black p-1 text-center">{ligne.qteVoulu}</td>
+              <td className="border-r border-black p-1 text-right">{formatCurrency(ligne.produitPrix / (1 + tvaRate))}</td>
+              <td className="p-1 text-right">{formatCurrency(ligne.totalLigne / (1 + tvaRate))}</td>
+            </tr>
+          ))}
+          {Array.from({ length: Math.max(0, 10 - facture.lignes.length) }).map((_, i) => (
+            <tr key={`empty-${i}`} className="border-b border-black h-6">
+                <td className="border-r border-black"></td>
+                <td className="border-r border-black"></td>
+                <td className="border-r border-black"></td>
+                <td className="border-r border-black"></td>
+                <td></td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+            <tr className="font-bold">
+                <td colSpan={4} className="border-t-2 border-black p-1 text-right">Montant Hors Taxe</td>
+                <td className="border-t-2 border-black p-1 text-right">{formatCurrency(Math.round(montantHorsTaxe))}</td>
+            </tr>
+            <tr className="font-bold">
+                <td colSpan={4} className="p-1 text-right">Montant de la TVA (18%)</td>
+                <td className="p-1 text-right">{formatCurrency(Math.round(montantTVA))}</td>
+            </tr>
+            <tr className="font-bold bg-gray-100">
+                <td colSpan={4} className="border-t border-black p-1 text-right">Montant Total TTC</td>
+                <td className="border-t border-black p-1 text-right">{formatCurrency(facture.montantTotal)}</td>
+            </tr>
+        </tfoot>
+      </table>
+
+      <div className="mt-4">
+        <p>Arrêtée la présente facture à la somme de : {numberToWords(facture.montantTotal)} francs</p>
+        <p>({formatCurrency(facture.montantTotal)}F) CFA</p>
+      </div>
+
+      <div className="flex justify-end mt-8">
+        <div className="text-center">
+            <p className="font-bold underline">Le Comptable</p>
+        </div>
+      </div>
+
     </div>
   );
 });
 
 InvoiceTemplate.displayName = 'InvoiceTemplate';
+
