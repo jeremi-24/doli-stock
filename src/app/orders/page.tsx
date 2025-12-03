@@ -23,12 +23,15 @@ import { MoreHorizontal } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { OrderPreviewDialog } from '@/components/order-preview-dialog';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 function OrdersPageContent() {
     const { commandes, bonLivraisons, isMounted, currentUser, hasPermission, validerCommande, annulerCommande } =useApp();
     const router = useRouter();
     const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
     const [previewingOrder, setPreviewingOrder] = useState<Commande | null>(null);
+    const [tvaApplicable, setTvaApplicable] = useState(true);
     
     const handleAction = async (action: (id: number) => Promise<any>, commandeId: number) => {
         setLoadingStates(prev => ({ ...prev, [commandeId]: true }));
@@ -42,13 +45,15 @@ function OrdersPageContent() {
     const handleValidation = async (commandeId: number) => {
         setLoadingStates(prev => ({ ...prev, [commandeId]: true }));
         try {
-            const result = await validerCommande(commandeId);
+            const result = await validerCommande(commandeId, tvaApplicable);
             if (result) {
                 router.push(`/orders/${commandeId}`);
             }
         } finally {
             setLoadingStates(prev => ({ ...prev, [commandeId]: false }));
         }
+        // Reset TVA switch for next validation
+        setTvaApplicable(true);
     };
 
     const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
@@ -179,14 +184,35 @@ function OrdersPageContent() {
                                                             </DropdownMenuItem>
                                                         )}
                                                         
-                                                        {(isPendingAction || isValidated) && <DropdownMenuSeparator />}
+                                                        {isPendingAction && canValidateOrder && <DropdownMenuSeparator />}
                                                         
                                                         {isPendingAction && canValidateOrder && (
-                                                            <DropdownMenuItem onClick={() => handleValidation(cmd.id)}>
-                                                                <Check className="mr-2 h-4 w-4" />
-                                                                Valider
-                                                            </DropdownMenuItem>
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button variant="ghost" className="w-full justify-start text-sm font-normal px-2 py-1.5 h-auto relative flex cursor-default select-none items-center rounded-sm">
+                                                                        <Check className="mr-2 h-4 w-4" /> Valider
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Valider la Commande ?</AlertDialogTitle>
+                                                                        <AlertDialogDescription>
+                                                                            Cette action est irréversible. Le stock sera déduit et les documents (facture, BL) seront générés.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <div className="flex items-center space-x-2 pt-2 pb-4">
+                                                                        <Switch id="tva-switch" checked={tvaApplicable} onCheckedChange={setTvaApplicable}/>
+                                                                        <Label htmlFor="tva-switch">Appliquer la TVA (18%) sur la facture</Label>
+                                                                    </div>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                                        <AlertDialogAction onClick={() => handleValidation(cmd.id)}>Confirmer la validation</AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
                                                         )}
+
+                                                        { (isValidated || isPendingAction) && canCancelOrder && <DropdownMenuSeparator />}
 
                                                         { (isValidated && canCancelOrder) && (
                                                             <AlertDialog>

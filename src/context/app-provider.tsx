@@ -44,7 +44,7 @@ interface AppContextType {
   createVente: (payload: VentePayload) => Promise<Vente | null>;
   annulerVente: (venteId: number, motif?: string) => Promise<void>;
   addPaiementCredit: (payload: PaiementPayload) => Promise<void>;
-  validerCommande: (commandeId: number) => Promise<Commande | null>;
+  validerCommande: (commandeId: number, tvaApplicable: boolean) => Promise<Commande | null>;
   annulerCommande: (commandeId: number) => Promise<void>;
   genererFacture: (commandeId: number) => Promise<void>;
   genererBonLivraison: (commandeId: number) => Promise<void>;
@@ -444,9 +444,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refreshAllData, toast, handleGenericError]);
 
 
-  const validerCommande = useCallback(async (commandeId: number): Promise<Commande | null> => {
+  const validerCommande = useCallback(async (commandeId: number, tvaApplicable: boolean): Promise<Commande | null> => {
     try {
-      const validationData = await api.validerCommande(commandeId);
+      const validationData = await api.validerCommande(commandeId, tvaApplicable);
       await refreshAllData();
       toast({ title: "Commande validée" });
       return validationData;

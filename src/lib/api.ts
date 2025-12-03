@@ -445,8 +445,8 @@ export async function getCommandesByLieuStockNomExact(lieuNom: string): Promise<
 export async function createCommande(data: CommandePayload): Promise<Commande> {
     return apiFetch('/commandes', { method: 'POST', body: JSON.stringify(data) });
 }
-export async function validerCommande(id: number): Promise<Commande> {
-    return apiFetch(`/commandes/${id}/valider`, { method: 'POST' });
+export async function validerCommande(id: number, tvaApplicable: boolean): Promise<Commande> {
+    return apiFetch(`/commandes/${id}/valider?tvaApplicable=${tvaApplicable}`, { method: 'POST' });
 }
 export async function annulerCommande(id: number): Promise<void> {
     return apiFetch(`/commandes/${id}/annuler`, { method: 'DELETE' });
@@ -539,5 +539,3 @@ export async function deleteFactureModele(id: string): Promise<any> {
     return apiFetch(`/facture-modeles/${id}`, { method: 'DELETE' });
 }
 */
-
-    

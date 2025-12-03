@@ -166,6 +166,7 @@ export type Commande = {
   lignes: LigneCommande[];
   totalCommande: number;
   statutBonLivraison: string;
+  tvaApplicable: boolean;
 };
 
 export type LigneFacture = {
@@ -185,6 +186,7 @@ export type Facture = {
     clientAdresse: string;
     montantTotal: number;
     lignes: LigneFacture[];
+    tvaApplicable: boolean;
 };
 
 export type LigneBonLivraison = {
