@@ -179,7 +179,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
       {/* MONTANT EN LETTRES + SIGNATURE */}
       <div className="flex flex-col mt-4">
   {/* Montant en lettres, aligné à gauche */}
-  <div className="italic font-medium">
+  <div className="italic text-md font-medium">
     Arrêtée la présente facture à la somme de :{' '}
     <span className="font-bold">
       {numberToWords(facture.montantTotal)} francs CFA ({formatCurrency(facture.montantTotal)} F)
@@ -188,7 +188,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
 
   {/* Signature, aligné à droite */}
   <div className="flex justify-end mt-4 flex-col items-end">
-    <p className="font-bold text-sm underline">Le Comptable</p>
+    <p className="font-bold text-lg ">Le Comptable</p>
     <p className="font-medium mt-16">ALFA TRAORE ABOUBACAR</p>
   </div>
 </div>
