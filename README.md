@@ -22,6 +22,7 @@
 
 ## 🚀 Technologies Utilisées
 
+
 Ce projet est construit avec une architecture moderne, performante et maintenable.
 
 - **Framework Frontend**: [Next.js](https://nextjs.org/) (avec App Router)

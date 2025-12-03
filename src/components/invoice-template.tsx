@@ -67,10 +67,8 @@ function numberToWords(num: number) {
 
 
 export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Facture, shopInfo: ShopInfo }>(({ shopInfo, facture }, ref) => {
-  const {bonLivraisons} = useApp();
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-FR').format(amount);
-  const bonLivraisonAssocie = bonLivraisons.find(bl => bl.commandeId === facture.commandeId);
-
+  
   const tvaRate = 0.18;
   const montantHorsTaxe = facture.tvaApplicable ? facture.montantTotal / (1 + tvaRate) : facture.montantTotal;
   const montantTVA = facture.tvaApplicable ? facture.montantTotal - montantHorsTaxe : 0;
@@ -79,9 +77,8 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
     <div ref={ref} className="bg-white text-black p-6 font-mono text-[10px] w-[210mm] min-h-[297mm] border border-gray-300">
       
       <header className="text-center mb-4">
-          <h1 className="text-2xl font-bold">SOCIETE TOGOLAISE D'AUTOMOBILE</h1>
-          <p className="text-[9px]">CONCESSIONNAIRE AUTOMOBILE, COMMERCE GENERAL, IMPORT-EXPORT.</p>
-          <p className="text-[9px]">VENTE ET DISTRIBUTION DE VÉHICULE, PIÈCES DÉTACHÉES, PNEUS ET LUBRIFIANTS MOTEUR</p>
+          <h1 className="text-xl font-bold">SOCIETE TOGOLAISE D'AUTOMOBILE</h1>
+          <p className="text-[8px] uppercase">Concessionnaire automobile, Commerce général, Import-Export, Vente et distribution de véhicules, pièces détachées, pneus et lubrifiants moteur</p>
           <p className="text-[9px] font-semibold">NIF: 1001767190 RCCM: TG-LFW-01-2023-M-0034</p>
       </header>
       
@@ -93,7 +90,6 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
         <div className="text-right">
           <p className="font-bold">Doit : {facture.clientNom}</p>
           {facture.clientAdresse && <p>{facture.clientAdresse}</p>}
-          {bonLivraisonAssocie?.client?.tel && <p>Tel: {bonLivraisonAssocie.client.tel}</p>}
         </div>
       </div>
       
@@ -112,7 +108,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
           </tr>
         </thead>
         <tbody>
-          {facture.lignes.map((ligne) => {
+          {facture.lignes.map((ligne, index) => {
             const prixUnitaireHT = facture.tvaApplicable ? ligne.produitPrix / (1 + tvaRate) : ligne.produitPrix;
             const totalLigneHT = facture.tvaApplicable ? ligne.totalLigne / (1 + tvaRate) : ligne.totalLigne;
             return (
