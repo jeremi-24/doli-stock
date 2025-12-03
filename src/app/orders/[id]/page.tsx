@@ -29,7 +29,7 @@ function DocumentViewer() {
     const [bonLivraison, setBonLivraison] = useState<BonLivraison | null | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
     const [isPrinting, setIsPrinting] = useState(false);
-
+    const [includeHeader, setIncludeHeader] = useState(true);
     const invoiceRef = useRef<HTMLDivElement>(null);
     const deliverySlipRef = useRef<HTMLDivElement>(null);
 
@@ -175,6 +175,19 @@ function DocumentViewer() {
                     </Button>
                 </div>
             </div>
+            {/* Checkbox inclure header */}
+        <div className="flex items-center gap-2 px-2 mb-2">
+            <input
+                type="checkbox"
+                id="include-header"
+                checked={includeHeader}
+                onChange={(e) => setIncludeHeader(e.target.checked)}
+                className="w-4 h-4"
+            />
+            <label htmlFor="include-header" className="text-sm font-medium underline">
+                Inclure le header
+            </label>
+        </div>
 
             <Tabs defaultValue="invoice" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
@@ -192,7 +205,7 @@ function DocumentViewer() {
                         </CardHeader>
                         <CardContent>
                             <ScrollArea className="h-[70vh] bg-muted/50 rounded-md border p-4">
-                                <InvoiceTemplate ref={invoiceRef} facture={facture} shopInfo={shopInfo} />
+                                <InvoiceTemplate ref={invoiceRef}   withHeader={includeHeader} facture={facture} shopInfo={shopInfo} />
                             </ScrollArea>
                         </CardContent>
                     </Card>
