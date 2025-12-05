@@ -22,10 +22,10 @@ export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivrai
     className="mx-auto mb-2"
 />
                 </div>
-                <h1 className="text-xl font-bold">{shopInfo.nom || 'MEGA TRAM'}</h1>
-                <p>Concessionnaire automobile, Commerce général, Import-Export,
-
-Vente et distribution de véhicules, pièces détachées, pneus et lubrifiants moteur</p>
+                <div className="text-[9px] uppercase font-medium text-gray-700 space-y-0.5">
+            <p>Concessionnaire automobile, Commerce général, Import-Export,</p>
+            <p>Vente et distribution de véhicules, pièces détachées, pneus et lubrifiants moteur</p>
+          </div>
                {/*<p>BP 228 KEGUE TEL: {shopInfo.telephone || '90 15 56 57 / 22 61 89 96 / 99 08 85 80'}</p>
                 <p>{shopInfo.adresse || 'Kégué Kélégougan Lomé - TOGO'}</p>*/}
             </div>
