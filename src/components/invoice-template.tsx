@@ -65,16 +65,9 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
       {withHeader && (
         <header className="text-center mb-8 relative">
           <div className="flex items-center justify-center mb-1 h-32 w-full">
-            {shopInfo.logoUrl && !logoError ? (
-              <img
-                src={shopInfo.logoUrl}
-                alt={`${shopInfo.nom} Logo`}
-                className="h-full w-auto object-contain"
-                onError={() => setLogoError(true)}
-              />
-            ) : (
+           
               <img src="/logosta.png" alt="Logo par défaut" className="h-48 w-auto object-contain" />
-            )}
+           
           </div>
           <div className="text-[9px] uppercase font-medium text-gray-700 space-y-0.5">
             <p>Concessionnaire automobile, Commerce général, Import-Export,</p>
