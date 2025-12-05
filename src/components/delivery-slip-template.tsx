@@ -15,7 +15,7 @@ export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivrai
             <div className="text-center mb-4">
                 <div>
                 <Image 
-    src={shopInfo.logoUrl || '/default-logo.png'} 
+    src="/logosta.png"
     alt="Logo" 
     width={100} 
     height={100} 
@@ -23,9 +23,11 @@ export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivrai
 />
                 </div>
                 <h1 className="text-xl font-bold">{shopInfo.nom || 'MEGA TRAM'}</h1>
-                <p>MECANIQUE GENERALE TRANSPORT ET MANUTENTION</p>
-                <p>BP 228 KEGUE TEL: {shopInfo.telephone || '90 15 56 57 / 22 61 89 96 / 99 08 85 80'}</p>
-                <p>{shopInfo.adresse || 'Kégué Kélégougan Lomé - TOGO'}</p>
+                <p>Concessionnaire automobile, Commerce général, Import-Export,
+
+Vente et distribution de véhicules, pièces détachées, pneus et lubrifiants moteur</p>
+               {/*<p>BP 228 KEGUE TEL: {shopInfo.telephone || '90 15 56 57 / 22 61 89 96 / 99 08 85 80'}</p>
+                <p>{shopInfo.adresse || 'Kégué Kélégougan Lomé - TOGO'}</p>*/}
             </div>
 
             <div className="text-center mb-2">
@@ -44,32 +46,23 @@ export const DeliverySlipTemplate = React.forwardRef<HTMLDivElement, { bonLivrai
                 <thead>
                     <tr className="border-b border-black">
                         <th className="border-r border-black p-1 w-16">Qté</th>
-                        <th className="border-r border-black p-1">DESIGNATION</th>
-                        <th className="border-r border-black p-1 w-24">P. Unit.</th>
-                        <th className="p-1 w-24">P. Total</th>
+                        <th className="p-1">DESIGNATION</th>
                     </tr>
                 </thead>
                 <tbody>
                     {bonLivraison.lignesLivraison.map(ligne => (
                         <tr key={ligne.id} className="border-b border-black">
                             <td className="border-r border-black p-1 text-center">{ligne.qteLivreeTotaleUnites}</td>
-                            <td className="border-r border-black p-1">{ligne.produitNom}</td>
-                            <td className="border-r border-black p-1 text-right">{formatCurrency(ligne.produitPrix)}</td>
-                            <td className="p-1 text-right">{formatCurrency(ligne.totalLivraison)}</td>
+                            <td className="p-1">{ligne.produitNom}</td>
                         </tr>
                     ))}
+
                     {Array.from({ length: 15 - bonLivraison.lignesLivraison.length }).map((_, i) => (
-                         <tr key={`empty-${i}`} className="border-b border-black h-5">
-                            <td className="border-r border-black"></td>
-                            <td className="border-r border-black"></td>
+                        <tr key={`empty-${i}`} className="border-b border-black h-5">
                             <td className="border-r border-black"></td>
                             <td></td>
                         </tr>
                     ))}
-                    <tr className="border-b-2 border-black font-bold">
-                        <td colSpan={2} className="p-1 text-right border-r border-black">TOTAL</td>
-                        <td colSpan={2} className="p-1 text-right">{formatCurrency(bonLivraison.totalLivraison)}</td>
-                    </tr>
                 </tbody>
             </table>
 
