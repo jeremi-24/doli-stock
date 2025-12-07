@@ -11,7 +11,7 @@ import { useApp } from '@/context/app-provider';
 import type { Produit, Categorie, Client, VentePayload } from '@/lib/types';
 import { TypePaiement, ModePaiement } from '@/lib/types';
 import * as api from '@/lib/api';
-import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle, Box as CartonIcon, ScanLine } from 'lucide-react';
+import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle, Box as CartonIcon, ScanLine, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
@@ -93,6 +93,7 @@ function CheckoutDialog({
   clients: Client[];
   defaultClientId?: number;
 }) {
+  const { toast } = useToast();
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
   const [typePaiement, setTypePaiement] = useState<TypePaiement>(TypePaiement.COMPTANT);
   const [montantInitial, setMontantInitial] = useState(0);
@@ -196,7 +197,7 @@ function CheckoutDialog({
 
 
 export default function POSPage() {
-  const { produits, categories, clients, currentUser, createVente } = useApp();
+  const { produits, categories, clients, currentUser, createVente, hasPermission, lieuxStock } = useApp();
   const { toast } = useToast();
   const [cart, setCart] = useState<VenteLignePanier[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -211,10 +212,21 @@ export default function POSPage() {
   const [scannedProductForSelection, setScannedProductForSelection] = useState<Produit | null>(null);
   const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
 
+  const isAdmin = useMemo(() => hasPermission('ALL_STOCK_READ'), [hasPermission]);
+  const [selectedLieuId, setSelectedLieuId] = useState<string | undefined>(isAdmin ? undefined : currentUser?.lieuStockId?.toString());
+  const lieuDeVente = useMemo(() => lieuxStock.find(l => l.id.toString() === selectedLieuId), [lieuxStock, selectedLieuId]);
 
   useEffect(() => {
-    barcodeInputRef.current?.focus();
-  }, []);
+    if (!isAdmin && currentUser?.lieuStockId) {
+        setSelectedLieuId(currentUser.lieuStockId.toString());
+    }
+  }, [currentUser, isAdmin]);
+
+  useEffect(() => {
+    if (selectedLieuId) {
+        barcodeInputRef.current?.focus();
+    }
+  }, [selectedLieuId]);
 
   const displayCategories = useMemo(() => ['Tout', ...categories.map(c => c.nom)], [categories]);
   const categoryNameToId = useMemo(() => new Map(categories.map(c => [c.nom, c.id])), [categories]);
@@ -365,16 +377,16 @@ export default function POSPage() {
 
 
   const handleCompleteSale = async (details: { clientId: number, typePaiement: TypePaiement, paiementInitial?: { montant: number, modePaiement: ModePaiement, reference?: string } }) => {
-    if (!currentUser || !currentUser.lieuStockId) {
-        toast({ variant: 'destructive', title: "Erreur", description: "Lieu de stock de l'utilisateur non défini." });
+    if (!selectedLieuId) {
+        toast({ variant: 'destructive', title: "Erreur", description: "Lieu de vente non défini." });
         return;
     }
     
     setIsSaving(true);
     
     const payload: VentePayload = {
-        caissier: currentUser.email,
-        lieuStockId: currentUser.lieuStockId,
+        caissier: currentUser?.email || 'N/A',
+        lieuStockId: parseInt(selectedLieuId, 10),
         clientId: details.clientId,
         typePaiement: details.typePaiement,
         lignes: cart.map(item => ({
@@ -411,93 +423,111 @@ export default function POSPage() {
   return (
     <div className="flex flex-1 h-screen overflow-hidden bg-gray-50">
       <div className="flex-1 p-4 md:p-6 flex flex-col">
-        <div className="flex flex-wrap items-center gap-4 mb-4 pt-10 md:pt-0">
-          <h1 className="font-headline text-3xl font-semibold">Point de Vente</h1>
-           <div className="flex-1 flex gap-4 min-w-[300px]">
-             <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Rechercher un produit..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8"/>
-             </div>
-             <Select value={activeTab} onValueChange={setActiveTab}>
-                <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Catégorie" />
-                </SelectTrigger>
-                <SelectContent>
-                    {displayCategories.map(category => (<SelectItem key={category} value={category}>{category}</SelectItem>))}
-                </SelectContent>
-             </Select>
-           </div>
-        </div>
+        
+        {isAdmin && (
+            <Card className="mb-4">
+                 <CardHeader className='pb-2'>
+                    <CardTitle className='text-lg font-semibold flex items-center gap-2'><Building2/>Lieu de la Vente</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                     <Select value={selectedLieuId} onValueChange={setSelectedLieuId} disabled={cart.length > 0}>
+                        <SelectTrigger><SelectValue placeholder="Sélectionnez un lieu pour commencer..." /></SelectTrigger>
+                        <SelectContent>{lieuxStock.map(lieu => <SelectItem key={lieu.id} value={lieu.id.toString()}>{lieu.nom}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {cart.length > 0 && <p className="text-xs text-muted-foreground mt-2">Videz le panier pour changer de lieu de vente.</p>}
+                 </CardContent>
+            </Card>
+        )}
 
-        <Card className="mb-4">
-            <CardHeader className='pb-2'>
-                <CardTitle className='text-lg font-semibold flex items-center gap-2'><ScanLine/>Vente par Scan</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-start gap-2">
-                    <Input
-                        ref={barcodeInputRef}
-                        id="barcode-scan"
-                        placeholder="Scannez un code-barres et appuyez sur Entrée..."
-                        value={barcode}
-                        onChange={(e) => setBarcode(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleScan()}
-                        disabled={isScanning}
-                    />
-                    <Button onClick={handleScan} disabled={!barcode || isScanning}>
-                        {isScanning ? <Loader2 className="h-4 w-4 animate-spin"/> : <PackagePlus className="h-4 w-4"/>}
-                        <span className="sr-only">Ajouter</span>
-                    </Button>
-                </div>
-                 {scanError && (
-                    <Alert variant="destructive" className="mt-2">
-                        <AlertTriangle className="h-4 w-4"/>
-                        <AlertTitle>{scanError}</AlertTitle>
-                    </Alert>
-                )}
-            </CardContent>
-        </Card>
+        <div className={cn("flex flex-1 flex-col min-h-0", !selectedLieuId && "opacity-40 pointer-events-none")}>
+            <div className="flex flex-wrap items-center gap-4 mb-4 pt-4 md:pt-0">
+              <h1 className="font-headline text-3xl font-semibold">Point de Vente {lieuDeVente && `- ${lieuDeVente.nom}`}</h1>
+               <div className="flex-1 flex gap-4 min-w-[300px]">
+                 <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input type="search" placeholder="Rechercher un produit..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8"/>
+                 </div>
+                 <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {displayCategories.map(category => (<SelectItem key={category} value={category}>{category}</SelectItem>))}
+                    </SelectContent>
+                 </Select>
+               </div>
+            </div>
 
-        <div className="flex-1 flex flex-col min-h-0">
-          <ScrollArea className="h-full">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pr-4">
-                  {filteredProducts.map(produit => {
-                    const stock = produit.quantiteTotaleGlobale ?? 0;
-                    const isOutOfStock = stock <= 0;
-                    return (
-                      <Card 
-                        key={produit.id} 
-                        className={cn(
-                            "overflow-hidden flex flex-col group",
-                            isOutOfStock && "bg-muted/50"
-                        )} 
-                      >
-                        <div className="aspect-[4/3] bg-muted flex items-center justify-center relative overflow-hidden">
-                            <PackagePlus className="w-16 h-16 text-muted-foreground/50 transition-transform duration-300 group-hover:scale-110" />
-                            <div className="absolute top-2 right-2">
-                              <StockBadge qte={stock} qteMin={produit.qteMin || 5} />
+            <Card className="mb-4">
+                <CardHeader className='pb-2'>
+                    <CardTitle className='text-lg font-semibold flex items-center gap-2'><ScanLine/>Vente par Scan</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-start gap-2">
+                        <Input
+                            ref={barcodeInputRef}
+                            id="barcode-scan"
+                            placeholder="Scannez un code-barres et appuyez sur Entrée..."
+                            value={barcode}
+                            onChange={(e) => setBarcode(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleScan()}
+                            disabled={isScanning}
+                        />
+                        <Button onClick={handleScan} disabled={!barcode || isScanning}>
+                            {isScanning ? <Loader2 className="h-4 w-4 animate-spin"/> : <PackagePlus className="h-4 w-4"/>}
+                            <span className="sr-only">Ajouter</span>
+                        </Button>
+                    </div>
+                     {scanError && (
+                        <Alert variant="destructive" className="mt-2">
+                            <AlertTriangle className="h-4 w-4"/>
+                            <AlertTitle>{scanError}</AlertTitle>
+                        </Alert>
+                    )}
+                </CardContent>
+            </Card>
+
+            <div className="flex-1 flex flex-col min-h-0">
+              <ScrollArea className="h-full">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pr-4">
+                      {filteredProducts.map(produit => {
+                        const stock = produit.quantiteTotaleGlobale ?? 0;
+                        const isOutOfStock = stock <= 0;
+                        return (
+                          <Card 
+                            key={produit.id} 
+                            className={cn(
+                                "overflow-hidden flex flex-col group",
+                                isOutOfStock && "bg-muted/50"
+                            )} 
+                          >
+                            <div className="aspect-[4/3] bg-muted flex items-center justify-center relative overflow-hidden">
+                                <PackagePlus className="w-16 h-16 text-muted-foreground/50 transition-transform duration-300 group-hover:scale-110" />
+                                <div className="absolute top-2 right-2">
+                                  <StockBadge qte={stock} qteMin={produit.qteMin || 5} />
+                                </div>
                             </div>
-                        </div>
-                        <div className="p-3 flex-1 flex flex-col justify-between">
-                            <div>
-                                <h3 className={cn("font-semibold truncate text-base", isOutOfStock && "text-muted-foreground")}>{produit.nom}</h3>
-                                <h3 className={cn("font-semibold truncate text-base", isOutOfStock && "text-muted-foreground")}>{produit.ref}</h3>
+                            <div className="p-3 flex-1 flex flex-col justify-between">
+                                <div>
+                                    <h3 className={cn("font-semibold truncate text-base", isOutOfStock && "text-muted-foreground")}>{produit.nom}</h3>
+                                    <h3 className={cn("font-semibold truncate text-base", isOutOfStock && "text-muted-foreground")}>{produit.ref}</h3>
+                                </div>
+                                <p className={cn("text-base font-bold mt-2", isOutOfStock ? "text-muted-foreground" : "text-primary")}>
+                                    {formatCurrency(produit.prix || 0)}
+                                </p>
                             </div>
-                            <p className={cn("text-base font-bold mt-2", isOutOfStock ? "text-muted-foreground" : "text-primary")}>
-                                {formatCurrency(produit.prix || 0)}
-                            </p>
-                        </div>
-                         <div className="flex border-t">
-                            <Button variant="ghost" className="rounded-none rounded-bl-md flex-1" onClick={() => handleAddToCart(produit, 'UNITE')} disabled={isOutOfStock}>Unité</Button>
-                            <div className="border-l"/>
-                            <Button variant="ghost" className="rounded-none rounded-br-md flex-1" onClick={() => handleAddToCart(produit, 'CARTON')} disabled={isOutOfStock || !produit.prixCarton}>Carton</Button>
-                        </div>
-                      </Card>
-                    )
-                  })}
-                  {filteredProducts.length === 0 && (<div className="col-span-full text-center text-muted-foreground py-10"><p>Aucun produit trouvé.</p></div>)}
-              </div>
-          </ScrollArea>
+                             <div className="flex border-t">
+                                <Button variant="ghost" className="rounded-none rounded-bl-md flex-1" onClick={() => handleAddToCart(produit, 'UNITE')} disabled={isOutOfStock}>Unité</Button>
+                                <div className="border-l"/>
+                                <Button variant="ghost" className="rounded-none rounded-br-md flex-1" onClick={() => handleAddToCart(produit, 'CARTON')} disabled={isOutOfStock || !produit.prixCarton}>Carton</Button>
+                            </div>
+                          </Card>
+                        )
+                      })}
+                      {filteredProducts.length === 0 && (<div className="col-span-full text-center text-muted-foreground py-10"><p>Aucun produit trouvé.</p></div>)}
+                  </div>
+              </ScrollArea>
+            </div>
         </div>
       </div>
 
