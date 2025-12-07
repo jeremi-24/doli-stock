@@ -3,8 +3,8 @@
 export type Client = {
   id: number;
   nom: string;
-  tel: string;
-  adresse: string;
+  tel?: string;
+  adresse?: string;
 };
 
 export type Categorie = {
