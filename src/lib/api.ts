@@ -369,13 +369,26 @@ export async function annulerVente(id: number, motif?: string): Promise<void> {
 export async function addPaiementCredit(data: PaiementPayload): Promise<any> {
     return apiFetch('/ventes/paiement-credit', { method: 'POST', body: JSON.stringify(data) });
 }
+
 export async function exportVentes(dateDebut: string, dateFin: string): Promise<{blob: Blob, filename: string}> {
-    const url = `/ventes/export/excel?dateDebut=${dateDebut}&dateFin=${dateFin}`;
-    return apiFetch(url, {
-        method: 'GET',
-        headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-    });
+  const url = `/ventes/export/excel?dateDebut=${dateDebut}&dateFin=${dateFin}`;
+  const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  });
+
+  const blob = await response.blob();
+
+  // Récupération du nom du fichier depuis l'en-tête
+  const disposition = response.headers.get('Content-Disposition');
+  let filename = 'download.xlsx';
+  if (disposition && disposition.includes('filename=')) {
+      filename = disposition.split('filename=')[1].replace(/"/g, '');
+  }
+
+  return { blob, filename };
 }
+
 
 
 // ========== Inventaires API ==========
