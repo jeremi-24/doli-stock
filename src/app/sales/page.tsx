@@ -14,7 +14,7 @@ import type { Vente } from '@/lib/types';
 import { ModePaiement, EtatVente } from '@/lib/types';
 import * as api from '@/lib/api';
 import { Eye, Search, History, Loader2, User, Trash2, PlusCircle, CreditCard, Calendar as CalendarIcon, X, FileWarning, Download } from 'lucide-react';
-import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay, setHours, setMinutes, setSeconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/context/app-provider';
@@ -226,11 +226,22 @@ function SalesPageContent() {
   }, [refreshAllData]);
 
   const handleExport = async () => {
-      const from = dateRange?.from ? startOfDay(dateRange.from) : startOfDay(new Date());
-      const to = dateRange?.to ? endOfDay(dateRange.to) : endOfDay(new Date());
+      // Set start date to 6:00 AM
+      const fromDate = dateRange?.from ? dateRange.from : new Date();
+      const startDateWithTime = setSeconds(setMinutes(setHours(startOfDay(fromDate), 6), 0), 0);
 
-      const dateDebut = format(from, 'yyyy-MM-dd');
-      const dateFin = format(to, 'yyyy-MM-dd');
+      // Set end date to current time
+      const toDate = dateRange?.to ? dateRange.to : new Date();
+      const endDateWithTime = new Date(); // Current date and time
+      
+      // Ensure the end date of the range is considered if specified
+      const finalEndDate = dateRange?.to ? endOfDay(toDate) : endDateWithTime;
+      // But we will use the actual current time for the export moment
+      const exportTime = new Date();
+
+
+      const dateDebut = format(startDateWithTime, "yyyy-MM-dd'T'HH:mm:ss");
+      const dateFin = format(exportTime, "yyyy-MM-dd'T'HH:mm:ss");
 
       setIsExporting(true);
       toast({ title: "Export en cours", description: "Génération du fichier Excel..." });
@@ -239,8 +250,9 @@ function SalesPageContent() {
         const blob = await api.exportVentes(dateDebut, dateFin);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `export_ventes_${dateDebut}_a_${dateFin}.xlsx`;
+        const formattedDateDebut = format(startDateWithTime, 'yyyy-MM-dd');
+        const formattedDateFin = format(exportTime, 'yyyy-MM-dd_HH-mm');
+        a.download = `export_ventes_${formattedDateDebut}_a_${formattedDateFin}.xlsx`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
