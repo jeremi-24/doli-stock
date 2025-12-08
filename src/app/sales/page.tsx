@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -194,7 +194,7 @@ function DatePickerWithRange({
   )
 }
 
-function SalesPageContent() {
+export default function SalesPage() {
   const { hasPermission, annulerVente, ventes, isMounted, refreshAllData } = useApp();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -318,6 +318,16 @@ function SalesPageContent() {
 
   const canCancelSale = useMemo(() => hasPermission('VENTE_CANCEL'), [hasPermission]);
 
+  if (!isMounted) {
+      return (
+          <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+              <div className="flex items-center justify-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+          </div>
+      );
+  }
+  
   if (!hasPermission('VENTE_READ')) {
     return (
         <div className="flex flex-1 items-center justify-center p-4">
@@ -388,7 +398,7 @@ function SalesPageContent() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {!isMounted ? (
+                    {isLoading ? (
                         <TableRow><TableCell colSpan={9} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
                     ) : filteredSales.length > 0 ? filteredSales.map(vente => {
                         const isAnnulee = vente.etat === EtatVente.ANNULEE;
@@ -460,14 +470,4 @@ function SalesPageContent() {
     </div>
   );
 }
-
-
-export default function SalesPage() {
-    return (
-        <Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-            <SalesPageContent />
-        </Suspense>
-    )
-}
-
     

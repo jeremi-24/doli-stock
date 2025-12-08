@@ -55,13 +55,15 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
       }
     }
 
-    if (options.headers?.['Accept']?.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || response.headers.get('Content-Type')?.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
-        return response.blob();
-    }
-    if (options.headers?.['Accept'] === 'application/pdf' || response.headers.get('Content-Type')?.includes('application/pdf')) {
-        return response.blob();
-    }
+    const contentType = response.headers.get('Content-Type');
+    const isExcel = contentType?.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    const isOctetStream = contentType?.includes('application/octet-stream');
+    const isPdf = contentType?.includes('application/pdf');
 
+    if (isExcel || isOctetStream || isPdf) {
+        return response.blob();
+    }
+    
     const text = await response.text();
     try {
       return text ? JSON.parse(text) : null;
