@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
@@ -217,7 +216,7 @@ function SalesPageContent() {
   const [showOnlyCredit, setShowOnlyCredit] = useState(() => searchParams.get('credits') === 'true');
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
-  const toast = useToast();
+  const { toast } = useToast();
 
   const handleFetchData = useCallback(async () => {
     setIsLoading(true);
@@ -226,27 +225,19 @@ function SalesPageContent() {
   }, [refreshAllData]);
 
   const handleExport = async () => {
-      // Set start date to 6:00 AM
-      const fromDate = dateRange?.from ? dateRange.from : new Date();
-      const startDateWithTime = setSeconds(setMinutes(setHours(startOfDay(fromDate), 6), 0), 0);
+    setIsExporting(true);
+    toast({ title: "Export en cours", description: "Génération du fichier Excel..." });
 
-      // Set end date to current time
-      const toDate = dateRange?.to ? dateRange.to : new Date();
-      const endDateWithTime = new Date(); // Current date and time
-      
-      // Ensure the end date of the range is considered if specified
-      const finalEndDate = dateRange?.to ? endOfDay(toDate) : endDateWithTime;
-      // But we will use the actual current time for the export moment
-      const exportTime = new Date();
+    try {
+        const fromDate = dateRange?.from ? startOfDay(dateRange.from) : startOfDay(new Date());
+        const startDateWithTime = setHours(setMinutes(setSeconds(fromDate, 0), 0), 6);
+        
+        const toDate = dateRange?.to ? endOfDay(dateRange.to) : new Date();
+        const exportTime = new Date();
 
+        const dateDebut = format(startDateWithTime, "yyyy-MM-dd'T'HH:mm:ss");
+        const dateFin = format(exportTime, "yyyy-MM-dd'T'HH:mm:ss");
 
-      const dateDebut = format(startDateWithTime, "yyyy-MM-dd'T'HH:mm:ss");
-      const dateFin = format(exportTime, "yyyy-MM-dd'T'HH:mm:ss");
-
-      setIsExporting(true);
-      toast({ title: "Export en cours", description: "Génération du fichier Excel..." });
-
-      try {
         const blob = await api.exportVentes(dateDebut, dateFin);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -258,13 +249,13 @@ function SalesPageContent() {
         window.URL.revokeObjectURL(url);
         a.remove();
         toast({ title: "Export réussi" });
-      } catch (error) {
+    } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
         toast({ variant: 'destructive', title: "Erreur d'export", description: errorMessage });
-      } finally {
+    } finally {
         setIsExporting(false);
-      }
-  };
+    }
+};
 
   const filteredSales = useMemo(() => {
     if (!isMounted) return [];
@@ -470,6 +461,7 @@ function SalesPageContent() {
   );
 }
 
+
 export default function SalesPage() {
     return (
         <Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
@@ -477,3 +469,5 @@ export default function SalesPage() {
         </Suspense>
     )
 }
+
+    
