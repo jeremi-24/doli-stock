@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import React from 'react';
 import { useApp } from '@/context/app-provider';
+import Image from 'next/image';
 
 export const OrderTemplate = React.forwardRef<HTMLDivElement, { commande: Commande }>(({ commande }, ref) => {
     const { shopInfo } = useApp();
@@ -14,9 +15,17 @@ export const OrderTemplate = React.forwardRef<HTMLDivElement, { commande: Comman
     return (
         <div ref={ref} className="bg-white text-black p-6 font-mono text-[10px] w-full border border-gray-300">
             <div className="text-center mb-4">
-                <h1 className="text-xl font-bold">{shopInfo.nom || 'MEGA TRAM'}</h1>
-                <p>MECANIQUE GENERALE TRANSPORT ET MANUTENTION</p>
-                <p>BP 228 KEGUE TEL: {shopInfo.telephone || '90 15 56 57 / 22 61 89 96 / 99 08 85 80'}</p>
+                <Image 
+                    src="/logosta.png"
+                    alt="Logo" 
+                    width={100} 
+                    height={100} 
+                    className="mx-auto mb-2"
+                />
+                <div className="text-[9px] uppercase font-medium text-gray-700 space-y-0.5">
+            <p>Concessionnaire automobile, Commerce général, Import-Export,</p>
+            <p>Vente et distribution de véhicules, pièces détachées, pneus et lubrifiants moteur</p>
+          </div>
                 <p>{shopInfo.adresse || 'Kégué Kélégougan Lomé - TOGO'}</p>
             </div>
 

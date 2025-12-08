@@ -76,7 +76,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
           <div className="mt-2 text-[10px] font-bold border-t border-gray-300 w-fit mx-auto pt-1 px-4">
             NIF: 1001767190 &nbsp;|&nbsp; RCCM: TG-LFW-01-2023-M-0034
           </div>
-          <div className="absolute top-10 right-0 handwriting text-gray-400 text-xs">{/* espace pour notation */}</div>
+          <div className="absolute top-20 right-0 handwriting text-gray-400 text-xs">{/* espace pour notation */}</div>
         </header>
       )}
       
@@ -107,11 +107,11 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
       <table className="w-full border-collapse border border-black text-[11px]">
         <thead>
           <tr className="bg-gray-100 text-black font-bold text-center">
-            <th className="border border-black p-1 w-12">Réf</th>
-            <th className="border border-black p-1 text-left">Désignation</th>
-            <th className="border border-black p-1 w-10">Qté</th>
-            <th className="border border-black p-1 w-24">P. U.</th>
-            <th className="border border-black p-1 w-28">Montant</th>
+            <th className="border border-black p-2 w-12">Réf</th>
+            <th className="border border-black p-2 text-left">Désignation</th>
+            <th className="border border-black p-2 w-10">Qté</th>
+            <th className="border border-black p-2 w-24">P. U.</th>
+            <th className="border border-black p-2 w-28">Montant</th>
           </tr>
         </thead>
        <tbody>
@@ -120,12 +120,12 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
     const totalLigneHT = facture.tvaApplicable ? ligne.totalLigne / (1 + tvaRate) : ligne.totalLigne;
 
     return (
-      <tr key={ligne.id} className="border border-black h-8">
-        <td className="border-r border-black p-1 text-center font-medium">{index + 1}</td>
-        <td className="border-r border-black p-1">{ligne.produitNom} {ligne.produitRef ? `- ${ligne.produitRef}` : ''}</td>
-        <td className="border-r border-black p-1 text-center">{ligne.qteVoulu}</td>
-        <td className="border-r border-black p-1 text-right">{formatCurrency(Math.round(prixUnitaireHT))}</td>
-        <td className="p-1 text-right font-medium">{formatCurrency(Math.round(totalLigneHT))}</td>
+      <tr key={ligne.id} className="border border-black ">
+        <td className="border-r border-black p-2 text-center font-medium">{index + 1}</td>
+        <td className="border-r border-black p-2">{ligne.produitNom} {ligne.produitRef ? `- ${ligne.produitRef}` : ''}</td>
+        <td className="border-r border-black p-2 text-center">{ligne.qteVoulu}</td>
+        <td className="border-r border-black p-2 text-right">{formatCurrency(Math.round(prixUnitaireHT))}</td>
+        <td className="p-2 text-right font-medium">{formatCurrency(Math.round(totalLigneHT))}</td>
       </tr>
     )
   })}
@@ -133,8 +133,8 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
   {/* Ligne TVA juste après les produits 
   {facture.tvaApplicable && (
     <tr className="font-bold bg-gray-100">
-      <td colSpan={4} className="border border-black p-1 text-left">TVA (18%)</td>
-      <td className="border border-black p-1 text-right">{formatCurrency(Math.round(montantTVA))}</td>
+      <td colSpan={4} className="border border-black p-2 text-left">TVA (18%)</td>
+      <td className="border border-black p-2 text-right">{formatCurrency(Math.round(montantTVA))}</td>
     </tr>
   )}
   */}
@@ -142,30 +142,28 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { facture: Factu
 
 
         {/* PIED DU TABLEAU (TOTAUX) */}
-        <tfoot className="font-bold text-black bg-gray-50">
-  {/* Montant HT */}
-  <tr>
-    <td colSpan={3} className="bg-white border-none"></td>
-    <td className="border border-black p-1 pl-2 text-left bg-gray-200">Montant Hors Taxe</td>
-    <td className="border border-black p-1 text-right">{formatCurrency(Math.round(montantHorsTaxe))}</td>
+        <tfoot className="font-bold text-black ">
+  <tr className="h-8">
+    <td colSpan={3} className="border border-black p-2 "></td>
+    <td className="border border-black p-2 text-left bg-gray-200">Montant Hors Taxe</td>
+    <td className="border border-black p-2 text-right">{formatCurrency(Math.round(montantHorsTaxe))}</td>
   </tr>
 
-  {/* TVA */}
   {facture.tvaApplicable && (
-    <tr>
-      <td colSpan={3} className="bg-white border-none"></td>
-      <td className="border border-black p-1 pl-2 text-left bg-gray-200">Montant de la TVA (18%)</td>
-      <td className="border border-black p-1 text-right">{formatCurrency(Math.round(montantTVA))}</td>
+    <tr className="h-8">
+      <td colSpan={3} className="border border-black p-2 "></td>
+      <td className="border border-black p-2 text-left bg-gray-200">Montant de la TVA (18%)</td>
+      <td className="border border-black p-2 text-right">{formatCurrency(Math.round(montantTVA))}</td>
     </tr>
   )}
 
-  {/* Total TTC */}
-  <tr>
-    <td colSpan={3} className="bg-white border-none"></td>
-    <td className="border border-black p-1 pl-2 text-left bg-gray-200">Montant Total TTC</td>
-    <td className="border border-black p-1 text-right">{formatCurrency(facture.montantTotal)}</td>
+  <tr className="h-8">
+    <td colSpan={3} className="border border-black p-2 "></td>
+    <td className="border border-black p-2 text-left bg-gray-200">Montant Total TTC</td>
+    <td className="border border-black p-2 text-right">{formatCurrency(facture.montantTotal)}</td>
   </tr>
 </tfoot>
+
 
       </table>
 
