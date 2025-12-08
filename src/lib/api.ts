@@ -361,31 +361,13 @@ export async function exportVentes(
   }
 
   const url = `/ventes/export/excel?${params.toString()}`;
-
-  const response = await fetch(url, {
+  
+  return apiFetch(url, {
     method: 'GET',
     headers: {
       'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     },
   });
-
-  if (!response.ok) {
-    throw new Error(`Erreur lors de l'export : ${response.statusText}`);
-  }
-
-  const blob = await response.blob();
-
-  // Récupération du nom de fichier depuis les headers
-  const disposition = response.headers.get('Content-Disposition');
-  let filename = 'export.xlsx';
-  if (disposition) {
-    const match = disposition.match(/filename\*=UTF-8''(.+)/);
-    if (match && match[1]) {
-      filename = decodeURIComponent(match[1]);
-    }
-  }
-
-  return { blob, filename };
 }
 
 
