@@ -139,7 +139,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated && !isAuthPage) {
       router.push('/login');
     } else if (isAuthenticated && isAuthPage) {
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [isMounted, isAuthenticated, isAuthPage, router, pathname]);
 
@@ -165,10 +165,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   
   const navItems = [
     {
-      href: '/',
+      href: '/dashboard',
       icon: <LayoutDashboard />,
       label: 'Tableau de Bord',
-      active: pathname === '/',
+      active: pathname === '/dashboard',
       permission: 'PRODUIT_READ',
     },
     {

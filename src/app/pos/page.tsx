@@ -458,34 +458,36 @@ export default function POSPage() {
                </div>
             </div>
 
-            <Card className="mb-4">
-                <CardHeader className='pb-2'>
-                    <CardTitle className='text-lg font-semibold flex items-center gap-2'><ScanLine/>Vente par Scan</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-start gap-2">
-                        <Input
-                            ref={barcodeInputRef}
-                            id="barcode-scan"
-                            placeholder="Scannez un code-barres et appuyez sur Entrée..."
-                            value={barcode}
-                            onChange={(e) => setBarcode(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleScan()}
-                            disabled={isScanning}
-                        />
-                        <Button onClick={handleScan} disabled={!barcode || isScanning}>
-                            {isScanning ? <Loader2 className="h-4 w-4 animate-spin"/> : <PackagePlus className="h-4 w-4"/>}
-                            <span className="sr-only">Ajouter</span>
-                        </Button>
-                    </div>
-                     {scanError && (
-                        <Alert variant="destructive" className="mt-2">
-                            <AlertTriangle className="h-4 w-4"/>
-                            <AlertTitle>{scanError}</AlertTitle>
-                        </Alert>
-                    )}
-                </CardContent>
-            </Card>
+            {!isAdmin && (
+              <Card className="mb-4">
+                  <CardHeader className='pb-2'>
+                      <CardTitle className='text-lg font-semibold flex items-center gap-2'><ScanLine/>Vente par Scan</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="flex items-start gap-2">
+                          <Input
+                              ref={barcodeInputRef}
+                              id="barcode-scan"
+                              placeholder="Scannez un code-barres et appuyez sur Entrée..."
+                              value={barcode}
+                              onChange={(e) => setBarcode(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && handleScan()}
+                              disabled={isScanning}
+                          />
+                          <Button onClick={handleScan} disabled={!barcode || isScanning}>
+                              {isScanning ? <Loader2 className="h-4 w-4 animate-spin"/> : <PackagePlus className="h-4 w-4"/>}
+                              <span className="sr-only">Ajouter</span>
+                          </Button>
+                      </div>
+                       {scanError && (
+                          <Alert variant="destructive" className="mt-2">
+                              <AlertTriangle className="h-4 w-4"/>
+                              <AlertTitle>{scanError}</AlertTitle>
+                          </Alert>
+                      )}
+                  </CardContent>
+              </Card>
+            )}
 
             <div className="flex-1 flex flex-col min-h-0">
               <ScrollArea className="h-full">
