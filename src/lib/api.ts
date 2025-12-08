@@ -1,6 +1,6 @@
 
 
-import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VentePayload, Notification, BarcodePrintRequest, FactureModele, PaiementPayload, EtatVente, Log, TypePaiement, PaiementInitialPayload } from './types';
+import type { Categorie, Produit, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, Role, Utilisateur, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, CurrentUser, Stock, Vente, VentePayload, Notification, BarcodePrintRequest, FactureModele, PaiementPayload, Log, TypePaiement, PaiementInitialPayload } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -65,7 +65,7 @@ async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<an
         const contentDisposition = response.headers.get('Content-Disposition');
         let filename = 'download';
         if (contentDisposition) {
-            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
             if (filenameMatch && filenameMatch.length > 1) {
                 filename = filenameMatch[1];
             }
@@ -268,26 +268,51 @@ export async function exportProduits(): Promise<void> {
   return Promise.resolve();
 }
 
-export async function printBarcodes(data: BarcodePrintRequest): Promise<{blob: Blob, filename: string}> {
-    return apiFetch('/barcode/print', {
+export async function printBarcodes(data: BarcodePrintRequest): Promise<void> {
+    const { blob, filename } = await apiFetch('/barcode/print', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Accept': 'application/pdf' },
     });
+     const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
 }
-export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promise<{blob: Blob, filename: string}> {
-    return apiFetch('/barcode/print-multiple', {
+export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promise<void> {
+    const { blob, filename } = await apiFetch('/barcode/print-multiple', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Accept': 'application/pdf' },
     });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
 }
 
-export async function downloadCatalogue(): Promise<{blob: Blob, filename: string}> {
-  return apiFetch('/produits/catalogue', {
+export async function downloadCatalogue(): Promise<void> {
+  const { blob, filename } = await apiFetch('/produits/catalogue', {
       method: 'GET',
       headers: { 'Accept': 'application/pdf' },
   });
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
 }
 
 

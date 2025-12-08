@@ -234,7 +234,6 @@ export default function SalesPage() {
         if (dateRange?.from) {
             fromDate = startOfDay(dateRange.from);
         } else {
-            // Default to today if no date range is selected
             fromDate = startOfDay(new Date());
         }
 
