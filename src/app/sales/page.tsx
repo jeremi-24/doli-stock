@@ -13,8 +13,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import type { Vente } from '@/lib/types';
 import { ModePaiement, EtatVente } from '@/lib/types';
 import * as api from '@/lib/api';
-import { Eye, Search, History, Loader2, User, Trash2, PlusCircle, CreditCard, Calendar as CalendarIcon, X, FileWarning } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { Eye, Search, History, Loader2, User, Trash2, PlusCircle, CreditCard, Calendar as CalendarIcon, X, FileWarning, Download } from 'lucide-react';
+import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/context/app-provider';
@@ -200,6 +200,7 @@ function SalesPageContent() {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isCancelling, setIsCancelling] = useState<number | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const from = searchParams.get('from');
@@ -216,12 +217,42 @@ function SalesPageContent() {
   const [showOnlyCredit, setShowOnlyCredit] = useState(() => searchParams.get('credits') === 'true');
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
+  const toast = useToast();
 
   const handleFetchData = useCallback(async () => {
     setIsLoading(true);
     await refreshAllData();
     setIsLoading(false);
   }, [refreshAllData]);
+
+  const handleExport = async () => {
+      const from = dateRange?.from ? startOfDay(dateRange.from) : startOfDay(new Date());
+      const to = dateRange?.to ? endOfDay(dateRange.to) : endOfDay(new Date());
+
+      const dateDebut = format(from, 'yyyy-MM-dd');
+      const dateFin = format(to, 'yyyy-MM-dd');
+
+      setIsExporting(true);
+      toast({ title: "Export en cours", description: "Génération du fichier Excel..." });
+
+      try {
+        const blob = await api.exportVentes(dateDebut, dateFin);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `export_ventes_${dateDebut}_a_${dateFin}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        toast({ title: "Export réussi" });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
+        toast({ variant: 'destructive', title: "Erreur d'export", description: errorMessage });
+      } finally {
+        setIsExporting(false);
+      }
+  };
 
   const filteredSales = useMemo(() => {
     if (!isMounted) return [];
@@ -317,20 +348,23 @@ function SalesPageContent() {
               <div>
               <CardDescription className='text-md' >{pageDescription}</CardDescription>
               </div>  
-              <div className='flex flex-row justify-between gap-2' >
-              <div className="flex  items-center space-x-2">
+              <div className='flex flex-col md:flex-row justify-between gap-2' >
+                <div className="flex items-center space-x-2">
                   <Switch id="credit-filter" checked={showOnlyCredit} onCheckedChange={setShowOnlyCredit} />
                   <Label htmlFor="credit-filter">Crédits en cours</Label>
                 </div>     
                 <div className="flex items-center gap-2">
-                
-                <DatePickerWithRange date={dateRange} setDate={setDateRange} disabled={showOnlyCredit} />
-                {dateRange && !showOnlyCredit && (
-                    <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
-                    <X className="h-4 w-4" />
-                    </Button>
-                )}
-            </div>
+                    <DatePickerWithRange date={dateRange} setDate={setDateRange} disabled={showOnlyCredit} />
+                    {dateRange && !showOnlyCredit && (
+                        <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
+                        <X className="h-4 w-4" />
+                        </Button>
+                    )}
+                </div>
+                 <Button onClick={handleExport} disabled={isExporting}>
+                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                    Exporter
+                </Button>
             </div>    
           </CardHeader>
           <CardContent>

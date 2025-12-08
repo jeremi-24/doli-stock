@@ -333,6 +333,13 @@ export async function annulerVente(id: number, motif?: string): Promise<void> {
 export async function addPaiementCredit(data: PaiementPayload): Promise<any> {
     return apiFetch('/ventes/paiement-credit', { method: 'POST', body: JSON.stringify(data) });
 }
+export async function exportVentes(dateDebut: string, dateFin: string): Promise<Blob> {
+    const url = `/ventes/export/excel?dateDebut=${dateDebut}&dateFin=${dateFin}`;
+    return apiFetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+    });
+}
 
 
 // ========== Inventaires API ==========
