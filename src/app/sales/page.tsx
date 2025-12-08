@@ -196,7 +196,7 @@ function DatePickerWithRange({
 }
 
 export default function SalesPage() {
-  const { hasPermission, annulerVente, ventes, isMounted, refreshAllData } = useApp();
+  const { hasPermission, annulerVente, ventes, isMounted, refreshAllData, currentUser } = useApp();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isCancelling, setIsCancelling] = useState<number | null>(null);
@@ -243,7 +243,7 @@ export default function SalesPage() {
         const dateDebut = format(startDateWithTime, "yyyy-MM-dd'T'HH:mm:ss");
         const dateFin = format(exportTime, "yyyy-MM-dd'T'HH:mm:ss");
 
-        const { blob, filename } = await api.exportVentes(dateDebut, dateFin);
+        const { blob, filename } = await api.exportVentes(dateDebut, dateFin, currentUser?.lieuNom);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

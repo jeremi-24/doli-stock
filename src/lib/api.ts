@@ -268,51 +268,29 @@ export async function exportProduits(): Promise<void> {
   return Promise.resolve();
 }
 
-export async function printBarcodes(data: BarcodePrintRequest): Promise<void> {
-    const { blob, filename } = await apiFetch('/barcode/print', {
+export async function printBarcodes(data: BarcodePrintRequest): Promise<Blob> {
+    const { blob } = await apiFetch('/barcode/print', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Accept': 'application/pdf' },
     });
-     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    a.remove();
+    return blob;
 }
-export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promise<void> {
-    const { blob, filename } = await apiFetch('/barcode/print-multiple', {
+export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promise<Blob> {
+    const { blob } = await apiFetch('/barcode/print-multiple', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Accept': 'application/pdf' },
     });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    a.remove();
+    return blob;
 }
 
-export async function downloadCatalogue(): Promise<void> {
-  const { blob, filename } = await apiFetch('/produits/catalogue', {
+export async function downloadCatalogue(): Promise<Blob> {
+  const { blob } = await apiFetch('/produits/catalogue', {
       method: 'GET',
       headers: { 'Accept': 'application/pdf' },
   });
-
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
+  return blob;
 }
 
 
@@ -370,23 +348,19 @@ export async function addPaiementCredit(data: PaiementPayload): Promise<any> {
     return apiFetch('/ventes/paiement-credit', { method: 'POST', body: JSON.stringify(data) });
 }
 
-export async function exportVentes(dateDebut: string, dateFin: string): Promise<{blob: Blob, filename: string}> {
-  const url = `/ventes/export/excel?dateDebut=${dateDebut}&dateFin=${dateFin}`;
-  const response = await fetch(url, {
+export async function exportVentes(dateDebut: string, dateFin: string, lieuNom?: string): Promise<{blob: Blob, filename: string}> {
+  const params = new URLSearchParams({
+      dateDebut,
+      dateFin,
+  });
+  if (lieuNom) {
+      params.append('lieuNom', lieuNom);
+  }
+  const url = `/ventes/export/excel?${params.toString()}`;
+  return await apiFetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
   });
-
-  const blob = await response.blob();
-
-  // Récupération du nom du fichier depuis l'en-tête
-  const disposition = response.headers.get('Content-Disposition');
-  let filename = 'download.xlsx';
-  if (disposition && disposition.includes('filename=')) {
-      filename = disposition.split('filename=')[1].replace(/"/g, '');
-  }
-
-  return { blob, filename };
 }
 
 
