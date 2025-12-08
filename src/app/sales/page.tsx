@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -229,21 +230,25 @@ export default function SalesPage() {
     toast({ title: "Export en cours", description: "Génération du fichier Excel..." });
 
     try {
-        const fromDate = dateRange?.from ? startOfDay(dateRange.from) : startOfDay(new Date());
+        let fromDate;
+        if (dateRange?.from) {
+            fromDate = startOfDay(dateRange.from);
+        } else {
+            // Default to today if no date range is selected
+            fromDate = startOfDay(new Date());
+        }
+
         const startDateWithTime = setHours(setMinutes(setSeconds(fromDate, 0), 0), 6);
-        
-        const toDate = dateRange?.to ? endOfDay(dateRange.to) : new Date();
         const exportTime = new Date();
 
         const dateDebut = format(startDateWithTime, "yyyy-MM-dd'T'HH:mm:ss");
         const dateFin = format(exportTime, "yyyy-MM-dd'T'HH:mm:ss");
 
-        const blob = await api.exportVentes(dateDebut, dateFin);
+        const { blob, filename } = await api.exportVentes(dateDebut, dateFin);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        const formattedDateDebut = format(startDateWithTime, 'yyyy-MM-dd');
-        const formattedDateFin = format(exportTime, 'yyyy-MM-dd_HH-mm');
-        a.download = `export_ventes_${formattedDateDebut}_a_${formattedDateFin}.xlsx`;
+        a.href = url;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -470,4 +475,3 @@ export default function SalesPage() {
     </div>
   );
 }
-    

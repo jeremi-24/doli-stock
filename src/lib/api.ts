@@ -25,7 +25,7 @@ const buildHeaders = () => {
   return headers;
 }
 
-async function apiFetch(endpoint: string, options: RequestInit = {}) {
+async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<any> {
   const url = `${API_BASE_URL}${endpoint}`;
   
   const headers = buildHeaders();
@@ -56,12 +56,21 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     }
 
     const contentType = response.headers.get('Content-Type');
-    const isExcel = contentType?.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    const isOctetStream = contentType?.includes('application/octet-stream');
-    const isPdf = contentType?.includes('application/pdf');
+    const isFile = contentType?.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || 
+                   contentType?.includes('application/octet-stream') || 
+                   contentType?.includes('application/pdf');
 
-    if (isExcel || isOctetStream || isPdf) {
-        return response.blob();
+    if (isFile) {
+        const blob = await response.blob();
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'download';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+            if (filenameMatch && filenameMatch.length > 1) {
+                filename = filenameMatch[1];
+            }
+        }
+        return { blob, filename };
     }
     
     const text = await response.text();
@@ -243,15 +252,15 @@ export async function importProducts(file: File): Promise<Produit[]> {
 };
 
 export async function exportProduits(): Promise<void> {
-  const blob = await apiFetch(`/produits/export/simple`, {
+  const { blob, filename } = await apiFetch(`/produits/export/simple`, {
     method: 'GET',
     headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-  }) as Blob;
+  });
 
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `export_produits.xlsx`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   window.URL.revokeObjectURL(url);
@@ -259,14 +268,14 @@ export async function exportProduits(): Promise<void> {
   return Promise.resolve();
 }
 
-export async function printBarcodes(data: BarcodePrintRequest): Promise<Blob> {
+export async function printBarcodes(data: BarcodePrintRequest): Promise<{blob: Blob, filename: string}> {
     return apiFetch('/barcode/print', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Accept': 'application/pdf' },
     });
 }
-export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promise<Blob> {
+export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promise<{blob: Blob, filename: string}> {
     return apiFetch('/barcode/print-multiple', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -274,7 +283,7 @@ export async function printMultipleBarcodes(data: BarcodePrintRequest[]): Promis
     });
 }
 
-export async function downloadCatalogue(): Promise<Blob> {
+export async function downloadCatalogue(): Promise<{blob: Blob, filename: string}> {
   return apiFetch('/produits/catalogue', {
       method: 'GET',
       headers: { 'Accept': 'application/pdf' },
@@ -293,15 +302,15 @@ export async function getStocksByLieuNom(lieuStockNom: string): Promise<Stock[]>
     return apiFetch(`/stocks/lieuStock/${encodeURIComponent(lieuStockNom)}`);
 }
 export async function exportStockByLieu(lieuId: number): Promise<void> {
-  const blob = await apiFetch(`/stocks/export/lieu/${lieuId}`, {
+  const { blob, filename } = await apiFetch(`/stocks/export/lieu/${lieuId}`, {
     method: 'GET',
     headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-  }) as Blob;
+  });
 
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `stock_lieu_${lieuId}.xlsx`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   window.URL.revokeObjectURL(url);
@@ -335,7 +344,7 @@ export async function annulerVente(id: number, motif?: string): Promise<void> {
 export async function addPaiementCredit(data: PaiementPayload): Promise<any> {
     return apiFetch('/ventes/paiement-credit', { method: 'POST', body: JSON.stringify(data) });
 }
-export async function exportVentes(dateDebut: string, dateFin: string): Promise<Blob> {
+export async function exportVentes(dateDebut: string, dateFin: string): Promise<{blob: Blob, filename: string}> {
     const url = `/ventes/export/excel?dateDebut=${dateDebut}&dateFin=${dateFin}`;
     return apiFetch(url, {
         method: 'GET',
@@ -407,15 +416,15 @@ export async function confirmInventaire(id: number, premier: boolean): Promise<I
   return mapInventaireResponse(result);
 }
 export async function exportInventaire(id: number): Promise<void> {
-  const blob = await apiFetch(`/inventaire/${id}/export`, {
+  const { blob, filename } = await apiFetch(`/inventaire/${id}/export`, {
     method: 'GET',
     headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-  }) as Blob;
+  });
 
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `inventaire_${id}.xlsx`; // Nom du fichier
+  a.download = filename; // Nom du fichier
   document.body.appendChild(a);
   a.click();
   window.URL.revokeObjectURL(url);
