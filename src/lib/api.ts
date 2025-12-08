@@ -347,20 +347,45 @@ export async function annulerVente(id: number, motif?: string): Promise<void> {
 export async function addPaiementCredit(data: PaiementPayload): Promise<any> {
     return apiFetch('/ventes/paiement-credit', { method: 'POST', body: JSON.stringify(data) });
 }
-
-export async function exportVentes(dateDebut: string, dateFin: string, lieuNom?: string): Promise<{blob: Blob, filename: string}> {
+export async function exportVentes(
+  dateDebut: string,
+  dateFin: string,
+  lieuNom?: string
+): Promise<{ blob: Blob; filename: string }> {
   const params = new URLSearchParams({
-      dateDebut,
-      dateFin,
+    dateDebut,
+    dateFin,
   });
   if (lieuNom) {
-      params.append('lieuNom', lieuNom);
+    params.append('lieuNom', lieuNom);
   }
+
   const url = `/ventes/export/excel?${params.toString()}`;
-  return await apiFetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    },
   });
+
+  if (!response.ok) {
+    throw new Error(`Erreur lors de l'export : ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+
+  // Récupération du nom de fichier depuis les headers
+  const disposition = response.headers.get('Content-Disposition');
+  let filename = 'export.xlsx';
+  if (disposition) {
+    const match = disposition.match(/filename\*=UTF-8''(.+)/);
+    if (match && match[1]) {
+      filename = decodeURIComponent(match[1]);
+    }
+  }
+
+  return { blob, filename };
 }
 
 
