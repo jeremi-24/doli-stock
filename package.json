@@ -9,7 +9,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "electron": "npm run build && npm run export && electron .",
+"dist": "electron-builder"
+
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.8.0",
@@ -71,6 +74,24 @@
     "genkit-cli": "^1.8.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "electron": "^26.0.0",
+"electron-builder": "^24.6.0"
+
+  },
+  "build": {
+  "appId": "com.sta.gestionstock",
+  "files": [
+    "out/**/*",
+    "electron-main.js",
+    "electron-preload.js",
+    "package.json",
+    "public/**/*"
+  ],
+  "win": {
+    "target": "nsis",
+    "icon": "public/logosta.jpg"
   }
+}
+
 }
