@@ -3,8 +3,7 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const url = require('url');
 
-const isDev = process.env.NODE_ENV !== 'production';
-const appUrl = isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../out/index.html')}`;
+const appUrl = `file://${path.join(__dirname, 'out', 'index.html')}`;
 
 function createWindow() {
   // Créer la fenêtre du navigateur.
@@ -22,11 +21,6 @@ function createWindow() {
 
   // Charger l'application Next.js.
   mainWindow.loadURL(appUrl);
-
-  // Ouvrir les DevTools si en mode développement.
-  if (isDev) {
-    mainWindow.webContents.openDevTools();
-  }
 }
 
 // Cette méthode sera appelée quand Electron aura fini
