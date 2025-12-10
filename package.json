@@ -1,6 +1,8 @@
 {
   "name": "nextn",
   "version": "0.1.0",
+  "main": "electron-main.js",
+
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack ",
@@ -10,11 +12,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "electron": "npm run build && npm run export && electron .",
-"dist": "electron-builder",
-"export": "next export"
-
-
+     "electron": "npm run build && electron .",
+  "dist": "npm run build && electron-builder"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.8.0",
