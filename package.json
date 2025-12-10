@@ -80,10 +80,10 @@
 "electron-builder": "^24.6.0"
 
   },
-  "build": {
+ "build": {
   "appId": "com.sta.gestionstock",
   "files": [
-    "out/**/*",
+    ".next/**/*",
     "electron-main.js",
     "electron-preload.js",
     "package.json",
@@ -91,7 +91,7 @@
   ],
   "win": {
     "target": "nsis",
-    "icon": "public/logosta.jpg"
+    "icon": "public/logosta.png"
   }
 }
 
