@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/app-provider';
-import type { Produit, Categorie, Client, VentePayload } from '@/lib/types';
+import type { Produit, Categorie, Client, VentePayload, Vente } from '@/lib/types';
 import { TypePaiement, ModePaiement } from '@/lib/types';
 import * as api from '@/lib/api';
 import { Plus, Minus, Search, Trash2, ShoppingCart, DollarSign, PackagePlus, Loader2, Package, Archive, AlertTriangle, Box as CartonIcon, ScanLine, Building2 } from 'lucide-react';
@@ -20,6 +20,7 @@ import { cn, normalizeString } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { SalePreviewDialog } from '@/components/sale-preview-dialog';
 
 
 type VenteLignePanier = {
@@ -211,6 +212,9 @@ export default function POSPage() {
 
   const [scannedProductForSelection, setScannedProductForSelection] = useState<Produit | null>(null);
   const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
+  const [lastSale, setLastSale] = useState<Vente | null>(null);
+  const [isSalePreviewOpen, setIsSalePreviewOpen] = useState(false);
+
 
   const isAdmin = useMemo(() => hasPermission('ALL_STOCK_READ'), [hasPermission]);
   const [selectedLieuId, setSelectedLieuId] = useState<string | undefined>(isAdmin ? undefined : currentUser?.lieuStockId?.toString());
@@ -398,9 +402,13 @@ export default function POSPage() {
     };
 
     try {
-        await createVente(payload);
+        const newVente = await createVente(payload);
         setCart([]);
         setIsCheckoutOpen(false);
+        if (newVente) {
+            setLastSale(newVente);
+            setIsSalePreviewOpen(true);
+        }
     } catch (error) {
          // Error is handled in context
     } finally {
@@ -604,6 +612,11 @@ export default function POSPage() {
         isSaving={isSaving} 
         clients={clients}
         defaultClientId={defaultClient?.id}
+      />
+      <SalePreviewDialog
+        isOpen={isSalePreviewOpen}
+        onOpenChange={setIsSalePreviewOpen}
+        vente={lastSale}
       />
     </div>
   );

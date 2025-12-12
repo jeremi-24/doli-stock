@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -13,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import type { Vente } from '@/lib/types';
 import { ModePaiement, EtatVente } from '@/lib/types';
 import * as api from '@/lib/api';
-import { Eye, Search, History, Loader2, User, Trash2, PlusCircle, CreditCard, Calendar as CalendarIcon, X, FileWarning, Download } from 'lucide-react';
+import { Eye, Search, History, Loader2, User, Trash2, PlusCircle, CreditCard, Calendar as CalendarIcon, X, FileWarning, Download, Printer } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay, setHours, setMinutes, setSeconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +25,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import type { DateRange } from "react-day-picker";
 import { Switch } from '@/components/ui/switch';
+import { SalePreviewDialog } from '@/components/sale-preview-dialog';
+
 
 function AddPaymentDialog({ venteId, onPaymentAdded, totalDue }: { venteId: number, onPaymentAdded: () => void, totalDue: number }) {
     const { addPaiementCredit } = useApp();
@@ -202,6 +203,9 @@ export default function SalesPage() {
   const [isCancelling, setIsCancelling] = useState<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [previewingSale, setPreviewingSale] = useState<Vente | null>(null);
+  const [isSalePreviewOpen, setIsSalePreviewOpen] = useState(false);
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const from = searchParams.get('from');
     const to = searchParams.get('to');
@@ -228,38 +232,44 @@ export default function SalesPage() {
   const handleExport = async () => {
     setIsExporting(true);
     toast({ title: "Export en cours", description: "Génération du fichier Excel..." });
-
+  
     try {
         let fromDate;
         if (dateRange?.from) {
             fromDate = startOfDay(dateRange.from);
         } else {
+            // Si aucune date n'est sélectionnée, prendre le début de la journée actuelle
             fromDate = startOfDay(new Date());
         }
-
+        
+        // Définir l'heure de début à 06:00
         const startDateWithTime = setHours(setMinutes(setSeconds(fromDate, 0), 0), 6);
+  
+        // La date de fin est toujours l'heure actuelle
         const exportTime = new Date();
-
+  
         const dateDebut = format(startDateWithTime, "yyyy-MM-dd'T'HH:mm:ss");
         const dateFin = format(exportTime, "yyyy-MM-dd'T'HH:mm:ss");
-
+  
         const { blob, filename } = await api.exportVentes(dateDebut, dateFin, currentUser?.lieuNom);
+  
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename;
+        a.download = filename; // Utiliser le nom de fichier du backend
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
         toast({ title: "Export réussi" });
+  
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
         toast({ variant: 'destructive', title: "Erreur d'export", description: errorMessage });
     } finally {
         setIsExporting(false);
     }
-};
+  };
 
   const filteredSales = useMemo(() => {
     if (!isMounted) return [];
@@ -322,6 +332,11 @@ export default function SalesPage() {
 
   const canCancelSale = useMemo(() => hasPermission('VENTE_CANCEL'), [hasPermission]);
 
+  const handlePrint = (vente: Vente) => {
+    setPreviewingSale(vente);
+    setIsSalePreviewOpen(true);
+  };
+
   if (!isMounted) {
       return (
           <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -349,128 +364,137 @@ export default function SalesPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="flex flex-col sm:flex-row items-center gap-4">
-        <h1 className="font-headline text-3xl font-semibold">{pageTitle}</h1>
-        <div className="ml-auto flex flex-col sm:flex-row items-center gap-2">
-           <div className="relative flex-1 md:grow-0">
-             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Chercher par réf, client..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
-           </div>
-            
-        </div>
-      </div>
-
-      <Card>
-          <CardHeader className='flex w-full justify-between items-start gap-2' >
-              <div>
-              <CardDescription className='text-md' >{pageDescription}</CardDescription>
-              </div>  
-              <div className='flex flex-col md:flex-row justify-between gap-2' >
-                <div className="flex items-center space-x-2">
-                  <Switch id="credit-filter" checked={showOnlyCredit} onCheckedChange={setShowOnlyCredit} />
-                  <Label htmlFor="credit-filter">Crédits en cours</Label>
-                </div>     
-                <div className="flex items-center gap-2">
-                    <DatePickerWithRange date={dateRange} setDate={setDateRange} disabled={showOnlyCredit} />
-                    {dateRange && !showOnlyCredit && (
-                        <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
-                        <X className="h-4 w-4" />
-                        </Button>
-                    )}
-                </div>
-                 <Button onClick={handleExport} disabled={isExporting}>
-                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
-                    Exporter
-                </Button>
-            </div>    
-          </CardHeader>
-          <CardContent>
-          
-            <div className="border rounded-lg">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Référence</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Client</TableHead>
-                            <TableHead>Caissier</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                            <TableHead className="text-right">Payé</TableHead>
-                            <TableHead className="text-right">Montant due</TableHead>
-                            <TableHead>État</TableHead>
-                            <TableHead className="text-center w-[120px]">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {isLoading ? (
-                        <TableRow><TableCell colSpan={9} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
-                    ) : filteredSales.length > 0 ? filteredSales.map(vente => {
-                        const isAnnulee = vente.etat === EtatVente.ANNULEE;
-                        const isCredit = vente.etat === EtatVente.EN_ATTENTE;
-                        
-                        const getBadgeVariant = () => {
-                            if (isAnnulee) return "destructive";
-                            if (isCredit) return "secondary";
-                            return "default";
-                        };
-                        
-                        const getBadgeClassName = () => {
-                            if (isAnnulee) return ""; // Destructive variant handles its own color
-                            if (isCredit) return "bg-amber-100 text-amber-800";
-                            return "bg-green-100 text-green-800";
-                        }
-
-                        return (
-                        <TableRow key={vente.id} className={cn(isAnnulee && "bg-destructive/10 text-muted-foreground", isCredit && "bg-amber-50")}>
-                            <TableCell className="font-mono text-xs">{vente.ref}</TableCell>
-                            <TableCell>{vente.date ? format(new Date(vente.date), 'd MMM yyyy, HH:mm', { locale: fr }) : "N/A"}</TableCell>
-                            <TableCell className="font-medium">{vente.client?.nom || 'N/A'}</TableCell>
-                            <TableCell>{vente.caissier}</TableCell>
-                            <TableCell className="text-right font-semibold">{formatCurrency(vente.total)}</TableCell>
-                            <TableCell className="text-right font-medium text-green-600">{formatCurrency(vente.montantPaye)}</TableCell>
-                            <TableCell className="text-right font-bold text-red-600">{formatCurrency(vente.soldeRestant)}</TableCell>
-                            <TableCell>
-                               <Badge variant={getBadgeVariant()} className={getBadgeClassName()}>{vente.etat}</Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                                {isAnnulee ? (
-                                    <Badge variant="destructive">Annulée</Badge>
-                                ) : (
-                                    <div className="flex items-center justify-center gap-1">
-                                        <SaleDetailsDialog vente={vente} />
-                                        {isCredit && <AddPaymentDialog venteId={vente.id} totalDue={vente.soldeRestant} onPaymentAdded={handleFetchData} />}
-                                        
-                                        {canCancelSale && (
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" disabled={isCancelling === vente.id}>
-                                                        {isCancelling === vente.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive"/>}
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Annuler la vente #{vente.ref}?</AlertDialogTitle>
-                                                        <AlertDialogDesc>
-                                                            Cette action est irréversible. Elle annulera la vente et restaurera le stock des produits concernés.
-                                                        </AlertDialogDesc>
-                                                    </AlertDialogHeader>
-                                                    <DialogFooterButtons>
-                                                        <AlertDialogCancel>Retour</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleCancelSale(vente.id)}>Confirmer l'annulation</AlertDialogAction>
-                                                    </DialogFooterButtons>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        )}
-                                    </div>
-                                )}
-                            </TableCell>
-                        </TableRow>
-                    )}) : (<TableRow><TableCell colSpan={9} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
-                    </TableBody>
-                </Table>
+    <>
+      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <h1 className="font-headline text-3xl font-semibold">{pageTitle}</h1>
+          <div className="ml-auto flex flex-col sm:flex-row items-center gap-2">
+            <div className="relative flex-1 md:grow-0">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Chercher par réf, client..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"/>
             </div>
-          </CardContent>
-      </Card>
-    </div>
+              
+          </div>
+        </div>
+
+        <Card>
+            <CardHeader className='flex w-full justify-between items-start gap-2' >
+                <div>
+                <CardDescription className='text-md' >{pageDescription}</CardDescription>
+                </div>  
+                <div className='flex flex-col md:flex-row justify-between gap-2' >
+                  <div className="flex items-center space-x-2">
+                    <Switch id="credit-filter" checked={showOnlyCredit} onCheckedChange={setShowOnlyCredit} />
+                    <Label htmlFor="credit-filter">Crédits en cours</Label>
+                  </div>     
+                  <div className="flex items-center gap-2">
+                      <DatePickerWithRange date={dateRange} setDate={setDateRange} disabled={showOnlyCredit} />
+                      {dateRange && !showOnlyCredit && (
+                          <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
+                          <X className="h-4 w-4" />
+                          </Button>
+                      )}
+                  </div>
+                  <Button onClick={handleExport} disabled={isExporting}>
+                      {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                      Exporter
+                  </Button>
+              </div>    
+            </CardHeader>
+            <CardContent>
+            
+              <div className="border rounded-lg">
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead>Référence</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Caissier</TableHead>
+                              <TableHead className="text-right">Total</TableHead>
+                              <TableHead className="text-right">Payé</TableHead>
+                              <TableHead className="text-right">Montant due</TableHead>
+                              <TableHead>État</TableHead>
+                              <TableHead className="text-center w-[120px]">Actions</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                      {isLoading ? (
+                          <TableRow><TableCell colSpan={9} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+                      ) : filteredSales.length > 0 ? filteredSales.map(vente => {
+                          const isAnnulee = vente.etat === EtatVente.ANNULEE;
+                          const isCredit = vente.etat === EtatVente.EN_ATTENTE;
+                          
+                          const getBadgeVariant = () => {
+                              if (isAnnulee) return "destructive";
+                              if (isCredit) return "secondary";
+                              return "default";
+                          };
+                          
+                          const getBadgeClassName = () => {
+                              if (isAnnulee) return ""; // Destructive variant handles its own color
+                              if (isCredit) return "bg-amber-100 text-amber-800";
+                              return "bg-green-100 text-green-800";
+                          }
+
+                          return (
+                          <TableRow key={vente.id} className={cn(isAnnulee && "bg-destructive/10 text-muted-foreground", isCredit && "bg-amber-50")}>
+                              <TableCell className="font-mono text-xs">{vente.ref}</TableCell>
+                              <TableCell>{vente.date ? format(new Date(vente.date), 'd MMM yyyy, HH:mm', { locale: fr }) : "N/A"}</TableCell>
+                              <TableCell className="font-medium">{vente.client?.nom || 'N/A'}</TableCell>
+                              <TableCell>{vente.caissier}</TableCell>
+                              <TableCell className="text-right font-semibold">{formatCurrency(vente.total)}</TableCell>
+                              <TableCell className="text-right font-medium text-green-600">{formatCurrency(vente.montantPaye)}</TableCell>
+                              <TableCell className="text-right font-bold text-red-600">{formatCurrency(vente.soldeRestant)}</TableCell>
+                              <TableCell>
+                                <Badge variant={getBadgeVariant()} className={getBadgeClassName()}>{vente.etat}</Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                  {isAnnulee ? (
+                                      <Badge variant="destructive">Annulée</Badge>
+                                  ) : (
+                                      <div className="flex items-center justify-center gap-1">
+                                          <SaleDetailsDialog vente={vente} />
+                                          <Button variant="ghost" size="icon" onClick={() => handlePrint(vente)} aria-label="Imprimer le reçu"><Printer className="h-4 w-4"/></Button>
+
+                                          {isCredit && <AddPaymentDialog venteId={vente.id} totalDue={vente.soldeRestant} onPaymentAdded={handleFetchData} />}
+                                          
+                                          {canCancelSale && (
+                                              <AlertDialog>
+                                                  <AlertDialogTrigger asChild>
+                                                      <Button variant="ghost" size="icon" disabled={isCancelling === vente.id}>
+                                                          {isCancelling === vente.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive"/>}
+                                                      </Button>
+                                                  </AlertDialogTrigger>
+                                                  <AlertDialogContent>
+                                                      <AlertDialogHeader>
+                                                          <AlertDialogTitle>Annuler la vente #{vente.ref}?</AlertDialogTitle>
+                                                          <AlertDialogDesc>
+                                                              Cette action est irréversible. Elle annulera la vente et restaurera le stock des produits concernés.
+                                                          </AlertDialogDesc>
+                                                      </AlertDialogHeader>
+                                                      <DialogFooterButtons>
+                                                          <AlertDialogCancel>Retour</AlertDialogCancel>
+                                                          <AlertDialogAction onClick={() => handleCancelSale(vente.id)}>Confirmer l'annulation</AlertDialogAction>
+                                                      </DialogFooterButtons>
+                                                  </AlertDialogContent>
+                                              </AlertDialog>
+                                          )}
+                                      </div>
+                                  )}
+                              </TableCell>
+                          </TableRow>
+                      )}) : (<TableRow><TableCell colSpan={9} className="h-24 text-center">{searchTerm ? "Aucune vente ne correspond à votre recherche." : "Aucune vente trouvée."}</TableCell></TableRow>)}
+                      </TableBody>
+                  </Table>
+              </div>
+            </CardContent>
+        </Card>
+      </div>
+      <SalePreviewDialog
+        isOpen={isSalePreviewOpen}
+        onOpenChange={setIsSalePreviewOpen}
+        vente={previewingSale}
+      />
+    </>
   );
 }
