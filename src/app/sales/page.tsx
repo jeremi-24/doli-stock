@@ -27,6 +27,7 @@ import type { DateRange } from "react-day-picker";
 import { Switch } from '@/components/ui/switch';
 import { SalePreviewDialog } from '@/components/sale-preview-dialog';
 
+export const dynamic = 'force-dynamic';
 
 function AddPaymentDialog({ venteId, onPaymentAdded, totalDue }: { venteId: number, onPaymentAdded: () => void, totalDue: number }) {
     const { addPaiementCredit } = useApp();
@@ -206,19 +207,24 @@ export default function SalesPage() {
   const [previewingSale, setPreviewingSale] = useState<Vente | null>(null);
   const [isSalePreviewOpen, setIsSalePreviewOpen] = useState(false);
 
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
-    const from = searchParams.get('from');
-    const to = searchParams.get('to');
-    if (from && to) {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [showOnlyCredit, setShowOnlyCredit] = useState(false);
+
+  useEffect(() => {
+    if (isMounted) {
+      const fromParam = searchParams.get('from');
+      const toParam = searchParams.get('to');
+      if (fromParam && toParam) {
         try {
-            return { from: parseISO(from), to: parseISO(to) };
+          setDateRange({ from: parseISO(fromParam), to: parseISO(toParam) });
         } catch (e) {
-            return undefined;
+          console.error("Invalid date in URL params", e);
         }
+      }
+      setShowOnlyCredit(searchParams.get('credits') === 'true');
     }
-    return undefined;
-  });
-  const [showOnlyCredit, setShowOnlyCredit] = useState(() => searchParams.get('credits') === 'true');
+  }, [isMounted, searchParams]);
+  
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-TG', { style: 'currency', currency: 'XOF' }).format(amount);
   const { toast } = useToast();
@@ -238,14 +244,11 @@ export default function SalesPage() {
         if (dateRange?.from) {
             fromDate = startOfDay(dateRange.from);
         } else {
-            // Si aucune date n'est sélectionnée, prendre le début de la journée actuelle
             fromDate = startOfDay(new Date());
         }
         
-        // Définir l'heure de début à 06:00
         const startDateWithTime = setHours(setMinutes(setSeconds(fromDate, 0), 0), 6);
   
-        // La date de fin est toujours l'heure actuelle
         const exportTime = new Date();
   
         const dateDebut = format(startDateWithTime, "yyyy-MM-dd'T'HH:mm:ss");
@@ -256,7 +259,7 @@ export default function SalesPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename; // Utiliser le nom de fichier du backend
+        a.download = filename; 
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -283,7 +286,7 @@ export default function SalesPage() {
             const saleDate = new Date(v.date);
             const from = new Date(dateRange.from!);
             const to = dateRange.to ? new Date(dateRange.to) : from;
-            // Set time to start and end of day for accurate comparison
+            
             from.setHours(0, 0, 0, 0);
             to.setHours(23, 59, 59, 999);
             return saleDate >= from && saleDate <= to;
