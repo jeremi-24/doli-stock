@@ -1,23 +1,11 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import { Space_Grotesk, PT_Sans } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { AppProvider } from '@/context/app-provider';
 import { NotificationProvider } from '@/context/notification-provider';
 import { AppShell } from '@/components/app-shell';
 import { Toaster } from '@/components/ui/toaster';
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-space-grotesk',
-});
-
-const ptSans = PT_Sans({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-pt-sans',
-});
 
 export const metadata: Metadata = {
   title: 'STA',
@@ -31,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={cn('font-body antialiased', spaceGrotesk.variable, ptSans.variable, 'min-h-screen bg-background font-sans')}>
+      <body className={cn('min-h-screen bg-background font-sans antialiased')}>
         <AppProvider>
           <NotificationProvider>
             <AppShell>
