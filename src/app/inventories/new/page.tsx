@@ -68,12 +68,12 @@ function JSONImportDialog({ onImport, onOpenChange }: { onImport: (jsonString: s
 }
 
 export default function NewInventoryPage() {
-    const { createInventaire, updateInventaire, currentUser, produits, lieuxStock, hasPermission } = useApp();
+    const { createInventaire, currentUser, produits, lieuxStock, hasPermission, byScan } = useApp();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
 
-    const [inventoryMode, setInventoryMode] = useState<'scan' | 'list'>('scan');
+    const [inventoryMode, setInventoryMode] = useState<'scan' | 'list'>(byScan ? 'scan' : 'list');
     const [pageIsLoading, setPageIsLoading] = useState(true);
     const [editingInventoryId, setEditingInventoryId] = useState<number | null>(null);
 
@@ -99,8 +99,7 @@ export default function NewInventoryPage() {
     
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const barcodeInputRef = useRef<HTMLInputElement>(null);
-    const quantityHasBeenManuallySet = useRef(false);
-
+    
     const productMap = useMemo(() => new Map(produits.map(p => [p.id, p])), [produits]);
     const lieuStockMap = useMemo(() => new Map(lieuxStock.map(l => [l.id, l])), [lieuxStock]);
     const canSelectLieu = useMemo(() => hasPermission('ALL_STOCK_READ'), [hasPermission]);
@@ -195,6 +194,10 @@ export default function NewInventoryPage() {
     }, [draftToRestore, toast, listItems, inventoryMode]);
 
     useEffect(() => {
+        setInventoryMode(byScan ? 'scan' : 'list');
+    }, [byScan]);
+
+    useEffect(() => {
         if (pageIsLoading || !currentUser) return;
         
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -236,53 +239,17 @@ export default function NewInventoryPage() {
     }, [selectedLieuStockId, hasDraftData, isJsonDialogOpen, inventoryMode]);
 
     useEffect(() => {
-        const handleGlobalKeyDown = (e: KeyboardEvent) => {
-            if (inventoryMode !== 'scan' || isJsonDialogOpen || document.querySelector('[role="dialog"]')) return;
-            
-            const activeEl = document.activeElement;
-            const isTypingElsewhere = activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT');
-    
-            if (isTypingElsewhere) return;
-    
-            if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); setScanType('CARTON'); return; }
-            if (e.key.toLowerCase() === 'u' && !e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); setScanType('UNITE'); return; }
-    
-            if (e.key >= '0' && e.key <= '9') {
-                e.preventDefault();
-                setQuantity(currentQuantity => {
-                    if (!quantityHasBeenManuallySet.current) { quantityHasBeenManuallySet.current = true; return Number(e.key); }
-                    const newQuantityString = `${currentQuantity}${e.key}`;
-                    return Number(newQuantityString);
-                });
-            }
-            
-            if (e.key === 'Backspace' && quantityHasBeenManuallySet.current) {
-                e.preventDefault();
-                setQuantity(currentQuantity => {
-                    const quantityString = String(currentQuantity);
-                    if (quantityString.length <= 1) { quantityHasBeenManuallySet.current = false; return 1; }
-                    return Number(quantityString.slice(0, -1));
-                });
-            }
-        };
-    
-        window.addEventListener('keydown', handleGlobalKeyDown);
-        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [isJsonDialogOpen, inventoryMode]);
-
-    useEffect(() => {
         const lieu = selectedLieuStockId ? lieuStockMap.get(Number(selectedLieuStockId)) : null;
         document.title = lieu ? `Inventaire - ${lieu.nom} - STA` : `Nouvel Inventaire - STA`;
         if (lieu) {
-            setInventoryMode(lieu.type?.toUpperCase() === 'MAGASIN' ? 'list' : 'scan');
-            if (lieu.type?.toUpperCase() === 'MAGASIN' && editingInventoryId === null) {
+             if (inventoryMode === 'list' && editingInventoryId === null) {
                 fetchProductsForLieu(lieu.id);
             }
         } else {
             setListItems([]);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedLieuStockId, lieuStockMap]);
+    }, [selectedLieuStockId, lieuStockMap, inventoryMode]);
     
     useEffect(() => { if (currentUser) setPageIsLoading(false); }, [currentUser]);
 
@@ -351,7 +318,6 @@ export default function NewInventoryPage() {
             processScan(productCache.get(barcode)!);
             setBarcode("");
             setQuantity(1);
-            quantityHasBeenManuallySet.current = false;
             barcodeInputRef.current?.focus();
             return;
         }
@@ -369,18 +335,24 @@ export default function NewInventoryPage() {
             setIsScanning(false);
             setBarcode("");
             setQuantity(1);
-            quantityHasBeenManuallySet.current = false;
             setTimeout(() => { barcodeInputRef.current?.focus(); }, 100);
         }
     };
     
     const handleQuantityChange = (produitId: number, type: 'UNITE' | 'CARTON', newQuantity: number) => {
-        if (newQuantity <= 0) { handleRemoveItem(produitId, type); return; }
+        if (newQuantity < 0) return;
+        if (newQuantity === 0) { handleRemoveItem(produitId, type); return; }
         setScannedItems(currentCart => currentCart.map(item => item.produitId === produitId && item.typeQuantite === type ? { ...item, qteAjoutee: newQuantity } : item));
     };
 
     const handleListQuantityChange = (produitId: number, type: 'cartons' | 'unites', value: number) => {
-        setListItems(prev => prev.map(item => item.produitId === produitId ? { ...item, [type === 'cartons' ? 'qteCartons' : 'qteUnites']: Math.max(0, value) } : item));
+        setListItems(prev => {
+            return prev.map(item => 
+                item.produitId === produitId 
+                ? { ...item, [type === 'cartons' ? 'qteCartons' : 'qteUnites']: Math.max(0, value) } 
+                : item
+            );
+        });
     };
 
     const handleRemoveItem = (produitId: number, type: 'UNITE' | 'CARTON') => setScannedItems(scannedItems.filter(item => !(item.produitId === produitId && item.typeQuantite === type)));
@@ -485,7 +457,7 @@ export default function NewInventoryPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="quantity">Quantité</Label>
-                                <Input id="quantity" type="number" value={quantity} onChange={(e) => { setQuantity(Number(e.target.value)); quantityHasBeenManuallySet.current = true; }} min="1" disabled={isScanning || isSaving}/>
+                                <Input id="quantity" type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} min="1" disabled={isScanning || isSaving}/>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="scanType">Type</Label>
@@ -496,7 +468,6 @@ export default function NewInventoryPage() {
                                         <SelectItem value="CARTON">Carton</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <p className="text-xs text-muted-foreground">Raccourcis : <kbd className="px-1 py-0.5 bg-muted rounded text-xs">U</kbd>, <kbd className="px-1 py-0.5 bg-muted rounded text-xs">C</kbd></p>
                             </div>
                         </div>
                         <Button onClick={handleScan} disabled={!barcode || isScanning || isSaving || quantity < 1} className="w-full">
@@ -611,27 +582,25 @@ export default function NewInventoryPage() {
 
             <div className="flex items-center"><h1 className="font-headline text-3xl font-semibold">{lieuStockMap.has(Number(selectedLieuStockId)) ? <>Inventaire de <span className="font-bold">{lieuStockMap.get(Number(selectedLieuStockId))?.nom}</span></> : "Nouvel Inventaire"}</h1></div>
             
-            <div className="grid gap-8 md:grid-cols-2">
-                {inventoryMode === 'scan' && (
-                    <div className="md:col-span-1">
-                        <Card>
-                            <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Building2/>Lieu de Stock</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                {canSelectLieu ? (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="lieu-stock">Sélectionnez le lieu de l'inventaire</Label>
-                                        <Select value={selectedLieuStockId} onValueChange={setSelectedLieuStockId} disabled={scannedItems.length > 0 || listItems.some(item => item.qteCartons > 0 || item.qteUnites > 0)}>
-                                            <SelectTrigger id="lieu-stock"><SelectValue placeholder="Sélectionner un lieu de stock..." /></SelectTrigger>
-                                            <SelectContent>{lieuxStock.map(lieu => <SelectItem key={lieu.id} value={String(lieu.id)}>{lieu.nom} ({lieu.type})</SelectItem>)}</SelectContent>
-                                        </Select>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2"><Label>Lieu de Stock assigné</Label><Input value={`${currentUser?.lieuNom} (${lieuStockMap.get(Number(selectedLieuStockId))?.type})` || "Aucun lieu assigné"} disabled /></div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
+            <div className="grid gap-8 md:grid-cols-3">
+                <div className="md:col-span-3">
+                    <Card>
+                        <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Building2/>Lieu de Stock</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            {canSelectLieu ? (
+                                <div className="space-y-2">
+                                    <Label htmlFor="lieu-stock">Sélectionnez le lieu de l'inventaire</Label>
+                                    <Select value={selectedLieuStockId} onValueChange={setSelectedLieuStockId} disabled={scannedItems.length > 0 || listItems.some(item => item.qteCartons > 0 || item.qteUnites > 0)}>
+                                        <SelectTrigger id="lieu-stock"><SelectValue placeholder="Sélectionner un lieu de stock..." /></SelectTrigger>
+                                        <SelectContent>{lieuxStock.map(lieu => <SelectItem key={lieu.id} value={String(lieu.id)}>{lieu.nom} ({lieu.type})</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                            ) : (
+                                <div className="space-y-2"><Label>Lieu de Stock assigné</Label><Input value={`${currentUser?.lieuNom} (${lieuStockMap.get(Number(selectedLieuStockId))?.type})` || "Aucun lieu assigné"} disabled /></div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {!selectedLieuStockId ? (
                     <div className="md:col-span-3">

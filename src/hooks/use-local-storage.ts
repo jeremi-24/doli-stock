@@ -19,7 +19,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, SetValue<T
     }
   }, [initialValue, key]);
 
-  const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [storedValue, setStoredValue] = useState<T>(readValue);
 
   useEffect(() => {
     setStoredValue(readValue());
@@ -37,25 +37,28 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, SetValue<T
       window.localStorage.setItem(key, JSON.stringify(newValue));
       setStoredValue(newValue);
       // Dispatchez un événement pour que les autres instances du hook puissent se mettre à jour
-      window.dispatchEvent(new Event("local-storage"));
+      window.dispatchEvent(new CustomEvent("local-storage", { detail: { key } }));
     } catch (error) {
       console.warn(`Error setting localStorage key “${key}”:`, error);
     }
   };
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setStoredValue(readValue());
+    const handleStorageChange = (event: StorageEvent | CustomEvent) => {
+        const detail = (event as CustomEvent).detail;
+        if ((event.type === 'storage' && (event as StorageEvent).key === key) || (event.type === 'local-storage' && detail.key === key)) {
+            setStoredValue(readValue());
+        }
     };
 
     window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("local-storage", handleStorageChange);
+    window.addEventListener("local-storage", handleStorageChange as EventListener);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("local-storage", handleStorageChange);
+      window.removeEventListener("local-storage", handleStorageChange as EventListener);
     };
-  }, [readValue]);
+  }, [readValue, key]);
 
   return [storedValue, setValue];
 }

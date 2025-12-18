@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
@@ -7,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import type { Produit, Categorie, LieuStock, AssignationPayload, LoginPayload, SignupPayload, InventairePayload, Inventaire, ReapproPayload, Reapprovisionnement, Client, ShopInfo, ThemeColors, CurrentUser, CommandePayload, Commande, Facture, BonLivraison, RoleCreationPayload, Permission, LigneBonLivraison, VentePayload, Vente, CommandeStatus, Notification, FactureModele, Stock, PaiementPayload, EtatVente, TypePaiement, PaiementInitialPayload } from '@/lib/types';
 import * as api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { jwtDecode } from 'jwt-decode';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 interface AppContextType {
   produits: Produit[];
@@ -55,6 +54,8 @@ interface AppContextType {
   setShopInfo: (org: ShopInfo) => Promise<void>;
   themeColors: ThemeColors;
   setThemeColors: React.Dispatch<React.SetStateAction<ThemeColors>>;
+  byScan: boolean;
+  setByScan: React.Dispatch<React.SetStateAction<boolean>>;
   isMounted: boolean;
   isAuthenticated: boolean;
   currentUser: CurrentUser | null;
@@ -67,7 +68,6 @@ interface AppContextType {
   addFactureModele: (modele: Omit<FactureModele, 'id'>) => Promise<void>;
   updateFactureModele: (modele: FactureModele) => Promise<void>;
   deleteFactureModele: (id: string) => Promise<void>;
-
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -88,14 +88,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ventes, setVentes] = useState<Vente[]>([]);
   const [factureModeles, setFactureModeles] = useState<FactureModele[]>([]);
   const [shopInfo, setShopInfoState] = useState<ShopInfo>(initialShopInfo);
-  const [themeColors, setThemeColors] = useState<ThemeColors>(initialThemeColors);
+  const [themeColors, setThemeColors] = useLocalStorage<ThemeColors>('stockhero_themecolors', initialThemeColors);
+  const [byScan, setByScan] = useLocalStorage<boolean>('stockhero_by_scan', true);
   const [token, setToken] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [scannedProductDetails, setScannedProductDetails] = useState<any | null>(null);
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const router = useRouter();
-  const pathname = usePathname();
 
   const logout = useCallback(() => {
     setToken(null);
@@ -147,8 +147,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshAllData = useCallback(async () => {
     if (!currentUser) return;
     
-    const adminOrControlRoles = ['ADMIN', 'SECRETARIAT', 'DG', 'CONTROLLEUR'];
-
     let fetchCommandesPromise;
     if (hasPermission('COMMANDE_READ')) {
         fetchCommandesPromise = api.getCommandes().then(data => setCommandes(data || [])).catch(err => handleFetchError(err, 'Toutes les Commandes'));
@@ -182,8 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     let fetchClientsPromise;
-    // We keep this logic for clients as requested
-    if (adminOrControlRoles.includes(currentUser.roleNom)) {
+    if (hasPermission('USER_MANAGE')) { // Assuming USER_MANAGE can see all clients
         fetchClientsPromise = api.getAllClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Tous les clients'));
     } else {
         fetchClientsPromise = api.getClients().then(data => setClients(data || [])).catch(err => handleFetchError(err, 'Clients'));
@@ -231,9 +228,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initializeApp = async () => {
-      const storedThemeColors = localStorage.getItem('stockhero_themecolors');
-      if (storedThemeColors) setThemeColors(JSON.parse(storedThemeColors));
-      
       const storedToken = localStorage.getItem('stockhero_token');
       if (storedToken) {
         setToken(storedToken);
@@ -255,7 +249,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     if (isMounted) {
-      localStorage.setItem('stockhero_themecolors', JSON.stringify(themeColors));
       const root = document.documentElement;
       if (themeColors.primary) root.style.setProperty('--primary', themeColors.primary);
       if (themeColors.background) root.style.setProperty('--background', themeColors.background);
@@ -529,7 +522,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createInventaire, updateInventaire, confirmInventaire, corrigerStock, addReapprovisionnement,
     createCommande, createVente, annulerVente, addPaiementCredit, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
-    shopInfo, setShopInfo, themeColors, setThemeColors,
+    shopInfo, setShopInfo, themeColors, setThemeColors, byScan, setByScan,
     isMounted, isAuthenticated: !!token, currentUser,
     login, logout, hasPermission,
     scannedProductDetails, setScannedProductDetails,
@@ -543,7 +536,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createInventaire, updateInventaire, confirmInventaire, corrigerStock, addReapprovisionnement,
     createCommande, createVente, annulerVente, addPaiementCredit, validerCommande, annulerCommande, genererFacture, genererBonLivraison, 
     validerLivraisonEtape1, validerLivraisonEtape2, refreshAllData,
-    shopInfo, setShopInfo, themeColors, setThemeColors,
+    shopInfo, setShopInfo, themeColors, setThemeColors, byScan, setByScan,
     isMounted, token, currentUser, scannedProductDetails, hasPermission, login, logout,
     addFactureModele, updateFactureModele, deleteFactureModele,
   ]);

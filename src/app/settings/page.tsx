@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -16,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useApp } from "@/context/app-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Barcode as BarcodeIcon, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer, Building2 as Warehouse, ShieldCheck, PlusCircle, Trash2, Pencil, CheckCircle, XCircle, History } from 'lucide-react';
+import { Settings, Barcode as BarcodeIcon, FileText, ShoppingCart, Import, Users, Store, Palette, FileUp, Printer, Building2 as Warehouse, ShieldCheck, PlusCircle, Trash2, Pencil, CheckCircle, XCircle, History, ScanLine } from 'lucide-react';
 import type { ShopInfo, ThemeColors, Produit, Role, Utilisateur, LieuStock, Permission, RoleCreationPayload } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import * as api from '@/lib/api';
@@ -239,6 +238,34 @@ function AppearanceForm() {
       </Form>
     </Card>
   );
+}
+
+function FeaturesForm() {
+    const { byScan, setByScan } = useApp();
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">Fonctionnalités</CardTitle>
+                <CardDescription>Activez ou désactivez certaines fonctionnalités de l'application.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="byScanSwitch" className="text-base">Scan par code-barres</Label>
+                        <p className="text-sm text-muted-foreground">
+                            Utiliser le mode scan pour les inventaires et réapprovisionnements.
+                        </p>
+                    </div>
+                    <Switch
+                        id="byScanSwitch"
+                        checked={byScan}
+                        onCheckedChange={setByScan}
+                    />
+                </div>
+            </CardContent>
+        </Card>
+    );
 }
 
 function UsersTab() {
@@ -870,9 +897,10 @@ export default function SettingsPage() {
       </div>
       
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
           <TabsTrigger value="users"><Users className="mr-2 h-4 w-4"/>Utilisateurs</TabsTrigger>
-          <TabsTrigger value="roles"><ShieldCheck className="mr-2 h-4 w-4"/>Rôles & Permissions</TabsTrigger>
+          <TabsTrigger value="roles"><ShieldCheck className="mr-2 h-4 w-4"/>Rôles</TabsTrigger>
+          <TabsTrigger value="features"><ScanLine className="mr-2 h-4 w-4"/>Fonctionnalités</TabsTrigger>
           {canImport && <TabsTrigger value="import"><Import className="mr-2 h-4 w-4"/>Import/Export</TabsTrigger>}
           <TabsTrigger value="organisation"><Store className="mr-2 h-4 w-4"/>Organisation</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="mr-2 h-4 w-4"/>Apparence</TabsTrigger>
@@ -884,6 +912,10 @@ export default function SettingsPage() {
           
         <TabsContent value="roles" className="mt-6">
           <RolesTab />
+        </TabsContent>
+
+        <TabsContent value="features" className="mt-6">
+          <FeaturesForm />
         </TabsContent>
 
         {canImport && (
@@ -904,7 +936,6 @@ export default function SettingsPage() {
                         Importer un fichier
                     </Button>
                 </div>
-                {/* AJOUT : Nouvelle section pour le téléchargement du catalogue */}
                 <div className="space-y-2">
                     <h3 className="font-medium">Exporter le catalogue produits</h3>
                     <p className="text-sm text-muted-foreground">
