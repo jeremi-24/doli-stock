@@ -243,13 +243,27 @@ export default function NewInventoryPage() {
         document.title = lieu ? `Inventaire - ${lieu.nom} - STA` : `Nouvel Inventaire - STA`;
         if (lieu) {
              if (inventoryMode === 'list' && editingInventoryId === null) {
-                fetchProductsForLieu(lieu.id);
+                // If byScan is false, show all products
+                if (!byScan) {
+                    setIsLoadingList(true);
+                    const allProductsItems = produits.map(p => ({
+                        produitId: p.id,
+                        produitNom: p.nom,
+                        produitRef: p.ref,
+                        qteCartons: 0,
+                        qteUnites: 0,
+                    })).sort((a,b) => a.produitNom.localeCompare(b.produitNom));
+                    setListItems(allProductsItems);
+                    setIsLoadingList(false);
+                } else {
+                    fetchProductsForLieu(lieu.id);
+                }
             }
         } else {
             setListItems([]);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedLieuStockId, lieuStockMap, inventoryMode]);
+    }, [selectedLieuStockId, lieuStockMap, inventoryMode, byScan, produits]);
     
     useEffect(() => { if (currentUser) setPageIsLoading(false); }, [currentUser]);
 
@@ -346,14 +360,15 @@ export default function NewInventoryPage() {
     };
 
     const handleListQuantityChange = (produitId: number, type: 'cartons' | 'unites', value: number) => {
+        const newValue = Math.max(0, value);
         setListItems(prev => {
-            return prev.map(item => 
-                item.produitId === produitId 
-                ? { ...item, [type === 'cartons' ? 'qteCartons' : 'qteUnites']: Math.max(0, value) } 
-                : item
-            );
+          return prev.map(item =>
+            item.produitId === produitId
+              ? { ...item, [type]: newValue }
+              : item
+          );
         });
-    };
+      };
 
     const handleRemoveItem = (produitId: number, type: 'UNITE' | 'CARTON') => setScannedItems(scannedItems.filter(item => !(item.produitId === produitId && item.typeQuantite === type)));
     const handleClearCart = () => { setScannedItems([]); setSource(""); clearDraft(); toast({ title: 'Panier vidé', description: 'Tous les produits scannés ont été retirés.' }); barcodeInputRef.current?.focus(); };
@@ -617,3 +632,5 @@ export default function NewInventoryPage() {
         </div>
     );
 }
+
+    

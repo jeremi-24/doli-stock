@@ -180,13 +180,14 @@ export default function NewReapproPage() {
     useEffect(() => {
         document.title = selectedLieuStockId ? `Réappro - ${lieuStockMap.get(Number(selectedLieuStockId))?.nom}` : 'Nouveau Réapprovisionnement';
         if (selectedLieuStockId && mode === 'list') {
-            setListItems(produits.map(p => ({
+            const allProductsItems = produits.map(p => ({
                 produitId: p.id,
                 produitNom: p.nom,
                 produitRef: p.ref,
                 qteCartons: 0,
                 qteUnites: 0
-            })).sort((a,b) => a.produitNom.localeCompare(b.produitNom)));
+            })).sort((a,b) => a.produitNom.localeCompare(b.produitNom));
+            setListItems(allProductsItems);
         } else {
             setListItems([]);
         }
@@ -263,12 +264,15 @@ export default function NewReapproPage() {
     };
 
     const handleListQuantityChange = (produitId: number, type: 'cartons' | 'unites', value: number) => {
-        setListItems(prev => prev.map(item => 
-            item.produitId === produitId 
-            ? { ...item, [type === 'cartons' ? 'qteCartons' : 'qteUnites']: Math.max(0, value) } 
-            : item
-        ));
-    };
+        const newValue = Math.max(0, value);
+        setListItems(prev => {
+          return prev.map(item =>
+            item.produitId === produitId
+              ? { ...item, [type]: newValue }
+              : item
+          );
+        });
+      };
 
     const handleRemoveItem = (produitId: number, type: 'UNITE' | 'CARTON') => {
         setScannedItems(scannedItems.filter(item => !(item.produitId === produitId && item.typeQuantite === type)));
@@ -538,3 +542,5 @@ export default function NewReapproPage() {
         </div>
     );
 }
+
+    
