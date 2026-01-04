@@ -1,4 +1,4 @@
-Here is the English version of your README, ready to copy and paste.
+
 
 ***
 
