@@ -1,85 +1,87 @@
+Here is the English version of your README, ready to copy and paste.
 
-# STA - Système de Gestion de Stock Avancé
+***
 
-![Logo STA](public/logosta.jpg)
+# STA - Advanced Stock Management System
 
-**STA** est une application web complète et moderne conçue pour la gestion avancée des stocks, des ventes et des opérations commerciales. Elle offre une interface intuitive et des fonctionnalités puissantes pour optimiser les flux de travail, de la réception des produits à la facturation client.
+![STA Logo](public/logosta.jpg)
 
-## ✨ Fonctionnalités Principales
+**STA** is a comprehensive and modern web application designed for the advanced management of inventory, sales, and business operations. It offers an intuitive interface and powerful features to streamline workflows, from product reception to customer invoicing.
 
-- **Tableau de Bord Intuitif** : Visualisez en un coup d'œil les indicateurs clés de performance (KPIs) comme la valeur totale du stock, les alertes de stock faible et l'activité récente.
-- **Gestion de Produits & Catalogue** : Créez, modifiez et organisez facilement vos produits avec des détails riches (prix, références, seuils d'alerte, prix par carton, etc.).
-- **Gestion de Stock Multi-Entrepôts** : Suivez les niveaux de stock en temps réel pour chaque produit dans différents lieux de stockage (magasins, entrepôts).
-- **Point de Vente (POS)** : Une interface de caisse rapide et ergonomique pour enregistrer les ventes directes, avec un panier interactif et une gestion des clients.
-- **Système de Commandes Internes** : Gérez les demandes de produits entre différents services ou clients internes, avec un flux de validation complet.
-- **Facturation et Bons de Livraison Automatisés** : Générez automatiquement des factures et des bons de livraison professionnels à partir des commandes validées.
-- **Inventaires et Réapprovisionnements** : Réalisez des inventaires précis grâce à un scanner de codes-barres et enregistrez facilement les nouveaux arrivages de stock.
-- **Gestion des Rôles & Permissions** : Un système de contrôle d'accès basé sur les rôles (RBAC) flexible pour définir des permissions granulaires pour chaque utilisateur (ex: Admin, Secrétariat, Magasinier).
-- **Notifications en Temps Réel** : Restez informé des événements importants (nouvelles commandes, validations) grâce aux notifications push via WebSockets.
-- **Personnalisation** : Adaptez l'application à l'image de votre entreprise en modifiant les informations de l'organisation et les couleurs du thème.
+## ✨ Key Features
 
-## 🚀 Technologies Utilisées
+- **Intuitive Dashboard**: Visualize Key Performance Indicators (KPIs) such as total stock value, low stock alerts, and recent activity at a glance.
+- **Product & Catalog Management**: Easily create, edit, and organize your products with rich details (prices, references, alert thresholds, price per carton, etc.).
+- **Multi-Warehouse Stock Management**: Track real-time stock levels for each product across different storage locations (stores, warehouses).
+- **Point of Sale (POS)**: A fast and ergonomic checkout interface to record direct sales, featuring an interactive cart and customer management.
+- **Internal Order System**: Manage product requests between different departments or internal clients, with a complete validation workflow.
+- **Automated Invoicing & Delivery Notes**: Automatically generate professional invoices and delivery notes from validated orders.
+- **Inventory & Replenishment**: Conduct precise inventories using a barcode scanner and easily record new stock arrivals.
+- **Role & Permission Management**: A flexible Role-Based Access Control (RBAC) system to define granular permissions for each user (e.g., Admin, Secretary, Warehouse Manager).
+- **Real-Time Notifications**: Stay informed of important events (new orders, validations) via push notifications over WebSockets.
+- **Customization**: Adapt the application to your company's brand by modifying organization details and theme colors.
 
-Ce projet est construit avec une architecture moderne, performante et maintenable.
+## 🚀 Technologies Used
 
-- **Framework Frontend** : [Next.js](https://nextjs.org/) (avec App Router)
-- **Bibliothèque UI** : [React](https://react.dev/)
-- **Langage** : [TypeScript](https://www.typescriptlang.org/)
-- **Styling** : [Tailwind CSS](https://tailwindcss.com/)
-- **Composants UI** : [Shadcn/UI](https://ui.shadcn.com/)
-- **Gestion d'État** : React Context API & Hooks
-- **Communication Temps Réel** : WebSockets (avec STOMP.js et SockJS)
-- **Validation de Formulaires** : React Hook Form & Zod
-- **Backend (API)** : L'application communique avec une API RESTful externe (non incluse dans ce dépôt).
+This project is built with a modern, high-performance, and maintainable architecture.
 
-## ⚙️ Démarrage
+- **Frontend Framework**: [Next.js](https://nextjs.org/) (with App Router)
+- **UI Library**: [React](https://react.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **UI Components**: [Shadcn/UI](https://ui.shadcn.com/)
+- **State Management**: React Context API & Hooks
+- **Real-Time Communication**: WebSockets (with STOMP.js and SockJS)
+- **Form Validation**: React Hook Form & Zod
+- **Backend (API)**: The application communicates with an external RESTful API (not included in this repository).
 
-Suivez ces étapes pour lancer l'application en environnement de développement.
+## ⚙️ Getting Started
 
-### Prérequis
+Follow these steps to launch the application in a development environment.
 
-- [Node.js](https://nodejs.org/) (version 18.x ou supérieure)
-- [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (version 18.x or higher)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 
 ### 1. Installation
 
-Clonez le dépôt et installez les dépendances :
+Clone the repository and install dependencies:
 
 ```bash
-git clone <url-du-depot>
-cd <nom-du-dossier>
+git clone <repo-url>
+cd <folder-name>
 npm install
 ```
 
-### 2. Configuration de l'environnement
+### 2. Environment Configuration
 
-Créez un fichier `.env.local` à la racine du projet pour configurer l'URL de l'API backend et du serveur WebSocket.
+Create a `.env.local` file at the root of the project to configure the backend API and WebSocket server URLs.
 
 ```env
-# URL de base de votre API backend
+# Base URL of your backend API
 NEXT_PUBLIC_API_URL=http://localhost:8080/api
 
-# URL de votre serveur WebSocket
+# URL of your WebSocket server
 NEXT_PUBLIC_WS_URL=http://localhost:8080/ws-notifications
 ```
 
-### 3. Lancer le serveur de développement
+### 3. Run the Development Server
 
-Vous pouvez maintenant lancer l'application :
+You can now launch the application:
 
 ```bash
 npm run dev
 ```
 
-L'application sera accessible à l'adresse [http://localhost:3000](http://localhost:3000).
+The application will be accessible at [http://localhost:3000](http://localhost:3000).
 
-## 📄 Scripts Disponibles
+## 📄 Available Scripts
 
-- `npm run dev`: Lance l'application en mode développement.
-- `npm run build`: Construit l'application pour la production.
-- `npm run start`: Démarre un serveur de production.
-- `npm run lint`: Exécute ESLint pour analyser le code.
-- `npm run typecheck`: Vérifie les types TypeScript sans émettre de fichiers.
+- `npm run dev`: Runs the app in development mode.
+- `npm run build`: Builds the app for production.
+- `npm run start`: Starts a production server.
+- `npm run lint`: Runs ESLint for code analysis.
+- `npm run typecheck`: Checks TypeScript types without emitting files.
 
 ---
-
